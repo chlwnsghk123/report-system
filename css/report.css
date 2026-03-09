@@ -1,0 +1,108 @@
+/* ════════════════════════════════════
+   리포트 카드 — A4
+════════════════════════════════════ */
+:root{
+  --main-color:#d32f2f; --bg-accent:#ffebee;
+  --green:#059669; --green-light:#ecfdf5;
+  --blue:#2563eb; --blue-light:#eff6ff;
+  --text:#111827; --muted:#6b7280; --border:#e5e7eb;
+}
+.rc{
+  width:210mm; height:297mm;
+  padding:20mm;
+  background:#fff;
+  position:relative;
+  box-shadow:0 20px 60px rgba(0,0,0,.05);
+  transform-origin:top center;
+  flex-shrink:0;
+  overflow:hidden;
+  font-size:14px;
+  line-height:1.5;
+}
+
+[contenteditable]{outline:none;cursor:text;}
+[contenteditable]:hover{background:rgba(211,47,47,.04);border-radius:4px;}
+[contenteditable]:focus{background:rgba(211,47,47,.08);border-radius:4px;box-shadow:0 0 0 1.5px rgba(211,47,47,.25);}
+.eh{position:relative;}
+.eh:hover::after{content:'✏';position:absolute;top:-8px;right:-4px;font-size:10px;
+  background:#fff;border:1px solid #ffcdd2;border-radius:4px;padding:0 4px;pointer-events:none;z-index:9;}
+
+/* — 헤더 — */
+.rc-header{display:flex;justify-content:space-between;align-items:flex-end;
+  border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:25px;}
+.rc-sname{font-size:36px;font-weight:800;color:#000;}
+#rName{font-size:36px;}
+.rc-sname .suf{font-size:20px;font-weight:400;color:#555;margin-left:4px;}
+.rc-meta{text-align:right;}
+.rc-date{font-size:16px;color:#555;font-weight:500;}
+
+/* — 섹션 공통 — */
+.sec{margin-bottom:24px;position:relative;}
+.sec-title{font-size:18px;font-weight:700;color:#333;margin-bottom:12px;
+  display:flex;align-items:center;gap:8px;letter-spacing:0;text-transform:none;}
+.sec-title::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--main-color);flex-shrink:0;}
+.sec-title.green::before{background:var(--green);}
+
+/* — 이행률 — */
+.rate-wrap{display:flex;align-items:flex-end;gap:0;margin-bottom:15px;}
+.rate-num{font-size:64px;font-weight:900;color:var(--main-color);line-height:1;letter-spacing:-2px;}
+.rate-unit{font-size:24px;font-weight:500;color:#777;margin-bottom:8px;margin-left:4px;}
+.rate-chart{width:100%;height:150px;position:relative;background-color:#fafafa;border-radius:4px;
+  padding:30px 0 10px 0;border:1px solid #eee;display:flex;flex-direction:column;justify-content:space-between;}
+.chart-inner{flex:1;padding:0;height:90px;}
+svg.lc{width:100%;height:100%;overflow:visible;}
+.cl{fill:none;stroke:var(--main-color);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;transition:all .5s ease;}
+.cd{fill:#fff;stroke:var(--main-color);stroke-width:2.5;r:5;transition:all .5s ease;}
+.cd.active{fill:var(--main-color);r:6;}
+.clbl{font-size:14px;font-weight:700;fill:var(--main-color);text-anchor:middle;transition:all .5s ease;}
+.clbl.past{fill:#999;font-weight:500;}
+.chart-labels{display:flex;justify-content:space-between;font-size:12px;color:#888;padding:0 5px;margin-top:5px;}
+.chart-labels span{width:50px;text-align:center;}
+.chart-labels span.act{color:var(--main-color);font-weight:700;}
+
+/* — 저번 과제 — */
+.prev-hw-header{display:flex;align-items:center;gap:0;margin-bottom:8px;}
+.prev-hw-date{font-size:12px;color:#9ca3af;font-weight:500;margin-left:6px;}
+.rate-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:30px;
+  background-color:rgba(0,0,0,.02);border:1px solid rgba(0,0,0,.05);box-shadow:0 2px 5px rgba(0,0,0,.02);margin-left:auto;}
+.rb-label{font-size:11px;color:#8b95a1;font-weight:600;} .rb-val{font-size:18px;font-weight:800;color:#8b95a1;}
+
+.hw-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:4px;}
+.hw-list li{font-size:14px;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:#f9fafb;}
+.hw-list li .hw-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.hw-list li.s완료 .hw-icon{background:#dcfce7;color:#15803d;} .hw-list li.s완료{color:#374151;}
+.hw-list li.s부분완료 .hw-icon{background:#fef3c7;color:#92400e;} .hw-list li.s부분완료{color:#78716c;}
+.hw-list li.s미완료 .hw-icon{background:#fee2e2;color:#b91c1c;} .hw-list li.s미완료{color:#9ca3af;}
+.hw-text{flex:1;}
+.hw-chip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;flex-shrink:0;}
+.hw-chip.완료{background:#dcfce7;color:#15803d;} .hw-chip.부분완료{background:#fef3c7;color:#92400e;}
+.hw-chip.미완료{background:#fee2e2;color:#b91c1c;}
+
+/* — 진도 — */
+.prog-row{display:flex;gap:20px;}
+.prog-card{flex:1;background-color:#fcfcfc;border:1px solid #eee;border-left:4px solid #ddd;border-radius:4px;padding:15px;}
+.prog-card.current{border-left-color:var(--main-color);background-color:#fff;
+  border-top:1px solid #eee;border-right:1px solid #eee;border-bottom:1px solid #eee;}
+.prog-card.prev{border-left:4px solid #e5e7eb;}
+.prog-label{font-size:13px;color:#888;font-weight:700;margin-bottom:6px;display:block;letter-spacing:0;text-transform:none;}
+.prog-card.current .prog-label{color:var(--main-color);}
+.prog-book{display:inline-block;font-size:11px;background:#eee;color:#555;padding:2px 6px;border-radius:3px;margin-right:5px;font-weight:600;vertical-align:middle;}
+.prog-chap{font-size:15px;font-weight:600;color:#333;}
+.prog-detail{font-size:13px;color:#666;margin-top:4px;white-space:pre-line;line-height:1.4;}
+
+/* — 다음 과제 — */
+.next-hw-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:4px;}
+.next-hw-list li{font-size:14px;color:#555;display:flex;align-items:flex-start;gap:8px;padding:6px 12px;border-radius:8px;background:#f9fafb;}
+.next-hw-list li::before{content:'-';color:var(--main-color);font-weight:bold;font-size:14px;flex-shrink:0;margin-top:1px;}
+
+/* — 미니테스트 — */
+.mini-wrong-row{padding:10px 14px;background:var(--bg-accent);border-radius:12px;border:1px solid #fca5a5;}
+.mini-wrong-lbl{font-size:10px;font-weight:800;color:var(--main-color);letter-spacing:.5px;margin-bottom:8px;}
+.mini-tags{display:flex;flex-wrap:wrap;gap:6px;}
+.wtag{font-size:13px;font-weight:700;background:#fff;color:var(--main-color);padding:5px 12px;border-radius:20px;border:1.5px solid #fca5a5;}
+
+/* — 코멘트 — */
+.comment-wrap{background-color:#f2f4f6;color:#333;padding:20px 25px;border-radius:20px;border:none;
+  display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.comment-text{font-size:15px;line-height:1.4;font-weight:600;color:#333;white-space:pre-line;flex:1;}
+.teacher-sign{margin-left:20px;white-space:nowrap;font-size:14px;font-weight:800;color:var(--main-color);flex-shrink:0;}
