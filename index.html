@@ -26,6 +26,26 @@
     </div>
     <div id="sbar" class="sbar idle" onclick="triggerLoad()">📂 엑셀 파일 불러오기</div>
     <input type="file" id="excelInput" accept=".xlsx,.xls" style="display:none" onchange="loadExcel(this)">
+    <button class="btn-s" onclick="createTemplate()" style="width:100%;margin-top:4px;">📋 새 파일 만들기 (6월까지 템플릿)</button>
+
+    <!-- 학생 목록 -->
+    <div id="gStudents" style="display:none;">
+      <div onclick="toggleStudentSec()" style="cursor:pointer;background:#f9fafb;border:1px solid #e5e8eb;border-radius:12px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <span style="font-size:11px;font-weight:700;color:#8a8f9e;">학생 목록</span>
+          <div style="font-size:13px;font-weight:600;color:#333;margin-top:2px;" id="studentSummary">—</div>
+        </div>
+        <span id="studentArrow" style="font-size:13px;color:#8a8f9e;transition:transform .2s;display:inline-block;">▾</span>
+      </div>
+      <div id="studentListEdit" style="display:none;flex-direction:column;gap:0;margin-top:6px;">
+        <div id="studentListItems"></div>
+        <div style="display:flex;gap:4px;margin-top:8px;">
+          <input type="text" id="newStudentInput" placeholder="새 학생 이름" style="flex:1;" onkeydown="if(event.key==='Enter')addStudent()">
+          <button class="btn-s" onclick="addStudent()">추가</button>
+        </div>
+      </div>
+    </div>
+
     <div class="cg" id="gDate" style="display:none;">
       <label>수업일</label>
       <select id="selDate" onchange="onDate()"><option value="">— 날짜 선택 —</option></select>

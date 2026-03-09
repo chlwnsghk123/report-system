@@ -33,8 +33,9 @@
 | `triggerLoad()` | 파일선택 다이얼로그 열기 |
 | `loadExcel(input)` | 엑셀 파일 읽기·파싱 진입 |
 | `toDS(v)` | 날짜값 → YYYY-MM-DD 정규화 |
-| `parseWB(wb)` | 워크북 파싱 → G 전체 채움 |
-| `saveToExcel()` | G → 엑셀 파일 다운로드 |
+| `parseWB(wb)` | 워크북 파싱 → G 전체 채움 (날짜별 시트 신규 형식 + 구 형식 하위 호환) |
+| `saveToExcel()` | G → 엑셀 파일 다운로드 (수업정보 + 날짜별 시트) |
+| `createTemplate()` | 오늘~6월까지 주 1회 날짜가 포함된 신규 템플릿 엑셀 생성·다운로드 |
 
 ## js/ui.js
 | 함수 | 역할 |
@@ -57,8 +58,12 @@
 | `saveSession()` | 세션 상태 → IndexedDB `session` 저장 |
 | `restoreSession(s)` | IndexedDB → 세션 복원 |
 | `populateSels()` | 날짜 드롭다운 채우기 |
-| `showGroups()` | 엑셀 로드 후 UI 요소 표시 |
+| `showGroups()` | 엑셀 로드 후 UI 요소 표시 (gStudents 포함) |
 | `onDate()` | 날짜 변경 핸들러 |
+| `renderStudentList()` | 학생 목록 UI 렌더링 |
+| `addStudent()` | 새 학생 G.students에 추가 |
+| `removeStudent(idx)` | 학생 삭제 (G.students에서 제거) |
+| `toggleStudentSec()` | 학생 목록 섹션 접기·펼치기 |
 
 ## js/autofill.js
 | 함수 | 역할 |
