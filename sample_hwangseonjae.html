@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>황선재 리포트 샘플</title>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<style>
+:root{
+  --main-color:#d32f2f; --bg-accent:#ffebee;
+  --green:#059669; --green-light:#ecfdf5;
+  --blue:#2563eb; --blue-light:#eff6ff;
+  --text:#111827; --muted:#6b7280; --border:#e5e7eb;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#f0f0f0;display:flex;flex-direction:column;align-items:center;padding:40px 20px;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;}
+.btn-dl{margin-bottom:20px;padding:12px 28px;background:#d32f2f;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;}
+.btn-dl:hover{background:#b71c1c;}
+
+/* 리포트 카드 */
+.rc{
+  width:210mm;
+  padding:20mm;
+  background:#fff;
+  position:relative;
+  box-shadow:0 20px 60px rgba(0,0,0,.12);
+  font-size:14px;
+  line-height:1.5;
+  font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+}
+.rc-header{display:flex;justify-content:space-between;align-items:flex-end;
+  border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:25px;}
+.rc-sname{font-size:36px;font-weight:800;color:#000;}
+.rc-sname .suf{font-size:20px;font-weight:400;color:#555;margin-left:4px;}
+.rc-meta{text-align:right;}
+.rc-date{font-size:16px;color:#555;font-weight:500;}
+
+.sec{margin-bottom:24px;page-break-inside:avoid;}
+.sec-title{font-size:18px;font-weight:700;color:#333;margin-bottom:12px;
+  display:flex;align-items:center;gap:8px;}
+.sec-title::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--main-color);flex-shrink:0;}
+.sec-title.green::before{background:var(--green);}
+
+/* 이행률 */
+.rate-wrap{display:flex;align-items:flex-end;gap:0;margin-bottom:15px;}
+.rate-num{font-size:64px;font-weight:900;color:var(--main-color);line-height:1;letter-spacing:-2px;}
+.rate-unit{font-size:24px;font-weight:500;color:#777;margin-bottom:8px;margin-left:4px;}
+.rate-chart{width:100%;height:150px;position:relative;background-color:#fafafa;border-radius:4px;
+  padding:30px 0 10px 0;border:1px solid #eee;display:flex;flex-direction:column;justify-content:space-between;}
+.chart-inner{flex:1;padding:0;height:90px;}
+svg.lc{width:100%;height:100%;overflow:visible;}
+.cl{fill:none;stroke:var(--main-color);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;}
+.cd{fill:#fff;stroke:var(--main-color);stroke-width:2.5;}
+.cd.active{fill:var(--main-color);}
+.clbl{font-size:14px;font-weight:700;fill:var(--main-color);text-anchor:middle;}
+.clbl.past{fill:#999;font-weight:500;}
+.chart-labels{display:flex;justify-content:space-between;font-size:12px;color:#888;padding:0 5px;margin-top:5px;}
+.chart-labels span{width:50px;text-align:center;}
+.chart-labels span.act{color:var(--main-color);font-weight:700;}
+
+/* 저번 과제 */
+.prev-hw-date{font-size:12px;color:#9ca3af;font-weight:500;margin-left:6px;}
+.rate-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:30px;
+  background-color:rgba(0,0,0,.02);border:1px solid rgba(0,0,0,.05);margin-left:auto;}
+.rb-label{font-size:11px;color:#8b95a1;font-weight:600;}
+.rb-val{font-size:18px;font-weight:800;color:#8b95a1;}
+.hw-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:4px;}
+.hw-list li{font-size:14px;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:#f9fafb;}
+.hw-list li .hw-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.hw-list li.s완료 .hw-icon{background:#dcfce7;color:#15803d;}
+.hw-list li.s완료{color:#374151;}
+.hw-list li.s부분완료 .hw-icon{background:#fef3c7;color:#92400e;}
+.hw-list li.s부분완료{color:#78716c;}
+.hw-list li.s미완료 .hw-icon{background:#fee2e2;color:#b91c1c;}
+.hw-list li.s미완료{color:#9ca3af;}
+.hw-text{flex:1;}
+.hw-chip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;flex-shrink:0;}
+.hw-chip.완료{background:#dcfce7;color:#15803d;}
+.hw-chip.부분완료{background:#fef3c7;color:#92400e;}
+.hw-chip.미완료{background:#fee2e2;color:#b91c1c;}
+
+/* 진도 */
+.prog-row{display:table;width:100%;table-layout:fixed;border-spacing:20px 0;margin-left:-20px;}
+.prog-card{display:table-cell;width:50%;vertical-align:top;background-color:#fcfcfc;border:1px solid #eee;border-left:4px solid #ddd;border-radius:4px;padding:15px;}
+.prog-card.current{border-left-color:var(--main-color);background-color:#fff;}
+.prog-label{font-size:13px;color:#888;font-weight:700;margin-bottom:6px;display:block;}
+.prog-card.current .prog-label{color:var(--main-color);}
+.prog-book{display:inline-block;font-size:11px;background:#eee;color:#555;padding:2px 6px;border-radius:3px;margin-right:5px;font-weight:600;}
+.prog-chap{font-size:15px;font-weight:600;color:#333;}
+.prog-detail{font-size:13px;color:#666;margin-top:4px;line-height:1.4;}
+
+/* 이번 과제 */
+.next-hw-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:4px;}
+.next-hw-list li{font-size:14px;color:#555;display:flex;align-items:flex-start;gap:8px;padding:6px 12px;border-radius:8px;background:#f9fafb;}
+.next-hw-list li::before{content:'-';color:var(--main-color);font-weight:bold;font-size:14px;flex-shrink:0;margin-top:1px;}
+
+/* 미니테스트 */
+.mini-score-row{display:flex;align-items:center;gap:16px;margin-bottom:12px;}
+.mini-score-big{font-size:48px;font-weight:900;color:var(--green);line-height:1;}
+.mini-score-unit{font-size:18px;font-weight:500;color:#777;margin-bottom:6px;}
+.mini-score-detail{font-size:13px;color:#6b7280;}
+.mini-wrong-row{padding:10px 14px;background:var(--bg-accent);border-radius:12px;border:1px solid #fca5a5;}
+.mini-wrong-lbl{font-size:10px;font-weight:800;color:var(--main-color);letter-spacing:.5px;margin-bottom:8px;}
+.mini-tags{display:flex;flex-wrap:wrap;gap:6px;}
+.wtag{font-size:13px;font-weight:700;background:#fff;color:var(--main-color);padding:5px 12px;border-radius:20px;border:1.5px solid #fca5a5;}
+
+/* 코멘트 */
+.comment-wrap{background-color:#f2f4f6;color:#333;padding:20px 25px;border-radius:20px;
+  display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.comment-text{font-size:15px;line-height:1.6;font-weight:600;color:#333;flex:1;white-space:pre-line;}
+.teacher-sign{margin-left:20px;white-space:nowrap;font-size:14px;font-weight:800;color:var(--main-color);flex-shrink:0;}
+</style>
+</head>
+<body>
+
+<button class="btn-dl" onclick="downloadPng()">📥 PNG 저장</button>
+
+<div class="rc" id="reportCard">
+
+  <!-- 헤더 -->
+  <div class="rc-header">
+    <div class="rc-sname">황선재<span class="suf">학생</span></div>
+    <div class="rc-meta">
+      <div class="rc-date">2026년 3월 9일 (월)</div>
+    </div>
+  </div>
+
+  <!-- ① 숙제 이행률 -->
+  <div class="sec">
+    <div class="sec-title green">숙제 이행률</div>
+    <div class="rate-wrap">
+      <div class="rate-num">85</div>
+      <div class="rate-unit">%</div>
+    </div>
+    <div class="rate-chart">
+      <div class="chart-inner">
+        <svg class="lc" viewBox="0 0 660 90" preserveAspectRatio="none">
+          <!-- 데이터: 2/10=70%, 2/17=75%, 2/24=80%, 3/3=90%, 3/9=85% -->
+          <!-- x 위치: 55, 187, 319, 451, 583  y: 0=top(small %), 90=bottom(100%) -->
+          <!-- y = 90 - (rate/100)*80 -->
+          <!-- 70% -> y=34, 75%->y=30, 80%->y=26, 90%->y=18, 85%->y=22 -->
+          <polyline class="cl" points="55,34 187,30 319,26 451,18 583,22"/>
+          <circle class="cd past" cx="55" cy="34" r="5"/>
+          <text class="clbl past" x="55" y="22" font-size="14">70%</text>
+          <circle class="cd past" cx="187" cy="30" r="5"/>
+          <text class="clbl past" x="187" y="18" font-size="14">75%</text>
+          <circle class="cd past" cx="319" cy="26" r="5"/>
+          <text class="clbl past" x="319" y="14" font-size="14">80%</text>
+          <circle class="cd past" cx="451" cy="18" r="5"/>
+          <text class="clbl past" x="451" y="6" font-size="14">90%</text>
+          <circle class="cd active" cx="583" cy="22" r="6" fill="#d32f2f"/>
+          <text class="clbl" x="583" y="10" font-size="14">85%</text>
+        </svg>
+      </div>
+      <div class="chart-labels">
+        <span>2/10</span>
+        <span>2/17</span>
+        <span>2/24</span>
+        <span>3/3</span>
+        <span class="act">3/9</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② 저번 주차 과제 -->
+  <div class="sec">
+    <div class="sec-title">
+      저번 주차 과제
+      <span class="prev-hw-date">3/3</span>
+      <div class="rate-badge" style="margin-left:auto;">
+        <span class="rb-label">이행률</span>
+        <span class="rb-val">90%</span>
+      </div>
+    </div>
+    <ul class="hw-list">
+      <li class="s완료">
+        <div class="hw-icon">✓</div>
+        <div class="hw-text">쎄듀 첫번째 수능영어 독해 p.54~60 (7문제)</div>
+        <span class="hw-chip 완료">완료</span>
+      </li>
+      <li class="s완료">
+        <div class="hw-icon">✓</div>
+        <div class="hw-text">영단어 암기 Day 21~25 (100개)</div>
+        <span class="hw-chip 완료">완료</span>
+      </li>
+      <li class="s부분완료">
+        <div class="hw-icon">◑</div>
+        <div class="hw-text">Grammar in Use Unit 14~15 연습문제</div>
+        <span class="hw-chip 부분완료">부분완료</span>
+      </li>
+      <li class="s완료">
+        <div class="hw-icon">✓</div>
+        <div class="hw-text">오답노트 정리 (지난 미니테스트 오답 3문항)</div>
+        <span class="hw-chip 완료">완료</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ③ 수업 진도 -->
+  <div class="sec">
+    <div class="sec-title">수업 진도</div>
+    <div class="prog-row">
+      <div class="prog-card current">
+        <span class="prog-label">현재 진도 <span style="font-weight:500;">3/9</span></span>
+        <div>
+          <span class="prog-book">쎄듀 수능영어</span>
+          <span class="prog-chap">Chapter 3 — 빈칸 추론</span>
+        </div>
+        <div class="prog-detail">p.61~70 (빈칸추론 10문제)
+유형별 풀이전략 정리 및 실전 적용</div>
+      </div>
+      <div class="prog-card prev">
+        <span class="prog-label">이전 진도 <span style="font-weight:500;">3/3</span></span>
+        <div>
+          <span class="prog-book">쎄듀 수능영어</span>
+          <span class="prog-chap">Chapter 2 — 주제·요지</span>
+        </div>
+        <div class="prog-detail">p.54~60 (주제·요지 파악 7문제)
+핵심문장 찾기 전략 학습</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ④ 이번 주차 과제 -->
+  <div class="sec">
+    <div class="sec-title">
+      이번 주차 과제
+      <span class="prev-hw-date">~ 3/16</span>
+    </div>
+    <ul class="next-hw-list">
+      <li>쎄듀 첫번째 수능영어 독해 p.71~78 (빈칸추론 8문제)</li>
+      <li>영단어 암기 Day 26~30 (100개) — 다음 시간 퀴즈</li>
+      <li>Grammar in Use Unit 16~17 읽기 + 연습문제 A</li>
+      <li>오늘 미니테스트 오답 3번, 7번, 12번 오답노트 작성</li>
+    </ul>
+  </div>
+
+  <!-- ⑤ 미니테스트 -->
+  <div class="sec">
+    <div class="sec-title green">미니 테스트</div>
+    <div class="mini-score-row">
+      <div class="mini-score-big">17</div>
+      <div class="mini-score-unit" style="margin-bottom:6px;">&nbsp;/ 20</div>
+      <div class="mini-score-detail" style="margin-left:8px;">
+        <div style="font-size:22px;font-weight:800;color:#059669;">85<span style="font-size:14px;font-weight:500;color:#777;">점</span></div>
+        <div style="font-size:12px;color:#9ca3af;">오답 3문항</div>
+      </div>
+    </div>
+    <div class="mini-wrong-row">
+      <div class="mini-wrong-lbl">✗ 오답 번호</div>
+      <div class="mini-tags">
+        <span class="wtag">3번</span>
+        <span class="wtag">7번</span>
+        <span class="wtag">12번</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑥ 코멘트 -->
+  <div class="sec">
+    <div class="sec-title">코멘트</div>
+    <div class="comment-wrap">
+      <div class="comment-text">이번 수업에서 빈칸 추론 유형에 자신감이 많이 붙었어요! 오답 3문항은 모두 연결어 문제인데, 오답노트에 패턴을 정리해두면 다음 시험에서 확실히 올릴 수 있을 거예요. 단어 퀴즈도 꾸준히 잘 하고 있으니 이 페이스 유지해요 💪</div>
+      <div class="teacher-sign">김지수 선생님</div>
+    </div>
+  </div>
+
+</div><!-- /rc -->
+
+<script>
+async function downloadPng() {
+  const el = document.getElementById('reportCard');
+  const btn = document.querySelector('.btn-dl');
+  btn.textContent = '⏳ 생성 중...';
+  btn.disabled = true;
+  try {
+    const canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false
+    });
+    const link = document.createElement('a');
+    link.download = '황선재_리포트_2026-03-09.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } finally {
+    btn.textContent = '📥 PNG 저장';
+    btn.disabled = false;
+  }
+}
+// 페이지 로드 후 자동 다운로드
+window.addEventListener('load', () => {
+  setTimeout(downloadPng, 800);
+});
+</script>
+</body>
+</html>
