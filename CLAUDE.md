@@ -1,7 +1,9 @@
 # CLAUDE.md
 
 ## 프로젝트 개요
-- 순수 프론트엔드 앱 — **반드시 `start.bat` 실행 후 http://localhost:8000 에서 열 것**
+- 순수 프론트엔드 앱 — **반드시 로컬 서버에서 http://localhost:8000 으로 열 것**
+  - Windows: `start.bat` 실행 (Python 내장 http.server 사용)
+  - Linux/Mac: `python3 -m http.server 8000`
 - CDN 전용 (빌드도구·npm 금지), 데이터저장: IndexedDB
 - **A(좌)**: `.panel` — 입력 패널 | **B(우)**: `.preview` — `#reportCard` PDF 미리보기
 
@@ -13,7 +15,7 @@ css/
   report.css        리포트카드 A4 스타일 (:root 변수 포함)
 js/
   state.js          G 객체, 상수(DB/STORE), $$ 헬퍼
-  utils.js          getCurL/getPrevL/getNextL, setAuto, setBar, shortD, fmtKo, esc
+  utils.js          getCurL/getPrevL/getNextL, setAuto, rmAuto, setBar, shortD, fmtKo, esc
   db.js             openDB, dbSet, dbGet
   excel.js          triggerLoad, loadExcel, toDS, parseWB, saveToExcel
   ui.js             updateScale, initCE, fp, renderTabs, switchTab, saveTabData, restoreTabData, toggleSec, toggleCurProg, toggleNextHw
@@ -23,6 +25,22 @@ js/
   pdf.js            loadAttachPdf, renderSpread, drawPdfPrev, prevSpread, nextSpread, dlPdf, dataUrlToBytes
   init.js           window.onload (앱 진입점)
 docs/               참조 문서 (필요 시만 읽기)
+학습리포트_정리본.xlsx  샘플 엑셀 데이터 파일
+```
+
+## CDN 라이브러리
+index.html `<head>`에 다음 CDN을 사용한다. 라이브러리 추가 시 반드시 CDN 링크만 사용할 것.
+| 라이브러리 | 버전 | 용도 |
+|---|---|---|
+| XLSX (SheetJS) | 0.18.5 | 엑셀 읽기/쓰기 |
+| html2canvas | latest | 리포트카드 → 캔버스 캡처 |
+| pdf-lib | 1.17.1 | PDF 생성·합성 |
+| pdf.js | 3.11.174 | 첨부 PDF 렌더링·미리보기 |
+
+## 스크립트 로드 순서
+의존성 순서를 반드시 지킬 것:
+```
+state.js → utils.js → db.js → excel.js → ui.js → session.js → autofill.js → report.js → pdf.js → init.js
 ```
 
 ---
@@ -113,3 +131,4 @@ docs/               참조 문서 (필요 시만 읽기)
 | 함수 목록·역할 | `docs/functions.md` |
 | 엑셀파싱·DB·PDF 흐름 | `docs/data-flows.md` |
 | 엑셀 시트 구조 | `docs/excel-schema.md` |
+| 사용자 요청 예시·커뮤니케이션 팁 | `docs/prompts.md` |
