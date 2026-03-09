@@ -47,17 +47,17 @@ function parseWB(wb){
     // 새 형식: 첫 번째 날짜 시트에서 학생 순서 결정
     const firstDate=wb.SheetNames.find(n=>/^\d{4}-\d{2}-\d{2}$/.test(n));
     if(firstDate){
-      XLSX.utils.sheet_to_json(wb.Sheets[firstDate],{header:1,defval:'',raw:false}).slice(2).forEach(r=>{
+      XLSX.utils.sheet_to_json(wb.Sheets[firstDate],{header:1,defval:'',raw:false}).slice(1).forEach(r=>{
         const name=String(r[0]||'').trim();if(name&&!G.students.includes(name))G.students.push(name);
       });
     }
     // 모든 날짜 시트 파싱
-    // rows[0]=헤더, rows[1]=과제내용행, rows[2+]=학생데이터
+    // rows[0]=헤더, rows[1+]=학생데이터
     wb.SheetNames.forEach(sheetName=>{
       if(!/^\d{4}-\d{2}-\d{2}$/.test(sheetName))return;
       const ws=wb.Sheets[sheetName];if(!ws)return;
       const date=sheetName;
-      XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false}).slice(2).forEach(r=>{
+      XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false}).slice(1).forEach(r=>{
         const name=String(r[0]||'').trim();if(!name)return;
         if(!G.students.includes(name))G.students.push(name);
         // 성적: "맞힌/전체" 형식
@@ -159,12 +159,11 @@ async function saveToExcel(){
   G.lessons.forEach((_,i)=>{const c=ws1[XLSX.utils.encode_cell({r:i+1,c:0})];if(c)c.t='s';});
   XLSX.utils.book_append_sheet(wb,ws1,'수업정보');
   // 날짜별 시트 (학생별 시트 대체)
-  // 행 0: 헤더, 행 1: 과제 내용, 행 2+: 학생별 데이터
+  // 행 0: 헤더, 행 1+: 학생별 데이터
   G.lessons.forEach(les=>{
     const date=les.날짜,total=les.전체문제수||5;
     const wsD=XLSX.utils.aoa_to_sheet([
       ['이름','성적','오답','과제이행률','과제1','과제2','과제3','과제4','과제5'],
-      ['','','','',les.과제1||'',les.과제2||'',les.과제3||'',les.과제4||'',les.과제5||''],
       ...G.students.map(n=>{
         const correct=G.corrects[n]?.[date];
         const scoreStr=correct!==undefined?`${correct}/${total}`:'';
@@ -208,7 +207,6 @@ function createTemplate(){
   dates.forEach(date=>{
     const wsD=XLSX.utils.aoa_to_sheet([
       ['이름','성적','오답','과제이행률','과제1','과제2','과제3','과제4','과제5'],
-      ['','','','','','','','',''],
       ...students.map(n=>[n,'','','','','','','',''])
     ]);
     XLSX.utils.book_append_sheet(wb,wsD,date);
