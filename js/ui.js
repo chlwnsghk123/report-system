@@ -5,15 +5,29 @@ function updateScale(){
   const availH=area.clientHeight-navH-80;
   const availW=area.clientWidth-80;
   const a4w=794,a4h=1123;
-  const sv=Math.max(Math.min(availW/a4w,availH/a4h,0.9),.15);
-  card.style.transform=`scale(${sv})`;
-  card.style.marginBottom=`${-(a4h*(1-sv))}px`;
-  [$$('leftPdfCanvas'),$$('rightPdfCanvas')].forEach(c=>{
-    if(!c||c.style.display==='none')return;
-    c.style.transformOrigin='top center';
-    c.style.transform=`scale(${sv})`;
-    c.style.marginBottom=`${-(a4h*(1-sv))}px`;
-  });
+  const spreadRow=$$('spreadRow');
+  if(spreadRow.classList.contains('dual')){
+    // 듀얼: 컨테이너 전체를 하나의 유닛으로 스케일 (페이지 간 빈 공간 방지)
+    const dualW=a4w*2+8+48,dualH=a4h+48; // 1644×1171
+    const sv=Math.max(Math.min(availW/dualW,availH/dualH,1.0),.1);
+    spreadRow.style.transform=`scale(${sv})`;
+    spreadRow.style.marginBottom=`${-(dualH*(1-sv))}px`;
+    // 개별 페이지 transform 초기화
+    card.style.transform='none';card.style.marginBottom='';
+    [$$('leftPdfCanvas'),$$('rightPdfCanvas')].forEach(c=>{if(!c)return;c.style.transform='none';c.style.marginBottom='';});
+  }else{
+    // 싱글: 기존 방식
+    spreadRow.style.transform='';spreadRow.style.marginBottom='';
+    const sv=Math.max(Math.min(availW/a4w,availH/a4h,0.9),.15);
+    card.style.transform=`scale(${sv})`;
+    card.style.marginBottom=`${-(a4h*(1-sv))}px`;
+    [$$('leftPdfCanvas'),$$('rightPdfCanvas')].forEach(c=>{
+      if(!c||c.style.display==='none')return;
+      c.style.transformOrigin='top center';
+      c.style.transform=`scale(${sv})`;
+      c.style.marginBottom=`${-(a4h*(1-sv))}px`;
+    });
+  }
 }
 
 // ─── contenteditable 동기화 ───

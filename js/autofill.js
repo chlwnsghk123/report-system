@@ -29,6 +29,14 @@ function autoFillCommon(){
   updateCurProgSummary();updateNextHwSummary();updateCommentSign();
 }
 
+// 엑셀 기호 → UI 한글 상태 변환 (○/△/X → 완료/부분완료/미완료)
+function stFromExcel(v){
+  if(v==='○')return'완료';
+  if(v==='△')return'부분완료';
+  if(v==='X'||v==='x'||v==='✗'||v==='×'||v==='✕')return'미완료';
+  return v; // '완료'/'부분완료'/'미완료'(재저장 후 재로드) 또는 '' 그대로
+}
+
 // ─── 자동 채우기 (학생+날짜 기준 전체) ───
 function autoFillAll(){
   autoFillCommon();$$('rName').innerText=G.selStudent;
@@ -42,6 +50,9 @@ function autoFillAll(){
     }
     calcScore();updateWrongTags($$('inputWrong').value);
   }else{
+    // 학생 전환 시 이전 값 잔류 방지 — 항상 초기화 후 새 값 설정
+    $$('inputCorrect').value='';$$('inputCorrect').classList.remove('auto');
+    $$('inputComment').value='';fp('commentBody','inputComment');
     const sc=G.scores[G.selStudent]?.[G.selDate],ct=G.corrects[G.selStudent]?.[G.selDate];
     if(ct!==undefined){$$('inputCorrect').value=ct;$$('inputCorrect').classList.add('auto');}
     if(sc!==undefined){G.scoreCalc=sc;$$('calcResult').textContent=ct!==undefined?`${ct} / ${G.totalQ}`:'—';}
@@ -50,8 +61,8 @@ function autoFillAll(){
     updateWrongTags($$('inputWrong').value);calcScore();
     const prev=getPrevL();
     G.hwItems=prev?[1,2,3,4,5].map(i=>prev[`과제${i}`]||'').filter(x=>x):[];
-    const key=prev?`${G.selStudent}||${prev.날짜}`:null,hwR=key?G.hwRec[key]:null;
-    G.hwStatus=G.hwItems.map((_,i)=>hwR?hwR[`과제${i+1}_상태`]||'':'');
+    const key=G.selDate?`${G.selStudent}||${G.selDate}`:null,hwR=key?G.hwRec[key]:null;
+    G.hwStatus=G.hwItems.map((_,i)=>hwR?stFromExcel(hwR[`과제${i+1}_상태`]||''):'');
     const ar=calcRateFromStatus(G.hwStatus);
     setAuto('inputRate',ar!==null?ar:(G.rates[G.selStudent]?.[G.selDate]??''));G.hwRateManual=null;
     renderHwEditor();updateHwDisplay();

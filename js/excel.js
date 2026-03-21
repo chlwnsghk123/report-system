@@ -143,9 +143,9 @@ async function saveToExcel(){
         G.hwItems.forEach((item,idx)=>{prev[`과제${idx+1}`]=item||'';});
         for(let i=G.hwItems.length;i<5;i++)prev[`과제${i+1}`]='';
       }
-      const key=`${n}||${prev.날짜}`;
+      const key=`${n}||${G.selDate}`;
       const ex=G.hwRec[key]||{이행률:null,과제1_상태:'',과제2_상태:'',과제3_상태:'',과제4_상태:'',과제5_상태:''};
-      if(td.rateManual!=null){ex.이행률=td.rateManual;G.rates[n]=G.rates[n]||{};G.rates[n][prev.날짜]=td.rateManual;}
+      if(td.rateManual!=null){ex.이행률=td.rateManual;G.rates[n]=G.rates[n]||{};G.rates[n][G.selDate]=td.rateManual;}
       const hs=td.hwStatus||[];for(let i=0;i<5;i++)ex[`과제${i+1}_상태`]=hs[i]||ex[`과제${i+1}_상태`]||'';
       G.hwRec[key]=ex;
     }
@@ -180,7 +180,7 @@ async function saveToExcel(){
   a.download=G.excelFileName;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   $$('lastSaved').style.display='';
   $$('lastSaved').textContent=`✅ ${new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})} 저장됨`;
-  btn.disabled=false;btn.textContent='💾 저장 (엑셀)';saveSession();
+  btn.disabled=false;btn.textContent='💾 파일 저장';saveSession();
 }
 
 // ─── 템플릿 생성 ───

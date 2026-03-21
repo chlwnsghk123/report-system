@@ -7,9 +7,19 @@ async function loadAttachPdf(input){
     const pdfDoc=await pdfjsLib.getDocument({data:buf.slice(0)}).promise;
     G.pdfPageCount=pdfDoc.numPages;G.pdfCanvases=[];
     for(let i=1;i<=G.pdfPageCount;i++){
+      // 1. 원본 렌더
       const page=await pdfDoc.getPage(i);const vp=page.getViewport({scale:2.5});
-      const cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;
-      await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+      const raw=document.createElement('canvas');raw.width=vp.width;raw.height=vp.height;
+      await page.render({canvasContext:raw.getContext('2d'),viewport:vp}).promise;
+      const W=raw.width,H=raw.height;
+      // 2. 상5% 하6% 잘라내기 (머리말/꼬리말 제거)
+      const cT=Math.round(H*0.05),cB=Math.round(H*0.06),cropH=H-cT-cB;
+      // 3. 원본과 동일한 A4 흰색 캔버스 생성
+      const cv=document.createElement('canvas');cv.width=W;cv.height=H;
+      const ctx=cv.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
+      // 4. 잘라낸 내용을 정중앙에서 6% 아래로 배치 (위아래 남는 공간은 흰색 유지)
+      const destY=Math.round((H-cropH)/2+H*0.04);
+      ctx.drawImage(raw,0,cT,W,cropH,0,destY,W,cropH);
       G.pdfCanvases.push(cv);
     }
     G.currentSpread=0;renderSpread();
@@ -29,8 +39,10 @@ function renderSpread(){
   const rc=$$('reportCard'),lc=$$('leftPdfCanvas'),rs=$$('rightSlot'),rpc=$$('rightPdfCanvas');
   if(li===0){rc.style.display='';lc.style.display='none';$$('leftLabel').textContent='리포트';}
   else{rc.style.display='none';const pi=li-1;if(pi<G.pdfCanvases.length){drawPdfPrev(lc,G.pdfCanvases[pi]);lc.style.display='block';$$('leftLabel').textContent=`시험자료 ${pi+1}p`;}}
-  if(G.pdfPageCount>0&&ri<total){rs.style.display='';const pi=ri-1;if(pi<G.pdfCanvases.length){drawPdfPrev(rpc,G.pdfCanvases[pi]);$$('rightLabel').textContent=`시험자료 ${pi+1}p`;}}
+  const isDual=G.pdfPageCount>0&&ri<total;
+  if(isDual){rs.style.display='';const pi=ri-1;if(pi<G.pdfCanvases.length){drawPdfPrev(rpc,G.pdfCanvases[pi]);$$('rightLabel').textContent=`시험자료 ${pi+1}p`;}}
   else rs.style.display='none';
+  $$('spreadRow').classList.toggle('dual',isDual);
   setTimeout(updateScale,60);
 }
 function drawPdfPrev(tgt,src){
@@ -50,6 +62,7 @@ async function dlPdf(){
     const rc=$$('reportCard');
     const reportCanvas=await html2canvas(rc,{scale:2,useCORS:true,backgroundColor:'#fff',
       onclone:doc=>{const c=doc.getElementById('reportCard');c.style.transform='none';c.style.margin='0';
+        const sr=doc.getElementById('spreadRow');if(sr){sr.style.transform='none';sr.style.marginBottom='';}
         doc.querySelectorAll('[contenteditable]').forEach(e=>e.style.outline='none');},
       width:rc.offsetWidth,height:rc.offsetHeight,scrollX:0,scrollY:0,windowWidth:rc.offsetWidth,windowHeight:rc.offsetHeight});
     const{PDFDocument}=PDFLib;const outDoc=await PDFDocument.create();

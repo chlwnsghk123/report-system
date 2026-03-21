@@ -31,7 +31,7 @@ function renderHwEditor(){
   if(!G.hwItems.length){c.innerHTML='<div style="font-size:11px;color:#b5bac4;padding:4px 2px;">이전 주차 과제 없음</div>';updateHwDisplay();return;}
   c.innerHTML=G.hwItems.map((item,i)=>{
     const st=G.hwStatus[i]||'';
-    return`<div class="hw-item"><input type="text" class="${st?'':'auto'}" value="${esc(item)}"
+    return`<div class="hw-item"><input type="text" class="auto" value="${esc(item)}"
       oninput="G.hwItems[${i}]=this.value;this.classList.remove('auto');updateHwDisplay();">
       <button class="hw-btn s${st}" onclick="cycleHwStatus(${i})">${hwBtnLabel(st)}</button>
     </div>`;}).join('');
