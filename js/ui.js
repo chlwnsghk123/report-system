@@ -41,8 +41,8 @@ function initCE(){
   });
 }
 
-// 리포트카드 → 패널 단방향 동기화
-function fp(cid,pid){const c=$$(cid),p=$$(pid);if(c&&p&&c.innerText.trim()!==p.value)c.innerText=p.value;}
+// 리포트카드 → 패널 단방향 동기화 (좌패널에서 갱신 시 override 제거)
+function fp(cid,pid){const c=$$(cid),p=$$(pid);if(c&&p&&c.innerText.trim()!==p.value){c.innerText=p.value;delete G.reportEdits[cid];}}
 
 // ═══════════════════════════════════════
 // 뷰 전환 시스템
@@ -110,6 +110,7 @@ function selectDate(date){
   G.selDate=date;
   G.tabData={};
   G.hwRateManual=null;
+  G.reportEdits={};
   if(!G.selStudent&&G.students.length)G.selStudent=G.students[0];
   // dateTabOffset 조정: 선택된 날짜가 보이도록
   const idx=G.lessons.findIndex(l=>l.날짜===date);
@@ -290,6 +291,8 @@ function saveTabData(){
     correctInput:$$('inputCorrect').value,totalInput:$$('inputTotal').value,
     wrongInput:$$('inputWrong').value,rateManual:G.hwRateManual,
     comment:$$('inputComment').value,
+    teacher:$$('inputTeacher').value,
+    reportEdits:{...G.reportEdits},
   };
   syncHwRecItems(G.selStudent,G.selDate);
 }
@@ -322,6 +325,8 @@ function restoreTabData(name){
   G.scoreCalc=d.scoreCalc??null;G.hwRateManual=d.rateManual??null;
   $$('inputCorrect').value=d.correctInput||'';$$('inputTotal').value=d.totalInput||'';
   $$('inputWrong').value=d.wrongInput||'';$$('inputComment').value=d.comment||'';
+  $$('inputTeacher').value=d.teacher||'';
+  G.reportEdits=d.reportEdits?{...d.reportEdits}:{};
   fp('commentBody','inputComment');return true;
 }
 

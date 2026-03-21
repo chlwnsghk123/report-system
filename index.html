@@ -15,10 +15,10 @@
 <link rel="stylesheet" href="css/layout.css">
 <link rel="stylesheet" href="css/report.css">
 <style>
-  .hw-list li { color: #6b7280; }
-  .hw-list li.s완료,
-  .hw-list li.s부분완료,
-  .hw-list li.s미완료 { color: #111827; }
+  .hw-li { color: #6b7280; }
+  .hw-li.s완료,
+  .hw-li.s부분완료,
+  .hw-li.s미완료 { color: #222; }
 </style>
 </head>
 <body>
@@ -97,10 +97,10 @@
         </div>
       </div>
       <div class="cg" id="gComment" style="display:none;">
-        <label>강사명</label>
-        <input type="text" id="inputTeacher" oninput="updateCommentSign()" style="margin-bottom:4px;">
-        <textarea id="inputComment" rows="2" placeholder="한마디 코멘트를 입력하세요" oninput="fp('commentBody','inputComment')"></textarea>
+        <div style="font-size:11px;color:#9ca3af;padding:2px 0;">리포트에서 직접 편집하세요</div>
       </div>
+      <input type="hidden" id="inputTeacher">
+      <input type="hidden" id="inputComment">
 
       <button class="btn-d" id="btnPdf" onclick="dlPdf()">📄 PDF로 저장</button>
       <div id="lastSaved" style="font-size:11px;color:#9ca3af;text-align:center;display:none;"></div>
@@ -160,7 +160,7 @@
             저번 주차 과제
             <span id="rPrevHwDate" class="prev-hw-date"></span>
           </div>
-          <ul class="hw-list" id="rHwList"></ul>
+          <div class="hw-list" id="rHwList"></div>
         </div>
 
         <!-- ③ 진도 -->
@@ -192,7 +192,7 @@
             이번 주차 과제
             <span id="rNextHwDate" class="prev-hw-date"></span>
           </div>
-          <ul class="next-hw-list" id="rNoticeList"></ul>
+          <div class="next-hw-list" id="rNoticeList"></div>
         </div>
 
         <!-- ⑤ 미니테스트 (선택) -->

@@ -25,7 +25,7 @@ function rebuildGraph(){
   $$('gLabels').innerHTML=lbl;
 }
 
-// ─── 과제 에디터 ───
+// ─── 과제 에디터 (좌패널: 텍스트 readonly, 상태 버튼만 조작) ───
 function renderHwEditor(){
   const c=$$('hwEditor');
   if(!G.hwItems.length){c.innerHTML='<div style="font-size:11px;color:#b5bac4;padding:4px 2px;">이전 주차 과제 없음</div>';updateHwDisplay();return;}
@@ -39,9 +39,9 @@ function renderHwEditor(){
       html+='<div class="hw-carry-divider">이월 과제</div>';
     }
     html+=`<div class="hw-item${isCarry?' hw-carry':''}">
-      ${isCarry?`<span class="hw-carry-badge" title="${fromDate?fmtKo(fromDate):''}">전</span>`:''}
-      <input type="text" class="${isCarry?'auto':''}" value="${esc(item)}"
-        oninput="G.hwItems[${i}]=this.value;this.classList.remove('auto');updateHwDisplay();updateNoticeWithCarry();">
+      ${isCarry?`<span class="hw-carry-badge" title="${fromDate?fmtKo(fromDate):''}">(전)</span>`:''}
+      <input type="text" class="${isCarry?'auto':''}" value="${esc(item)}" readonly
+        style="cursor:default;opacity:.8;">
       <button class="hw-btn s${st}" onclick="cycleHwStatus(${i})">${hwBtnLabel(st)}</button>
     </div>`;
   });
@@ -70,6 +70,9 @@ function cycleHwStatus(i){
   G.hwStatus[i]=next;
   const btns=document.querySelectorAll('.hw-btn');
   if(btns[i]){btns[i].className='hw-btn s'+next;btns[i].textContent=hwBtnLabel(next);}
+  // 좌패널에서 변경 → 리포트 override 제거
+  delete G.reportEdits.rHwList;
+  delete G.reportEdits.rNoticeList;
   updateHwDisplay();updateHwBadge();rebuildGraph();
   updateNoticeWithCarry();
   syncHwRecItems(G.selStudent,G.selDate);
@@ -87,28 +90,42 @@ function updateHeaderDate(curDate,nextDate){
   const nHw=$$('rNextHwDate');
   if(nHw&&nextDate)nHw.textContent=`(~${shortD(nextDate)})`;else if(nHw)nHw.textContent='';
 }
+
+// ─── 저번 주차 과제 표시 (2열 레이아웃 지원) ───
 function updateHwDisplay(){
   const list=$$('rHwList'),sec=$$('secPrevHw');
   const visible=G.hwItems.filter((_,i)=>G.hwStatus[i]!=='');
   if(!G.hwItems.length||!visible.length){if(sec)sec.style.display='none';list.innerHTML='';return;}
   if(sec)sec.style.display='';
-  list.innerHTML=G.hwItems.map((item,i)=>{
-    if(!item.trim()||G.hwStatus[i]==='')return'';
+  const icons={'완료':'✓','부분완료':'◑','미완료':'✗'};
+  const baseHtml=[],carryHtml=[];
+  G.hwItems.forEach((item,i)=>{
+    if(!item.trim()||G.hwStatus[i]==='')return;
     const st=G.hwStatus[i]||'미완료';
-    const icons={'완료':'✓','부분완료':'◑','미완료':'✗'};
     const isCarry=G.hwItemTypes[i]?.type==='carry';
-    return`<li class="s${st}${isCarry?' carry':''}">
+    const li=`<div class="hw-li s${st}">
       <span class="hw-icon">${icons[st]||'?'}</span>
       ${isCarry?'<span class="hw-carry-mark">(전)</span>':''}
       <span class="hw-text">${esc(item.trim())}</span>
-      <span class="hw-chip ${st}">${st}</span>
-    </li>`;}).join('');
+      <span class="hw-chip">${st}</span>
+    </div>`;
+    if(isCarry)carryHtml.push(li);else baseHtml.push(li);
+  });
+  const total=baseHtml.length+carryHtml.length;
+  if(total>3&&carryHtml.length>0){
+    list.className='hw-list compact';
+    list.innerHTML=`<div class="hw-col"><div class="hw-col-label">본과제</div>${baseHtml.join('')}</div>`
+      +`<div class="hw-col"><div class="hw-col-label">이월과제</div>${carryHtml.join('')}</div>`;
+  }else{
+    list.className='hw-list';
+    list.innerHTML=baseHtml.join('')+carryHtml.join('');
+  }
   updateHwBadge();
 }
 function updateHwBadge(){}
 function updateNoticeList(text){
   const list=$$('rNoticeList');if(!text||!text.trim()){list.innerHTML='';return;}
-  list.innerHTML=text.split('\n').filter(l=>l.trim()).map(l=>`<li>${esc(l.trim())}</li>`).join('');
+  list.innerHTML=text.split('\n').filter(l=>l.trim()).map(l=>`<div class="next-hw-li">${esc(l.trim())}</div>`).join('');
 }
 function updateCommentSign(){
   const sign=$$('inputTeacher').value.trim();
@@ -117,4 +134,29 @@ function updateCommentSign(){
 function updateWrongTags(tagStr){
   const tags=tagStr?tagStr.split(',').map(t=>t.trim()).filter(t=>t):[];
   $$('rWrongTags').innerHTML=tags.map(t=>`<span class="wtag">${esc(t)} 틀림</span>`).join('');
+}
+
+// ─── 리포트 편집 override 적용 ───
+function applyReportEdits(){
+  if(!G.reportEdits)return;
+  ['rHwList','rNoticeList','commentBody','commentSign'].forEach(id=>{
+    if(G.reportEdits[id]!=null){
+      const el=$$(id);if(el)el.innerHTML=G.reportEdits[id];
+    }
+  });
+}
+
+// ─── 리포트카드 편집 리스너 초기화 ───
+function initReportListeners(){
+  ['rHwList','rNoticeList','commentBody','commentSign'].forEach(id=>{
+    const el=$$(id);if(!el)return;
+    el.setAttribute('contenteditable','true');
+    el.addEventListener('input',function(){
+      G.reportEdits[id]=this.innerHTML;
+    });
+    el.addEventListener('paste',function(e){
+      e.preventDefault();
+      document.execCommand('insertText',false,e.clipboardData.getData('text/plain'));
+    });
+  });
 }
