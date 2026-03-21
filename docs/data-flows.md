@@ -36,9 +36,10 @@ loadExcel() → XLSX.read(arrayBuffer) → parseWB(wb)
 ```
 window.onload()
   → openDB()
-  → dbGet('appData') → G 복원 → populateSels() + showGroups()
-  → dbGet('session') → restoreSession()
-      → autoFillCommon() 또는 autoFillAll()
+  → updateScale() + resize 리스너 등록
+  → initCE()
+  // 항상 새로 시작 — 이전 세션 자동 복원 없음
+  // populateSels(), showGroups()는 엑셀 로드 후에만 호출됨
 ```
 
 저장 시점:
@@ -49,6 +50,13 @@ window.onload()
 | `saveSession()` | `'session'` | 날짜·학생 전환, 토글 변경 시 |
 | `saveTabData()` | `'appData'` 내 포함 | 탭 전환 시 |
 
+## 2-1. JSON 로컬 백업·복원
+
+```
+saveLocalData()  → G 전체 → JSON 파일 다운로드
+loadLocalData()  → JSON 파일 → G 복원 → populateSels() + showGroups() + restoreSession()
+```
+
 ## 3. 학생 탭 전환
 
 ```
@@ -56,7 +64,7 @@ switchTab(name)
   → saveTabData()       현재 학생 입력값 → G.tabData
   → G.selStudent = name
   → renderTabs()        활성 탭 UI
-  → autoFillAll()
+  → if(G.selDate) autoFillAll()   ← 날짜 선택 시에만 실행
       → autoFillCommon() 진도·과제 자동채우기
       → restoreTabData() 이전 입력값 복원
       → calcScore(), updateWrongTags(), rebuildGraph()
@@ -89,7 +97,8 @@ dlPdf()
   → html2canvas(#reportCard, scale:2) → reportCanvas
   → allPages = [reportCanvas, ...G.pdfCanvases]
   → pdf-lib: A4 가로 (841.89×595.28pt), 마진20, 갭12
-  → 2개씩 spread 페이지 (좌/우 각 400pt)
+  → 2개씩 spread 페이지 (좌/우 각 ~395pt)
+  첨부 PDF 전처리: 상단 5% + 하단 6% 크롭, 수직 4% 오프셋 보정
   → Blob → <a> 클릭 다운로드
   파일명: {학생명}_{날짜}_리포트.pdf
 ```

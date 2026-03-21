@@ -64,13 +64,16 @@
 | `addStudent()` | 새 학생 G.students에 추가 |
 | `removeStudent(idx)` | 학생 삭제 (G.students에서 제거) |
 | `toggleStudentSec()` | 학생 목록 섹션 접기·펼치기 |
+| `saveLocalData()` | G 전체 데이터 → JSON 파일 다운로드 (로컬 백업) |
+| `loadLocalData(input)` | JSON 파일 → G 복원 (로컬 백업 불러오기) |
 
 ## js/autofill.js
 | 함수 | 역할 |
 |---|---|
+| `stFromExcel(v)` | 엑셀 기호(○/△/X) → 한글 상태(완료/부분완료/미완료) 변환 |
 | `calcScore()` | 맞힌수/전체 → 점수 계산 및 표시 |
 | `autoFillCommon()` | 날짜 기준 공통 필드 자동채우기 |
-| `autoFillAll()` | 학생+날짜 기준 전체 자동채우기 |
+| `autoFillAll()` | 학생+날짜 기준 전체 자동채우기 (탭 복원, 점수 계산, 오답 태그, 과제 에디터, 그래프 포함) |
 
 ## js/report.js
 | 함수 | 역할 |
@@ -104,4 +107,4 @@
 ## js/init.js
 | 함수 | 역할 |
 |---|---|
-| `window.onload` | 앱 초기화 진입점: DB오픈→복원→UI |
+| `window.onload` | 앱 초기화 진입점: DB오픈→updateScale→initCE (세션 자동복원 없음) |
