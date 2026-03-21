@@ -137,18 +137,17 @@
             <span id="rName" class="eh" contenteditable="true" style="display:inline;"></span><span class="suf" style="font-size: inherit; font-weight: inherit; color: inherit; margin-left: 8px;">학생</span>
           </div>
           <div class="rc-meta">
-            <div class="rc-subtitle">✦ 학습 리포트 ✦</div>
             <div class="rc-date" id="rDate"></div>
           </div>
         </div>
 
         <!-- ① 이행률 -->
         <div class="sec" id="secRate">
-          <div class="sec-title green"><span class="sec-icon">✎</span> 숙제 이행률</div>
+          <div class="sec-title green"><span class="sec-icon">·</span> 숙제 이행률</div>
           <div class="rate-wrap">
             <div class="rate-num"><span id="rRate" class="eh" contenteditable="true">—</span></div>
             <div class="rate-unit">%</div>
-            <div class="rate-face" id="rateFace"></div>
+            <div class="rate-mascot" id="rateMascot"></div>
           </div>
           <div class="rate-chart">
             <div class="chart-inner"><svg class="lc" id="svgChart" viewBox="0 0 660 100" preserveAspectRatio="none"></svg></div>
@@ -159,7 +158,7 @@
         <!-- ② 저번 주차 과제 -->
         <div class="sec" id="secPrevHw">
           <div class="sec-title">
-            <span class="sec-icon">✓</span> 저번 주차 과제
+            <span class="sec-icon">✎</span> 저번 주차 과제
             <span id="rPrevHwDate" class="prev-hw-date"></span>
           </div>
           <div class="hw-list" id="rHwList"></div>
@@ -167,7 +166,7 @@
 
         <!-- ③ 진도 -->
         <div class="sec">
-          <div class="sec-title"><span class="sec-icon">⌇</span> 수업 진도</div>
+          <div class="sec-title"><span class="sec-icon">📖</span> 수업 진도</div>
           <div class="prog-row">
             <div class="prog-card current">
               <div class="prog-label">현재 진도 <span id="rCurDt" style="text-transform:none;font-weight:500;"></span></div>
@@ -210,8 +209,8 @@
 
         <!-- ⑥ 코멘트 (선택) -->
         <div class="sec" id="secComment" style="display:none;">
-          <div class="sec-title"><span class="sec-icon">♡</span> 코멘트</div>
-          <div class="comment-wrap comment-bubble">
+          <div class="sec-title"><span class="sec-icon">·</span> 코멘트</div>
+          <div class="comment-wrap">
             <div class="comment-text eh" id="commentBody" contenteditable="true" data-panel="inputComment"></div>
             <div class="teacher-sign eh" id="commentSign" contenteditable="true"></div>
           </div>

@@ -277,6 +277,7 @@ function renderTabs(){
 function switchTab(name){
   if(name===G.selStudent)return;
   saveTabData();G.selStudent=name;renderTabs();
+  const m=$$('rateMascot');if(m)delete m.dataset.idx;
   if(G.selDate)autoFillAll();
   saveSession();
 }

@@ -1,12 +1,60 @@
-// ─── 이행률 표정 ───
+// ─── 이행률 마스코트 (랜덤 캐릭터) ───
+const MASCOTS=[
+  // 고양이
+  `<svg viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M25 30 L30 5 L45 25 Z" fill="#222"/>
+    <path d="M75 30 L70 5 L55 25 Z" fill="#222"/>
+    <ellipse cx="50" cy="45" rx="28" ry="25" fill="#222"/>
+    <ellipse cx="50" cy="85" rx="24" ry="30" fill="#222"/>
+    <ellipse cx="50" cy="90" rx="16" ry="22" fill="#fff"/>
+    <ellipse cx="42" cy="42" rx="5" ry="6" fill="#fff"/>
+    <ellipse cx="58" cy="42" rx="5" ry="6" fill="#fff"/>
+    <circle cx="42" cy="43" r="2.5" fill="#222"/>
+    <circle cx="58" cy="43" r="2.5" fill="#222"/>
+    <path d="M48 50 L50 52 L52 50" stroke="#222" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <line x1="20" y1="42" x2="35" y2="44" stroke="#222" stroke-width="1" stroke-linecap="round"/>
+    <line x1="20" y1="48" x2="35" y2="47" stroke="#222" stroke-width="1" stroke-linecap="round"/>
+    <line x1="80" y1="42" x2="65" y2="44" stroke="#222" stroke-width="1" stroke-linecap="round"/>
+    <line x1="80" y1="48" x2="65" y2="47" stroke="#222" stroke-width="1" stroke-linecap="round"/>
+    <path d="M74 75 Q85 65 80 55" stroke="#222" stroke-width="5" fill="none" stroke-linecap="round"/>
+  </svg>`,
+  // 강아지
+  `<svg viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="50" cy="50" rx="30" ry="28" fill="#222"/>
+    <ellipse cx="50" cy="88" rx="22" ry="26" fill="#222"/>
+    <ellipse cx="50" cy="92" rx="14" ry="18" fill="#fff"/>
+    <path d="M22 35 Q10 20 18 45" fill="#222" stroke="#222" stroke-width="2"/>
+    <path d="M78 35 Q90 20 82 45" fill="#222" stroke="#222" stroke-width="2"/>
+    <ellipse cx="42" cy="46" rx="5" ry="5.5" fill="#fff"/>
+    <ellipse cx="58" cy="46" rx="5" ry="5.5" fill="#fff"/>
+    <circle cx="42" cy="47" r="2.5" fill="#222"/>
+    <circle cx="58" cy="47" r="2.5" fill="#222"/>
+    <ellipse cx="50" cy="55" rx="4" ry="3" fill="#555"/>
+    <path d="M46 58 Q50 62 54 58" stroke="#222" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M75 78 Q88 72 82 62" stroke="#222" stroke-width="4" fill="none" stroke-linecap="round"/>
+  </svg>`,
+  // 토끼
+  `<svg viewBox="0 0 100 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M38 40 Q36 5 42 5 Q48 5 44 40" fill="#222"/>
+    <path d="M40 38 Q38 12 42 12 Q46 12 43 38" fill="#fff"/>
+    <path d="M56 40 Q54 5 58 5 Q64 5 62 40" fill="#222"/>
+    <path d="M58 38 Q56 12 58 12 Q62 12 60 38" fill="#fff"/>
+    <ellipse cx="50" cy="55" rx="26" ry="24" fill="#222"/>
+    <ellipse cx="50" cy="95" rx="22" ry="28" fill="#222"/>
+    <ellipse cx="50" cy="98" rx="14" ry="20" fill="#fff"/>
+    <ellipse cx="42" cy="52" rx="4.5" ry="5" fill="#fff"/>
+    <ellipse cx="58" cy="52" rx="4.5" ry="5" fill="#fff"/>
+    <circle cx="42" cy="53" r="2.5" fill="#222"/>
+    <circle cx="58" cy="53" r="2.5" fill="#222"/>
+    <path d="M48 60 L50 62 L52 60" stroke="#222" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <circle cx="38" cy="60" r="4" fill="#ddd" opacity="0.5"/>
+    <circle cx="62" cy="60" r="4" fill="#ddd" opacity="0.5"/>
+  </svg>`
+];
 function updateRateFace(){
-  const el=$$('rateFace');if(!el)return;
-  const v=parseFloat($$('inputRate')?.value);
-  if(isNaN(v)||v===-1){el.textContent='';return;}
-  if(v>=90)el.textContent='(๑˃̵ᴗ˂̵)و';
-  else if(v>=70)el.textContent='(•‿•)';
-  else if(v>=50)el.textContent='(•_•)';
-  else el.textContent='(；´∀`)';
+  const el=$$('rateMascot');if(!el)return;
+  if(!el.dataset.idx){el.dataset.idx=Math.floor(Math.random()*MASCOTS.length);}
+  el.innerHTML=MASCOTS[+el.dataset.idx];
 }
 
 // ─── 이행률 그래프 ───
