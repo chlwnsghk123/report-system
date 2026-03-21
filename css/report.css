@@ -9,7 +9,7 @@
 }
 .rc{
   width:210mm; height:297mm;
-  padding:20mm;
+  padding:13mm 20mm 20mm 20mm;
   background:#fff;
   position:relative;
   box-shadow:0 20px 60px rgba(0,0,0,.05);
