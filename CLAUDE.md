@@ -16,9 +16,9 @@ js/
   utils.js          getCurL/getPrevL/getNextL, setAuto, rmAuto, setBar, shortD, fmtKo, esc
   db.js             openDB, dbSet, dbGet
   excel.js          triggerLoad, loadExcel, toDS, normalizeRate, stFromExcel, stToExcel, parseWB, saveToExcel, createTemplate
-  ui.js             updateScale, initCE, fp, switchView, renderViewTabs, shiftDate, selectDate, renderLessonCards, updateLessonField, syncLessonToReport, addLesson, removeLesson, renderDateSummary, renderTabs, switchTab, saveTabData, restoreTabData, toggleSec, addStudent, removeStudent, renderStudentList, toggleStudentSec
-  session.js        saveAppData, saveSession, restoreSession, showGroups, autoSelectDate, renderStudentList, addStudent, removeStudent
-  autofill.js       calcScore, autoFillCommon, autoFillAll, stFromExcel
+  ui.js             updateScale, initCE, fp, switchView, openLessonModal, closeLessonModal, renderViewTabs, shiftDate, selectDate, getLessonHwKeys, renderLessonCards, updateLessonField, syncLessonToReport, addLessonHw, removeLessonHw, addLesson, removeLesson, renderDateSummary, renderTabs, switchTab, saveTabData, syncHwRecItems, restoreTabData, toggleSec
+  session.js        saveAppData, saveSession, restoreSession, showGroups, autoSelectDate, renderStudentList, addStudent, removeStudent, toggleStudentSec
+  autofill.js       calcScore, computeCarryover, updateNoticeWithCarry, autoFillCommon, stFromExcel, autoFillAll
   report.js         rebuildGraph, renderHwEditor, onRateManual, cycleHwStatus, hwBtnLabel, updateHeaderDate, updateHwDisplay, updateHwBadge, updateNoticeList, updateCommentSign, updateWrongTags
   pdf.js            loadAttachPdf, renderSpread, drawPdfPrev, prevSpread, nextSpread, dlPdf, dataUrlToBytes
   init.js           window.onload (앱 진입점)
@@ -55,6 +55,7 @@ docs/               참조 문서 (필요 시만 읽기)
 | "탭 전환", "학생 선택" 동작 | `js/ui.js` |
 | "날짜 바꾸면 자동으로~", "자동채우기" | `js/autofill.js` |
 | "이전 과제 불러오기", "hwRec" | `js/autofill.js` + `js/excel.js` |
+| "이월과제", "캐리오버", "미완료 넘김" | `js/autofill.js` + `js/excel.js` |
 | "엑셀 파싱", "엑셀 불러올 때", "시트" | `js/excel.js` |
 | "엑셀 저장", "저장 버튼" 동작 | `js/excel.js` |
 | "PDF 저장", "PDF 생성", "합성" | `js/pdf.js` |

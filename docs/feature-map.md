@@ -11,32 +11,37 @@ A 패널 (좌측)
 [panel-head]
 ├─ 상태바 / 엑셀 불러오기            → #sbar, #excelInput
 ├─ 파일 저장 버튼 (로드 후 표시)      → #btnSave
-├─ 수업일 드롭다운                   → #selDate (#gDate)
-├─ 현재 진도 (접기/펼치기)           → #gCurProgHead / #curProgEdit
-│    └─ 교재·단원·상세진도           → #inCurBook, #inCurChap, #inCurDetail
-├─ 이번 주차 과제 (접기/펼치기)       → #gNextHwHead / #nextHwEdit
-│    └─ 과제 목록 textarea          → #inputNotice
-└─ hidden: 이전진도 (#inPrevBook/Chap/Detail), 미니테스트 수 (#inputCorrect, #inputTotal)
+[viewTabs]
+├─ ⚙ 수업설정 탭 (클릭 → 모달)     → .vt-item[config]
+├─ 날짜 탭 영역 (◀ 날짜들 ▶)       → .vt-date-nav, #vtDates
+[tabBar]
+└─ 학생 탭바 (날짜 뷰에서만)        → #tabBar
 
-[탭바]
-└─ 학생 탭바                        → #tabBar
-
-[panel-body]
+[panel-body > viewDate]
+├─ 수업 정보 읽기전용 요약           → #dateSummary
 ├─ 저번 주차 과제 + 이행률 입력       → #gPrevHw, #hwEditor, #inputRate
+│    └─ base 과제 + 이월 과제 (캐리오버 뱃지)
 ├─ 미니 테스트 토글                  → #toggleMini → #gMini
 │    └─ 오답 번호 + 시험자료 첨부     → #inputWrong, #btnAttach (#pdfInput)
 ├─ 코멘트 토글                      → #toggleComment → #gComment
 │    └─ 강사명 + 코멘트 텍스트        → #inputTeacher, #inputComment
 └─ PDF 저장 버튼 + 저장시각          → #btnPdf, #lastSaved
+hidden: #inCurBook/Chap/Detail, #inPrevBook/Chap/Detail, #inputNotice, #inputCorrect/#inputTotal
+
+수업설정 전체화면 모달 (#lessonModalOverlay)
+├─ 학생 관리 (접기/펼치기)           → #studentSummary, #studentListEdit
+└─ 수업 날짜별 레슨 카드             → #lessonCards
+     └─ .lesson-card × N (교재/단원/상세진도/과제 동적 추가·삭제)
+        └─ 날짜 상태: .lc-past(과거 회색) / .lc-next(다음 파란 강조)
 
 B 미리보기 (우측)
 ├─ 페이지 네비                      → #pageNav
 └─ 리포트카드 #reportCard
      ├─ 헤더 (학생명/날짜)           → #rName, #rDate
      ├─ ① 이행률 + 그래프            → #secRate, #svgChart, #gLabels
-     ├─ ② 저번 주차 과제 목록        → #secPrevHw, #rHwList
-     ├─ ③ 수업 진도 (현재/이전)       → .prog-card (현재: #rCurBook/Chap/Detail, 이전: #rPrevBook/Chap/Detail)
-     ├─ ④ 이번 주차 과제 목록        → #rNoticeList
+     ├─ ② 저번 주차 과제 목록        → #secPrevHw, #rHwList (캐리오버: (전) 마크)
+     ├─ ③ 수업 진도 (현재/이전)       → .prog-card
+     ├─ ④ 이번 주차 과제 목록        → #rNoticeList (미완료 캐리오버 자동 추가)
      ├─ ⑤ 미니 테스트 (선택)         → #secMini, #rWrongTags
      └─ ⑥ 코멘트 (선택)             → #secComment, #commentBody, #commentSign
 ```
@@ -62,19 +67,23 @@ B 미리보기 (우측)
 |---|---|---|
 | 이행률 그래프 표시 방식 | `js/report.js` | `rebuildGraph()` |
 | 과제 상태 버튼 순환 | `js/report.js` | `cycleHwStatus()` |
-| 과제 에디터 렌더링 | `js/report.js` | `renderHwEditor()` |
-| 이행률 자동계산 | `js/report.js` | `calcRateFromStatus()` |
+| 과제 에디터 렌더링 | `js/report.js` | `renderHwEditor()` (캐리오버 뱃지 포함) |
 | 점수 계산 공식 | `js/autofill.js` | `calcScore()` |
 | 자동채우기 (날짜 기준) | `js/autofill.js` | `autoFillCommon()` |
-| 자동채우기 (학생+날짜) | `js/autofill.js` | `autoFillAll()` |
+| 자동채우기 (학생+날짜) | `js/autofill.js` | `autoFillAll()` (base + 캐리오버 병합) |
+| 캐리오버 계산 | `js/autofill.js` | `computeCarryover()` |
+| 이번 과제 + 캐리오버 반영 | `js/autofill.js` | `updateNoticeWithCarry()` |
 | 탭 전환 | `js/ui.js` | `switchTab()` |
 | 미니/코멘트 토글 | `js/ui.js` | `toggleSec()` |
-| 진도 접기/펼치기 | `js/ui.js` | `toggleCurProg()`, `toggleNextHw()` |
-| 엑셀 파싱 | `js/excel.js` | `parseWB()` |
-| 엑셀 저장 | `js/excel.js` | `saveToExcel()` |
+| 수업설정 모달 | `js/ui.js` | `openLessonModal()`, `closeLessonModal()` |
+| 수업 카드 렌더링 | `js/ui.js` | `renderLessonCards()` (날짜 상태 분류 포함) |
+| 과제 동적 추가/삭제 | `js/ui.js` | `addLessonHw()`, `removeLessonHw()` |
+| hwRec items 동기화 | `js/ui.js` | `syncHwRecItems()` |
+| 엑셀 파싱 | `js/excel.js` | `parseWB()` (이월과제 시트 + 동적 과제열) |
+| 엑셀 저장 | `js/excel.js` | `saveToExcel()` (이월과제 시트 + 비고열) |
 | PDF 저장 | `js/pdf.js` | `dlPdf()` |
 | 시험자료 PDF 뷰어 | `js/pdf.js` | `loadAttachPdf()`, `renderSpread()` |
-| 날짜 드롭다운 | `js/session.js` | `populateSels()`, `onDate()` |
+| 날짜 자동 선택 | `js/session.js` | `autoSelectDate()` |
 | 앱 저장/복원 | `js/session.js` | `saveAppData()`, `restoreSession()` |
 
 ### 스타일 수정
