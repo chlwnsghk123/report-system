@@ -23,8 +23,9 @@ function autoFillCommon(){
   $$('inPrevBook').value=prev?.교재||'';fp('rPrevBook','inPrevBook');
   $$('inPrevChap').value=prev?.단원||'';fp('rPrevChap','inPrevChap');
   $$('inPrevDetail').value=prev?.상세진도||'';fp('rPrevDetail','inPrevDetail');
-  // 이번 주차 과제 (과제1~4)
-  const hwT=[1,2,3,4].map(i=>cur[`과제${i}`]||'').filter(x=>x);
+  // 이번 주차 과제 (동적 개수)
+  const hwKeys=getLessonHwKeys(cur);
+  const hwT=hwKeys.map(k=>cur[k]||'').filter(x=>x);
   $$('inputNotice').value=hwT.join('\n');
   updateNoticeList(hwT.join('\n'));
   fp('commentBody','inputComment');
@@ -61,7 +62,10 @@ function autoFillAll(){
     $$('inputWrong').value=G.wrong[G.selStudent]?.[G.selDate]||'';
     updateWrongTags($$('inputWrong').value);calcScore();
     const prev=getPrevL();
-    G.hwItems=prev?[1,2,3,4].map(i=>prev[`과제${i}`]||'').filter(x=>x):[];
+    if(prev){
+      const prevHwKeys=getLessonHwKeys(prev);
+      G.hwItems=prevHwKeys.map(k=>prev[k]||'').filter(x=>x);
+    }else{G.hwItems=[];}
     const key=G.selDate?`${G.selStudent}||${G.selDate}`:null,hwR=key?G.hwRec[key]:null;
     G.hwStatus=G.hwItems.map((_,i)=>hwR?stFromExcel(hwR[`과제${i+1}_상태`]||''):'');
     setAuto('inputRate',G.rates[G.selStudent]?.[G.selDate]??'');G.hwRateManual=null;

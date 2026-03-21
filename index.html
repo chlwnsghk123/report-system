@@ -50,33 +50,6 @@
   <div class="tab-bar" id="tabBar" style="display:none;"></div>
 
   <div class="panel-body">
-    <!-- ===== 수업설정 뷰 ===== -->
-    <div id="viewConfig" style="display:none;">
-      <!-- 학생 관리 -->
-      <div style="margin-bottom:16px;">
-        <div onclick="toggleStudentSec()" style="cursor:pointer;background:#f9fafb;border:1px solid #e5e8eb;border-radius:12px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
-          <div>
-            <span style="font-size:11px;font-weight:700;color:#8a8f9e;">학생 목록</span>
-            <div style="font-size:13px;font-weight:600;color:#333;margin-top:2px;" id="studentSummary">—</div>
-          </div>
-          <span id="studentArrow" style="font-size:13px;color:#8a8f9e;transition:transform .2s;display:inline-block;">▾</span>
-        </div>
-        <div id="studentListEdit" style="display:none;margin-top:6px;flex-direction:column;gap:4px;">
-          <div id="studentListItems"></div>
-          <div style="display:flex;gap:4px;margin-top:4px;">
-            <input type="text" id="newStudentInput" placeholder="학생 이름" style="flex:1;padding:8px 12px;border:1px solid #e5e8eb;border-radius:8px;font-size:13px;font-family:inherit;" onkeydown="if(event.key==='Enter')addStudent()">
-            <button onclick="addStudent()" style="padding:8px 14px;background:#3182f6;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">추가</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="sdiv">수업 날짜 관리</div>
-      <div id="lessonCards" style="display:flex;flex-direction:column;gap:12px;"></div>
-      <button class="btn-s" onclick="addLesson()" style="margin-top:8px;">
-        <span>➕</span><span>날짜 추가</span>
-      </button>
-    </div>
-
     <!-- ===== 날짜별 학생기록 뷰 ===== -->
     <div id="viewDate" style="display:none;">
       <!-- 수업 요약 (읽기전용) -->
@@ -251,6 +224,41 @@
     <div class="page-slot" id="rightSlot" style="display:none;">
       <canvas id="rightPdfCanvas" style="box-shadow:0 4px 20px rgba(0,0,0,.1);"></canvas>
       <div class="pdf-lbl" id="rightLabel"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 수업설정 전체화면 모달 ════ -->
+<div class="lm-overlay" id="lessonModalOverlay" style="display:none;" onclick="if(event.target===this)closeLessonModal()">
+  <div class="lm-modal">
+    <div class="lm-header">
+      <h3>⚙ 수업 진도 설정</h3>
+      <button class="lm-close" onclick="closeLessonModal()">✕</button>
+    </div>
+    <div class="lm-body">
+      <!-- 학생 관리 -->
+      <div style="margin-bottom:16px;">
+        <div onclick="toggleStudentSec()" style="cursor:pointer;background:#f9fafb;border:1px solid #e5e8eb;border-radius:12px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <span style="font-size:11px;font-weight:700;color:#8a8f9e;">학생 목록</span>
+            <div style="font-size:13px;font-weight:600;color:#333;margin-top:2px;" id="studentSummary">—</div>
+          </div>
+          <span id="studentArrow" style="font-size:13px;color:#8a8f9e;transition:transform .2s;display:inline-block;">▾</span>
+        </div>
+        <div id="studentListEdit" style="display:none;margin-top:6px;flex-direction:column;gap:4px;">
+          <div id="studentListItems"></div>
+          <div style="display:flex;gap:4px;margin-top:4px;">
+            <input type="text" id="newStudentInput" placeholder="학생 이름" style="flex:1;padding:8px 12px;border:1px solid #e5e8eb;border-radius:8px;font-size:13px;font-family:inherit;" onkeydown="if(event.key==='Enter')addStudent()">
+            <button onclick="addStudent()" style="padding:8px 14px;background:#3182f6;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">추가</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sdiv">수업 날짜 관리</div>
+      <div id="lessonCards" style="display:flex;flex-direction:column;gap:12px;"></div>
+      <button class="btn-s" onclick="addLesson()" style="margin-top:8px;">
+        <span>➕</span><span>날짜 추가</span>
+      </button>
     </div>
   </div>
 </div>
