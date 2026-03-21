@@ -34,7 +34,9 @@
 | `loadExcel(input)` | 엑셀 파일 읽기·파싱 진입 |
 | `toDS(v)` | 날짜값 → YYYY-MM-DD 정규화 |
 | `normalizeRate(v)` | 이행률 정규화: %문자열·소수·정수 → 0~100 숫자 |
-| `parseWB(wb)` | 워크북 파싱 → G 전체 채움 (날짜별 시트 신규 형식 + 구 형식 하위 호환) |
+| `stFromExcel(v)` | 엑셀 상태(○/△/X/0/1/2) → 한글(완료/부분완료/미완료) 변환 |
+| `stToExcel(v)` | 한글 상태 → 엑셀 숫자('2'/'1'/'0'/공란) 변환 |
+| `parseWB(wb)` | 워크북 파싱 → G 전체 채움 (신구 형식 자동 감지) |
 | `saveToExcel()` | G → 엑셀 파일 다운로드 (수업정보 + 날짜별 시트) |
 | `createTemplate()` | 오늘~6월까지 주 1회 날짜가 포함된 신규 템플릿 엑셀 생성·다운로드 |
 
@@ -44,13 +46,21 @@
 | `updateScale()` | 리포트카드 반응형 스케일 계산·적용 |
 | `initCE()` | contenteditable 양방향 동기화 설정 |
 | `fp(cid,pid)` | 리포트카드 → 패널 단방향 텍스트 동기화 |
+| `switchView(view)` | 'config'/'date' 뷰 전환 |
+| `renderViewTabs()` | 뷰 탭 바 렌더링 (⚙ 수업설정 + 날짜 탭) |
+| `shiftDate(dir)` | 날짜 탭 ◀▶ 스크롤 |
+| `selectDate(date)` | 날짜 선택 → date 뷰 전환 |
+| `renderLessonCards()` | 수업설정 뷰: 레슨 카드 렌더링 |
+| `updateLessonField(idx,field,value)` | 레슨 필드 수정 → G.lessons 업데이트 + 리포트 동기화 |
+| `syncLessonToReport()` | 현재 선택 날짜의 수업정보 → 리포트카드 동기화 |
+| `addLesson()` | 새 수업 날짜 추가 (마지막 +7일) |
+| `removeLesson(idx)` | 수업 날짜 삭제 |
+| `renderDateSummary()` | 날짜 뷰 상단: 수업정보 읽기전용 요약 |
 | `renderTabs()` | 학생 탭바 렌더링 |
 | `switchTab(name)` | 학생 탭 전환 |
 | `saveTabData()` | 현재 학생 입력값 → G.tabData 임시저장 |
 | `restoreTabData(name)` | G.tabData → UI 복원 |
 | `toggleSec(type)` | 미니테스트/코멘트 토글 |
-| `toggleCurProg()` | 현재 진도 접기·펼치기 |
-| `toggleNextHw()` | 이번 과제 접기·펼치기 |
 
 ## js/session.js
 | 함수 | 역할 |
@@ -58,9 +68,8 @@
 | `saveAppData()` | G → IndexedDB `appData` 저장 |
 | `saveSession()` | 세션 상태 → IndexedDB `session` 저장 |
 | `restoreSession(s)` | IndexedDB → 세션 복원 |
-| `populateSels()` | 날짜 드롭다운 채우기 |
-| `showGroups()` | 엑셀 로드 후 UI 요소 표시 (gStudents 포함) |
-| `onDate()` | 날짜 변경 핸들러 |
+| `showGroups()` | 엑셀 로드 후 UI 요소 표시 + 날짜 자동 선택 |
+| `autoSelectDate()` | 오늘 이후 가장 가까운 날짜 자동 선택 |
 | `renderStudentList()` | 학생 목록 UI 렌더링 |
 | `addStudent()` | 새 학생 G.students에 추가 |
 | `removeStudent(idx)` | 학생 삭제 (G.students에서 제거) |
@@ -69,10 +78,10 @@
 ## js/autofill.js
 | 함수 | 역할 |
 |---|---|
-| `stFromExcel(v)` | 엑셀 기호(○/△/X) → 한글 상태(완료/부분완료/미완료) 변환 |
+| `stFromExcel(v)` | 엑셀 기호/숫자(○/△/X/0/1/2) → 한글 상태 변환 |
 | `calcScore()` | 맞힌수/전체 → 점수 계산 및 표시 |
 | `autoFillCommon()` | 날짜 기준 공통 필드 자동채우기 |
-| `autoFillAll()` | 학생+날짜 기준 전체 자동채우기 (탭 복원, 점수 계산, 오답 태그, 과제 에디터, 그래프 포함) |
+| `autoFillAll()` | 학생+날짜 기준 전체 자동채우기 |
 
 ## js/report.js
 | 함수 | 역할 |
@@ -88,8 +97,6 @@
 | `updateNoticeList(text)` | 이번 과제 목록 리포트 UI 업데이트 |
 | `updateCommentSign()` | 강사 서명 업데이트 |
 | `updateWrongTags(tagStr)` | 오답 번호 태그 UI 업데이트 |
-| `updateCurProgSummary()` | 현재 진도 접힌 상태 요약 텍스트 |
-| `updateNextHwSummary()` | 이번 과제 접힌 상태 요약 텍스트 |
 
 ## js/pdf.js
 | 함수 | 역할 |

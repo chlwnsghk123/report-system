@@ -99,11 +99,4 @@ function updateWrongTags(tagStr){
   const tags=tagStr?tagStr.split(',').map(t=>t.trim()).filter(t=>t):[];
   $$('rWrongTags').innerHTML=tags.map(t=>`<span class="wtag">${esc(t)} 틀림</span>`).join('');
 }
-function updateCurProgSummary(){
-  const b=$$('inCurBook').value,c=$$('inCurChap').value;
-  $$('curProgSummary').textContent=(b||c)?b+(b&&c?' · ':'')+c:'—';
-}
-function updateNextHwSummary(){
-  const lines=($$('inputNotice').value||'').split('\n').filter(l=>l.trim());
-  $$('nextHwSummary').textContent=lines.length?`${lines.length}개 과제`:'—';
-}
+// updateCurProgSummary, updateNextHwSummary 제거됨 — 수업설정 뷰로 이관

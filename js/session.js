@@ -4,37 +4,43 @@ async function saveAppData(){
     scores:G.scores,corrects:G.corrects,wrong:G.wrong,hwRec:G.hwRec,tabData:G.tabData,fileName:G.excelFileName});
 }
 async function saveSession(){
-  await dbSet('session',{selDate:G.selDate,selStudent:G.selStudent,showMini:G.showMini,showComment:G.showComment});
+  await dbSet('session',{selDate:G.selDate,selStudent:G.selStudent,
+    showMini:G.showMini,showComment:G.showComment,currentView:G.currentView});
 }
 
 // ─── 세션 복원 ───
 function restoreSession(s){
-  if(s.selDate){$$('selDate').value=s.selDate;G.selDate=s.selDate;}
+  if(s.selDate)G.selDate=s.selDate;
   if(s.selStudent&&G.students.includes(s.selStudent))G.selStudent=s.selStudent;
   if(s.showMini&&!G.showMini)toggleSec('mini');
   if(s.showComment&&!G.showComment)toggleSec('comment');
-  renderStudentList();renderTabs();
-  if(G.selDate&&G.selStudent)autoFillAll();else if(G.selDate)autoFillCommon();
+  renderStudentList();renderViewTabs();renderTabs();
+  if(s.currentView==='date'&&G.selDate)switchView('date');
+  else switchView('config');
 }
 
-// ─── 드롭다운·그룹 표시 ───
-function populateSels(){
-  const ds=$$('selDate');ds.innerHTML='<option value="">— 날짜 선택 —</option>';
-  G.lessons.forEach(r=>{const o=document.createElement('option');o.value=r.날짜;o.textContent=fmtKo(r.날짜);ds.appendChild(o);});
-}
+// ─── 데이터 로드 후 UI 표시 ───
 function showGroups(){
-  ['gDate','gCurProgHead','gNextHwHead','sdMain','gPrevHw',
-   'sdOpt','toggleMini','toggleComment','btnSave','btnPdf','lastSaved'].forEach(id=>{
-    const el=$$(id);if(!el)return;
-    el.style.display=id.startsWith('sd')?'flex':'';
-  });
-  $$('btnSave').disabled=false;renderStudentList();renderTabs();
+  $$('viewTabs').style.display='';
+  $$('btnSave').style.display='';
+  $$('btnSave').disabled=false;
+  renderStudentList();
+  renderViewTabs();
+  autoSelectDate();
 }
-function onDate(){
-  G.selDate=$$('selDate').value;G.hwRateManual=null;
-  G.tabData={}; // 날짜 변경 시 학생별 탭 캐시 전체 무효화
-  if(G.selDate&&G.selStudent)autoFillAll();else if(G.selDate)autoFillCommon();
-  saveSession();
+
+// 오늘 이후 가장 가까운 날짜 자동 선택
+function autoSelectDate(){
+  if(!G.lessons.length){switchView('config');return;}
+  const today=new Date().toISOString().slice(0,10);
+  let best=G.lessons.find(l=>l.날짜>=today);
+  if(!best)best=G.lessons[G.lessons.length-1];
+  G.selDate=best.날짜;
+  const idx=G.lessons.indexOf(best);
+  G.dateTabOffset=Math.max(0,idx-1);
+  if(!G.selStudent&&G.students.length)G.selStudent=G.students[0];
+  renderViewTabs();
+  switchView('date');
 }
 
 // ─── 학생 관리 ───
@@ -43,7 +49,7 @@ function renderStudentList(){
   list.innerHTML=G.students.map((n,i)=>
     `<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f3f4f6;">
       <span style="font-size:13px;color:#333;">${esc(n)}</span>
-      <button onclick="removeStudent(${i})" style="font-size:11px;padding:2px 8px;background:#fee2e2;color:#dc2626;border:none;border-radius:6px;cursor:pointer;">삭제</button>
+      <button onclick="removeStudent(${i})" style="font-size:11px;padding:2px 8px;background:#fee2e2;color:#dc2626;border:none;border-radius:6px;cursor:pointer;font-family:inherit;">삭제</button>
     </div>`
   ).join('');
   const s=$$('studentSummary');
