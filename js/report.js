@@ -1,3 +1,14 @@
+// ─── 이행률 표정 ───
+function updateRateFace(){
+  const el=$$('rateFace');if(!el)return;
+  const v=parseFloat($$('inputRate')?.value);
+  if(isNaN(v)||v===-1){el.textContent='';return;}
+  if(v>=90)el.textContent='(๑˃̵ᴗ˂̵)و';
+  else if(v>=70)el.textContent='(•‿•)';
+  else if(v>=50)el.textContent='(•_•)';
+  else el.textContent='(；´∀`)';
+}
+
 // ─── 이행률 그래프 ───
 function rebuildGraph(){
   if(!G.selDate||!G.selStudent)return;
@@ -23,6 +34,7 @@ function rebuildGraph(){
   let lbl='';for(let i=0;i<4;i++){const a=i===entries.length-1;
     lbl+=`<span class="${a?'act':''}">${i<entries.length?shortD(entries[i].date):''}</span>`;}
   $$('gLabels').innerHTML=lbl;
+  updateRateFace();
 }
 
 // ─── 과제 에디터 (좌패널: 텍스트 readonly, 상태 버튼만 조작) ───
@@ -59,7 +71,7 @@ function onRateManual(){
     if(v!=='')G.rates[G.selStudent][G.selDate]=Number(v);
     else delete G.rates[G.selStudent][G.selDate];
   }
-  updateHwBadge();rebuildGraph();
+  updateHwBadge();rebuildGraph();updateRateFace();
 }
 
 // ─── 과제 순환 버튼 ───
