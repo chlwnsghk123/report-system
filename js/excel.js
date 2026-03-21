@@ -8,7 +8,7 @@ async function loadExcel(input){
     const buf=await file.arrayBuffer();
     parseWB(XLSX.read(buf,{type:'array',cellDates:false,raw:false}));
     G.excelFileName=file.name;G.tabData={};
-    await saveAppData();populateSels();showGroups();
+    await saveAppData();showGroups();
     setBar('ok',`✅ ${file.name}`);
   }catch(e){setBar('err','❌ 파싱 실패: '+e.message);console.error(e);}
   input.value='';
@@ -31,9 +31,24 @@ function normalizeRate(v){
   if(s.endsWith('%'))return parseFloat(s);
   const n=parseFloat(s);
   if(isNaN(n))return null;
-  // 0~1 범위(0,1 제외)는 비율로 간주 → ×100
   if(n>0&&n<1)return Math.round(n*100);
   return n;
+}
+
+// 엑셀 상태 → 내부 한글 (하위호환: 기호+숫자 모두 지원)
+function stFromExcel(v){
+  if(v==='○'||v==='2')return'완료';
+  if(v==='△'||v==='1')return'부분완료';
+  if(v==='X'||v==='x'||v==='✗'||v==='×'||v==='✕'||v==='0')return'미완료';
+  return v; // '완료'/'부분완료'/'미완료' 또는 '' 그대로
+}
+
+// 내부 한글 → 엑셀 숫자 문자열
+function stToExcel(v){
+  if(v==='완료')return'2';
+  if(v==='부분완료')return'1';
+  if(v==='미완료')return'0';
+  return'';
 }
 
 // 워크북 파싱 → G 채움
@@ -41,39 +56,52 @@ function parseWB(wb){
   G.lessons=[];
   const ws1=wb.Sheets['수업정보'];
   if(ws1){
-    XLSX.utils.sheet_to_json(ws1,{header:1,defval:'',raw:false}).slice(1).forEach(r=>{
-      const d=toDS(r[0]);if(!d)return;
-      G.lessons.push({날짜:d,강사명:String(r[1]||'').trim(),전체문제수:5,
-        교재:String(r[2]||'').trim(),단원:String(r[3]||'').trim(),상세진도:String(r[4]||'').trim(),
-        과제1:String(r[5]||'').trim(),과제2:String(r[6]||'').trim(),과제3:String(r[7]||'').trim(),
-        과제4:String(r[8]||'').trim(),과제5:String(r[9]||'').trim()});
-    });
-    G.lessons.sort((a,b)=>a.날짜.localeCompare(b.날짜));
+    const rows=XLSX.utils.sheet_to_json(ws1,{header:1,defval:'',raw:false});
+    if(rows.length>0){
+      const hdr=rows[0].map(h=>String(h||'').trim());
+      const hasTeacher=hdr.includes('강사명');
+      rows.slice(1).forEach(r=>{
+        const d=toDS(r[0]);if(!d)return;
+        if(hasTeacher){
+          // 구 형식: 날짜|강사명|교재|단원|상세진도|과제1~5
+          G.lessons.push({날짜:d,전체문제수:5,
+            교재:String(r[2]||'').trim(),단원:String(r[3]||'').trim(),상세진도:String(r[4]||'').trim(),
+            과제1:String(r[5]||'').trim(),과제2:String(r[6]||'').trim(),
+            과제3:String(r[7]||'').trim(),과제4:String(r[8]||'').trim()});
+        }else{
+          // 신 형식: 날짜|교재|단원|상세진도|과제1~4
+          G.lessons.push({날짜:d,전체문제수:5,
+            교재:String(r[1]||'').trim(),단원:String(r[2]||'').trim(),상세진도:String(r[3]||'').trim(),
+            과제1:String(r[4]||'').trim(),과제2:String(r[5]||'').trim(),
+            과제3:String(r[6]||'').trim(),과제4:String(r[7]||'').trim()});
+        }
+      });
+      G.lessons.sort((a,b)=>a.날짜.localeCompare(b.날짜));
+    }
   }
 
   G.students=[];G.scores={};G.corrects={};G.wrong={};G.hwRec={};G.rates={};
 
-  // 새 형식(날짜별 시트) vs 구 형식(성적+학생별 시트) 감지
   const hasDateSheets=wb.SheetNames.some(n=>/^\d{4}-\d{2}-\d{2}$/.test(n));
 
   if(hasDateSheets){
-    // 새 형식: 첫 번째 날짜 시트에서 학생 순서 결정
     const firstDate=wb.SheetNames.find(n=>/^\d{4}-\d{2}-\d{2}$/.test(n));
     if(firstDate){
       XLSX.utils.sheet_to_json(wb.Sheets[firstDate],{header:1,defval:'',raw:false}).slice(1).forEach(r=>{
         const name=String(r[0]||'').trim();if(name&&!G.students.includes(name))G.students.push(name);
       });
     }
-    // 모든 날짜 시트 파싱
-    // rows[0]=헤더, rows[1+]=학생데이터
     wb.SheetNames.forEach(sheetName=>{
       if(!/^\d{4}-\d{2}-\d{2}$/.test(sheetName))return;
       const ws=wb.Sheets[sheetName];if(!ws)return;
       const date=sheetName;
-      XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false}).slice(1).forEach(r=>{
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});
+      // 헤더에서 과제5 존재 여부 확인
+      const hdr=rows.length?rows[0]:[];
+      const hw5=hdr.length>8&&String(hdr[8]||'').trim()==='과제5';
+      rows.slice(1).forEach(r=>{
         const name=String(r[0]||'').trim();if(!name)return;
         if(!G.students.includes(name))G.students.push(name);
-        // 성적: "맞힌/전체" 형식
         const scoreStr=String(r[1]||'').trim();
         if(scoreStr){
           const parts=scoreStr.split('/');
@@ -90,8 +118,7 @@ function parseWB(wb){
         const key=`${name}||${date}`;
         G.hwRec[key]={이행률:rate,
           과제1_상태:String(r[4]||'').trim(),과제2_상태:String(r[5]||'').trim(),
-          과제3_상태:String(r[6]||'').trim(),과제4_상태:String(r[7]||'').trim(),
-          과제5_상태:String(r[8]||'').trim()};
+          과제3_상태:String(r[6]||'').trim(),과제4_상태:String(r[7]||'').trim()};
       });
     });
   }else{
@@ -128,7 +155,7 @@ function parseWB(wb){
         const key=`${name}||${d}`;
         G.hwRec[key]={이행률:rate,
           과제1_상태:String(r[3]||'').trim(),과제2_상태:String(r[5]||'').trim(),
-          과제3_상태:String(r[7]||'').trim(),과제4_상태:String(r[9]||'').trim(),과제5_상태:String(r[11]||'').trim()};
+          과제3_상태:String(r[7]||'').trim(),과제4_상태:String(r[9]||'').trim()};
         if(!isNaN(rate)&&rate!==null){G.rates[name]=G.rates[name]||{};G.rates[name][d]=rate;}
       });
     });
@@ -139,62 +166,51 @@ function parseWB(wb){
 async function saveToExcel(){
   const btn=$$('btnSave');btn.disabled=true;btn.textContent='저장 중...';
   saveTabData();
-  const cur=getCurL(),prev=getPrevL();
-  if(cur){
-    cur.교재=$$('inCurBook').value;cur.단원=$$('inCurChap').value;cur.상세진도=$$('inCurDetail').value;
-    const lines=$$('inputNotice').value.split('\n').filter(l=>l.trim());
-    for(let i=0;i<5;i++)cur[`과제${i+1}`]=lines[i]||'';
-    cur.강사명=$$('inputTeacher').value.replace(/^From\. /,'').replace(/ T$/,'');
-  }
+  // 학생 데이터 저장 (G.lessons는 수업설정 뷰에서 직접 관리됨)
   G.students.forEach(n=>{
     const td=G.tabData[n];if(!td||!G.selDate)return;
     if(td.scoreCalc!=null){G.scores[n]=G.scores[n]||{};G.scores[n][G.selDate]=td.scoreCalc;}
     if(td.correctInput!==''){G.corrects[n]=G.corrects[n]||{};G.corrects[n][G.selDate]=parseInt(td.correctInput)||0;}
     if(td.wrongInput){G.wrong[n]=G.wrong[n]||{};G.wrong[n][G.selDate]=td.wrongInput;}
-    if(prev){
-      if(n===G.selStudent){
-        G.hwItems.forEach((item,idx)=>{prev[`과제${idx+1}`]=item||'';});
-        for(let i=G.hwItems.length;i<5;i++)prev[`과제${i+1}`]='';
-      }
-      const key=`${n}||${G.selDate}`;
-      const ex=G.hwRec[key]||{이행률:null,과제1_상태:'',과제2_상태:'',과제3_상태:'',과제4_상태:'',과제5_상태:''};
-      if(td.rateManual!=null){ex.이행률=td.rateManual;G.rates[n]=G.rates[n]||{};G.rates[n][G.selDate]=td.rateManual;}
-      const hs=td.hwStatus||[];for(let i=0;i<5;i++)ex[`과제${i+1}_상태`]=hs[i]||ex[`과제${i+1}_상태`]||'';
-      G.hwRec[key]=ex;
-    }
+    const key=`${n}||${G.selDate}`;
+    const ex=G.hwRec[key]||{이행률:null,과제1_상태:'',과제2_상태:'',과제3_상태:'',과제4_상태:''};
+    if(td.rateManual!=null){ex.이행률=td.rateManual;G.rates[n]=G.rates[n]||{};G.rates[n][G.selDate]=td.rateManual;}
+    const hs=td.hwStatus||[];for(let i=0;i<4;i++)ex[`과제${i+1}_상태`]=hs[i]||ex[`과제${i+1}_상태`]||'';
+    G.hwRec[key]=ex;
   });
   await saveAppData();
   const wb=XLSX.utils.book_new();
-  // 수업정보 시트
+  // 수업정보 시트 (강사명 제거, 과제4까지)
   const ws1=XLSX.utils.aoa_to_sheet([
-    ['날짜','강사명','교재','단원','상세진도','과제1','과제2','과제3','과제4','과제5'],
-    ...G.lessons.map(l=>[l.날짜,l.강사명,l.교재,l.단원,l.상세진도,l.과제1,l.과제2,l.과제3,l.과제4,l.과제5])]);
+    ['날짜','교재','단원','상세진도','과제1','과제2','과제3','과제4'],
+    ...G.lessons.map(l=>[l.날짜,l.교재,l.단원,l.상세진도,l.과제1,l.과제2,l.과제3,l.과제4])]);
   G.lessons.forEach((_,i)=>{const c=ws1[XLSX.utils.encode_cell({r:i+1,c:0})];if(c)c.t='s';});
   XLSX.utils.book_append_sheet(wb,ws1,'수업정보');
-  // 날짜별 시트 (학생별 시트 대체)
-  // 행 0: 헤더, 행 1+: 학생별 데이터
-  G.lessons.forEach((les,li)=>{
+  // 날짜별 시트 (과제4까지, 상태는 숫자)
+  G.lessons.forEach(les=>{
     const date=les.날짜,total=les.전체문제수||5;
     const aoa=[
-      ['이름','성적','오답','과제이행률','과제1','과제2','과제3','과제4','과제5'],
+      ['이름','성적','오답','과제이행률','과제1','과제2','과제3','과제4'],
       ...G.students.map(n=>{
         const correct=G.corrects[n]?.[date];
         const scoreStr=correct!==undefined?`${correct}/${total}`:'';
         const key=`${n}||${date}`,rec=G.hwRec[key];
         const rate=rec?.이행률;
         return[n,scoreStr,G.wrong[n]?.[date]||'',rate!=null?rate:'',
-          rec?.과제1_상태||'',rec?.과제2_상태||'',rec?.과제3_상태||'',
-          rec?.과제4_상태||'',rec?.과제5_상태||''];
+          stToExcel(rec?.과제1_상태||''),stToExcel(rec?.과제2_상태||''),
+          stToExcel(rec?.과제3_상태||''),stToExcel(rec?.과제4_상태||'')];
       })
     ];
     const wsD=XLSX.utils.aoa_to_sheet(aoa,{skipHeader:false});
-    // 빈 문자열이 0으로 변환되는 것 방지
     const range=XLSX.utils.decode_range(wsD['!ref']||'A1');
     for(let R=range.s.r;R<=range.e.r;R++){
       for(let C=range.s.c;C<=range.e.c;C++){
         const addr=XLSX.utils.encode_cell({r:R,c:C});
         const cell=wsD[addr];
-        if(cell&&cell.v===0&&cell.t==='n'){cell.v='';cell.t='s';}
+        if(!cell)continue;
+        // 과제 상태 열(4~7)은 문자열 강제 (0이 빈칸으로 변환되지 않도록)
+        if(C>=4&&C<=7){cell.t='s';cell.v=String(cell.v===undefined?'':cell.v);continue;}
+        if(cell.v===0&&cell.t==='n'){cell.v='';cell.t='s';}
       }
     }
     XLSX.utils.book_append_sheet(wb,wsD,date);
@@ -210,8 +226,7 @@ async function saveToExcel(){
 // ─── 템플릿 생성 ───
 function createTemplate(){
   if(!confirm('6월까지 주 1회 수업 날짜가 포함된 새 엑셀 템플릿을 생성합니다.\n계속하시겠습니까?'))return;
-  const students=G.students.length?G.students:['하정','김도은','윤희','황선재','원빈','희은'];
-  // 오늘부터 6월 말까지 주 1회 날짜 생성
+  const students=G.students.length?G.students:['학생1','학생2','학생3'];
   const dates=[];
   const now=new Date();
   const start=new Date(now.getFullYear(),now.getMonth(),now.getDate());
@@ -223,15 +238,15 @@ function createTemplate(){
   }
   const wb=XLSX.utils.book_new();
   const ws1=XLSX.utils.aoa_to_sheet([
-    ['날짜','강사명','교재','단원','상세진도','과제1','과제2','과제3','과제4','과제5'],
-    ...dates.map(d=>[d,'','','','','','','','',''])
+    ['날짜','교재','단원','상세진도','과제1','과제2','과제3','과제4'],
+    ...dates.map(d=>[d,'','','','','','',''])
   ]);
   dates.forEach((_,i)=>{const c=ws1[XLSX.utils.encode_cell({r:i+1,c:0})];if(c)c.t='s';});
   XLSX.utils.book_append_sheet(wb,ws1,'수업정보');
   dates.forEach(date=>{
     const wsD=XLSX.utils.aoa_to_sheet([
-      ['이름','성적','오답','과제이행률','과제1','과제2','과제3','과제4','과제5'],
-      ...students.map(n=>[n,'','','','','','','',''])
+      ['이름','성적','오답','과제이행률','과제1','과제2','과제3','과제4'],
+      ...students.map(n=>[n,'','','','','','',''])
     ]);
     XLSX.utils.book_append_sheet(wb,wsD,date);
   });

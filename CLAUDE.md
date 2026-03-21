@@ -15,9 +15,9 @@ js/
   state.js          G 객체, 상수(DB/STORE), $$ 헬퍼
   utils.js          getCurL/getPrevL/getNextL, setAuto, setBar, shortD, fmtKo, esc
   db.js             openDB, dbSet, dbGet
-  excel.js          triggerLoad, loadExcel, toDS, parseWB, saveToExcel
-  ui.js             updateScale, initCE, fp, renderTabs, switchTab, saveTabData, restoreTabData, toggleSec, toggleCurProg, toggleNextHw
-  session.js        saveAppData, saveSession, restoreSession, populateSels, showGroups, onDate
+  excel.js          triggerLoad, loadExcel, toDS, parseWB, saveToExcel, stFromExcel, stToExcel
+  ui.js             updateScale, initCE, fp, switchView, renderViewTabs, selectDate, renderLessonCards, renderDateSummary, renderTabs, switchTab, saveTabData, restoreTabData, toggleSec
+  session.js        saveAppData, saveSession, restoreSession, showGroups, autoSelectDate
   autofill.js       calcScore, autoFillCommon, autoFillAll
   report.js         rebuildGraph, renderHwEditor, onRateManual, calcRateFromStatus, cycleHwStatus, hwBtnLabel, updateHeaderDate, updateHwDisplay, updateHwBadge, updateNoticeList, updateCommentSign, updateWrongTags, updateCurProgSummary, updateNextHwSummary
   pdf.js            loadAttachPdf, renderSpread, drawPdfPrev, prevSpread, nextSpread, dlPdf, dataUrlToBytes
