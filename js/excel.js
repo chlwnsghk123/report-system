@@ -212,6 +212,7 @@ function parseWB(wb){
 // ─── 엑셀 저장 ───
 async function saveToExcel(){
   const btn=$$('btnSave');btn.disabled=true;btn.textContent='저장 중...';
+  try{
   saveTabData();
   // 학생 데이터 → hwRec 동기화
   G.students.forEach(n=>{
@@ -332,7 +333,13 @@ async function saveToExcel(){
   a.download=G.excelFileName;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   $$('lastSaved').style.display='';
   $$('lastSaved').textContent=`✅ ${new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})} 저장됨`;
-  btn.disabled=false;btn.textContent='💾 파일 저장';saveSession();
+  btn.disabled=false;btn.textContent='💾 파일 저장';
+  setBar('ok',`✅ ${G.excelFileName} 저장 완료`);
+  }catch(e){
+    console.error('저장 오류:',e);
+    btn.disabled=false;btn.textContent='💾 파일 저장';
+    setBar('err','❌ 저장 실패: '+e.message);
+  }
 }
 
 // ─── 템플릿 생성 ───

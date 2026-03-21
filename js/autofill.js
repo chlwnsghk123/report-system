@@ -159,7 +159,7 @@ function autoFillAll(){
   if(rv===''||isFirst){$$('secRate').style.display='none';}
   else if(Number(rv)===-1){$$('secRate').style.display='';$$('rRate').innerText='-';}
   else{$$('secRate').style.display='';$$('rRate').innerText=rv;}
-  updateHwBadge();rebuildGraph();
+  updateHwBadge();rebuildGraph();updateRateFace();
   updateCommentSign();
   applyReportEdits();
 }
