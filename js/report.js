@@ -72,7 +72,8 @@ function cycleHwStatus(i){
   if(btns[i]){btns[i].className='hw-btn s'+next;btns[i].textContent=hwBtnLabel(next);}
   updateHwDisplay();updateHwBadge();rebuildGraph();
   updateNoticeWithCarry();
-  saveSession();
+  syncHwRecItems(G.selStudent,G.selDate);
+  saveAppData();saveSession();
 }
 
 // ─── 리포트 UI 업데이트 ───

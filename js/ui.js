@@ -102,6 +102,11 @@ function shiftDate(dir){
 }
 
 function selectDate(date){
+  // 현재 학생 데이터를 hwRec에 즉시 반영 후 저장
+  if(G.selStudent&&G.selDate){
+    syncHwRecItems(G.selStudent,G.selDate);
+    saveAppData();
+  }
   G.selDate=date;
   G.tabData={};
   G.hwRateManual=null;
