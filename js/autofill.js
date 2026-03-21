@@ -43,25 +43,30 @@ function computeCarryover(student,date){
   return result;
 }
 
-// ─── 이번 주차 과제 + 캐리오버 반영 (리포트카드) ───
+// ─── 이번 주차 과제 + 캐리오버 반영 (리포트카드, 2열 지원) ───
 function updateNoticeWithCarry(){
   const cur=getCurL();if(!cur)return;
   const hwKeys=getLessonHwKeys(cur);
   const baseHw=hwKeys.map(k=>cur[k]||'').filter(x=>x);
-  // 현재 체크에서 미완료/부분완료 항목 수집
   const unfinished=[];
   G.hwItems.forEach((text,i)=>{
     const st=G.hwStatus[i];
     if(st==='미완료'||st==='부분완료')unfinished.push(text);
   });
   const list=$$('rNoticeList');
-  let html=baseHw.map(t=>`<li>${esc(t)}</li>`).join('');
-  if(unfinished.length){
-    html+=unfinished.map(t=>
-      `<li class="carry-notice"><span class="carry-tag">전</span>${esc(t)}</li>`
-    ).join('');
+  const baseHtml=baseHw.map(t=>`<div class="next-hw-li">${esc(t)}</div>`).join('');
+  const carryHtml=unfinished.map(t=>
+    `<div class="next-hw-li"><span class="carry-tag">(전)</span>${esc(t)}</div>`
+  ).join('');
+  const total=baseHw.length+unfinished.length;
+  if(total>3&&unfinished.length>0){
+    list.className='next-hw-list compact';
+    list.innerHTML=`<div class="hw-col"><div class="hw-col-label">본과제</div>${baseHtml}</div>`
+      +`<div class="hw-col"><div class="hw-col-label">이월과제</div>${carryHtml}</div>`;
+  }else{
+    list.className='next-hw-list';
+    list.innerHTML=baseHtml+carryHtml;
   }
-  list.innerHTML=html;
 }
 
 // ─── 자동 채우기 (날짜 기준 공통) ───
@@ -156,4 +161,5 @@ function autoFillAll(){
   else{$$('secRate').style.display='';$$('rRate').innerText=rv;}
   updateHwBadge();rebuildGraph();
   updateCommentSign();
+  applyReportEdits();
 }

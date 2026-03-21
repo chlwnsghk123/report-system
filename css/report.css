@@ -67,16 +67,17 @@ svg.lc{width:100%;height:100%;overflow:visible;}
   background-color:rgba(0,0,0,.02);border:1px solid rgba(0,0,0,.08);box-shadow:0 2px 5px rgba(0,0,0,.02);margin-left:auto;}
 .rb-label{font-size:11px;color:#888;font-weight:600;} .rb-val{font-size:18px;font-weight:800;color:#888;}
 
-.hw-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:4px;}
-.hw-list li{font-size:14px;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:#f7f7f7;}
-.hw-list li .hw-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
-.hw-list li.s완료 .hw-icon{background:#e0e0e0;color:#222;} .hw-list li.s완료{color:#222;}
-.hw-list li.s부분완료 .hw-icon{background:#ddd;color:#444;border:1px dashed #999;} .hw-list li.s부분완료{color:#555;}
-.hw-list li.s미완료 .hw-icon{background:#ccc;color:#111;border:1px solid #999;} .hw-list li.s미완료{color:#888;text-decoration:line-through;}
+.hw-list{padding:0;margin:0;display:flex;flex-direction:column;gap:4px;}
+.hw-li{font-size:14px;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:#f7f7f7;color:#222;}
+.hw-li .hw-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;background:#e0e0e0;color:#222;}
 .hw-text{flex:1;}
-.hw-chip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;flex-shrink:0;}
-.hw-chip.완료{background:#e0e0e0;color:#222;} .hw-chip.부분완료{background:#eee;color:#444;border:1px dashed #999;}
-.hw-chip.미완료{background:#ddd;color:#111;border:1px solid #999;}
+.hw-chip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;flex-shrink:0;background:#e0e0e0;color:#222;}
+.hw-carry-mark{font-size:10px;font-weight:700;color:#555;flex-shrink:0;}
+
+/* — 2열 레이아웃 (과제 3개 초과 시) — */
+.hw-list.compact{display:flex;flex-direction:row;gap:8px;}
+.hw-col{flex:1;display:flex;flex-direction:column;gap:4px;}
+.hw-col-label{font-size:10px;font-weight:700;color:#888;padding:0 4px 2px;letter-spacing:.5px;}
 
 /* — 진도 — */
 .prog-row{display:flex;gap:20px;}
@@ -90,10 +91,13 @@ svg.lc{width:100%;height:100%;overflow:visible;}
 .prog-chap{font-size:15px;font-weight:600;color:#222;}
 .prog-detail{font-size:13px;color:#555;margin-top:4px;white-space:pre-line;line-height:1.4;}
 
-/* — 다음 과제 — */
-.next-hw-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:4px;}
-.next-hw-list li{font-size:14px;color:#333;display:flex;align-items:flex-start;gap:8px;padding:6px 12px;border-radius:8px;background:#f7f7f7;}
-.next-hw-list li::before{content:'—';color:#333;font-weight:bold;font-size:14px;flex-shrink:0;margin-top:1px;}
+/* — 다음 과제 (대시 없음) — */
+.next-hw-list{padding:0;margin:0;display:flex;flex-direction:column;gap:4px;}
+.next-hw-li{font-size:14px;color:#333;display:flex;align-items:flex-start;gap:8px;padding:6px 12px;border-radius:8px;background:#f7f7f7;}
+.next-hw-li .carry-tag{font-size:10px;font-weight:700;color:#555;flex-shrink:0;margin-top:2px;}
+
+/* 2열 */
+.next-hw-list.compact{display:flex;flex-direction:row;gap:8px;}
 
 /* — 미니테스트 — */
 .mini-wrong-row{padding:10px 14px;background:#f0f0f0;border-radius:12px;border:1px solid #bbb;}
