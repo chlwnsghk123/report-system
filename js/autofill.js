@@ -45,8 +45,7 @@ function autoFillAll(){
     renderHwEditor();updateHwDisplay();
     if(G.hwRateManual!==null){$$('inputRate').value=G.hwRateManual;$$('inputRate').classList.remove('auto');}
     else{
-      const ar=calcRateFromStatus(G.hwStatus);
-      setAuto('inputRate',ar!==null?ar:(G.rates[G.selStudent]?.[G.selDate]??''));
+      setAuto('inputRate',G.rates[G.selStudent]?.[G.selDate]??'');
     }
     calcScore();updateWrongTags($$('inputWrong').value);
   }else{
@@ -63,8 +62,7 @@ function autoFillAll(){
     G.hwItems=prev?[1,2,3,4,5].map(i=>prev[`과제${i}`]||'').filter(x=>x):[];
     const key=G.selDate?`${G.selStudent}||${G.selDate}`:null,hwR=key?G.hwRec[key]:null;
     G.hwStatus=G.hwItems.map((_,i)=>hwR?stFromExcel(hwR[`과제${i+1}_상태`]||''):'');
-    const ar=calcRateFromStatus(G.hwStatus);
-    setAuto('inputRate',ar!==null?ar:(G.rates[G.selStudent]?.[G.selDate]??''));G.hwRateManual=null;
+    setAuto('inputRate',G.rates[G.selStudent]?.[G.selDate]??'');G.hwRateManual=null;
     renderHwEditor();updateHwDisplay();
   }
   const rv=$$('inputRate').value;

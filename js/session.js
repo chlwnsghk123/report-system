@@ -24,9 +24,9 @@ function populateSels(){
 }
 function showGroups(){
   ['gDate','gCurProgHead','gNextHwHead','sdMain','gPrevHw',
-   'sdOpt','toggleMini','toggleComment','btnSave','gLocalSave','btnPdf','lastSaved'].forEach(id=>{
+   'sdOpt','toggleMini','toggleComment','btnSave','btnPdf','lastSaved'].forEach(id=>{
     const el=$$(id);if(!el)return;
-    el.style.display=(id.startsWith('sd')||id==='gLocalSave')?'flex':'';
+    el.style.display=id.startsWith('sd')?'flex':'';
   });
   $$('btnSave').disabled=false;renderStudentList();renderTabs();
 }
@@ -64,38 +64,6 @@ function removeStudent(idx){
   if(G.selStudent===name)G.selStudent=G.students[0]||'';
   renderStudentList();renderTabs();saveAppData();
 }
-// ─── 로컬 JSON 저장/불러오기 ───
-function saveLocalData(){
-  const data={
-    lessons:G.lessons,students:G.students,rates:G.rates,
-    scores:G.scores,corrects:G.corrects,wrong:G.wrong,
-    hwRec:G.hwRec,tabData:G.tabData,fileName:G.excelFileName,
-    session:{selDate:G.selDate,selStudent:G.selStudent,showMini:G.showMini,showComment:G.showComment}
-  };
-  const a=document.createElement('a');
-  const ts=new Date().toISOString().slice(0,10).replace(/-/g,'');
-  a.href=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'}));
-  a.download=`학습리포트_저장_${ts}.json`;
-  a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-}
-async function loadLocalData(input){
-  const file=input.files[0];if(!file)return;
-  setBar('wait','⏳ 불러오는 중...');
-  try{
-    const data=JSON.parse(await file.text());
-    G.lessons=data.lessons||[];G.students=data.students||[];
-    G.rates=data.rates||{};G.scores=data.scores||{};
-    G.corrects=data.corrects||{};G.wrong=data.wrong||{};
-    G.hwRec=data.hwRec||{};G.tabData=data.tabData||{};
-    G.excelFileName=data.fileName||'학습리포트_데이터.xlsx';
-    await saveAppData();
-    populateSels();showGroups();
-    if(data.session)restoreSession(data.session);
-    setBar('ok',`✅ ${file.name}`);
-  }catch(e){setBar('err','❌ 불러오기 실패: '+e.message);console.error(e);}
-  input.value='';
-}
-
 function toggleStudentSec(){
   const e=$$('studentListEdit'),open=e.style.display!=='none';
   e.style.display=open?'none':'flex';

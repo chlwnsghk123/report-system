@@ -33,6 +33,7 @@
 | `triggerLoad()` | 파일선택 다이얼로그 열기 |
 | `loadExcel(input)` | 엑셀 파일 읽기·파싱 진입 |
 | `toDS(v)` | 날짜값 → YYYY-MM-DD 정규화 |
+| `normalizeRate(v)` | 이행률 정규화: %문자열·소수·정수 → 0~100 숫자 |
 | `parseWB(wb)` | 워크북 파싱 → G 전체 채움 (날짜별 시트 신규 형식 + 구 형식 하위 호환) |
 | `saveToExcel()` | G → 엑셀 파일 다운로드 (수업정보 + 날짜별 시트) |
 | `createTemplate()` | 오늘~6월까지 주 1회 날짜가 포함된 신규 템플릿 엑셀 생성·다운로드 |
@@ -64,8 +65,6 @@
 | `addStudent()` | 새 학생 G.students에 추가 |
 | `removeStudent(idx)` | 학생 삭제 (G.students에서 제거) |
 | `toggleStudentSec()` | 학생 목록 섹션 접기·펼치기 |
-| `saveLocalData()` | G 전체 데이터 → JSON 파일 다운로드 (로컬 백업) |
-| `loadLocalData(input)` | JSON 파일 → G 복원 (로컬 백업 불러오기) |
 
 ## js/autofill.js
 | 함수 | 역할 |
@@ -81,7 +80,6 @@
 | `rebuildGraph()` | SVG 이행률 꺾은선 그래프 재빌드 |
 | `renderHwEditor()` | 과제 에디터 UI 렌더링 |
 | `onRateManual()` | 이행률 수동입력 핸들러 |
-| `calcRateFromStatus(s)` | 과제상태 배열 → 이행률 자동계산 |
 | `hwBtnLabel(s)` | 상태 → 버튼 라벨 문자열 반환 |
 | `cycleHwStatus(i)` | 과제 상태 순환 (없음→완료→부분→미완료→없음) |
 | `updateHeaderDate(cur,next)` | 리포트 날짜 헤더 업데이트 |

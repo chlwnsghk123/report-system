@@ -142,12 +142,6 @@
     </div>
 
     <button class="btn-s" id="btnSaveSession" onclick="saveSession()" style="display:none;margin-bottom:8px;">💾 설정 저장/불러오기</button>
-    <!-- 로컬 저장/불러오기 -->
-    <div id="gLocalSave" style="display:none;gap:8px;">
-      <button class="btn-s" style="flex:1;" onclick="saveLocalData()">💾 저장</button>
-      <button class="btn-s" style="flex:1;" onclick="$$('localInput').click()">📂 불러오기</button>
-    </div>
-    <input type="file" id="localInput" accept=".json" style="display:none" onchange="loadLocalData(this)">
     <button class="btn-d" id="btnPdf" onclick="dlPdf()" style="display:none;">📄 PDF로 저장</button>
     <div id="lastSaved" style="font-size:11px;color:#9ca3af;text-align:center;display:none;"></div>
   </div>
