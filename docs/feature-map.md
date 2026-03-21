@@ -8,28 +8,37 @@
 
 ```
 A 패널 (좌측)
-├─ 상태바 / 엑셀 불러오기 버튼       → #sbar, #excelInput
-├─ 수업일 드롭다운                   → #selDate
-├─ 현재 진도 (접기/펼치기)           → #gCurProgHead, #curProgEdit
-├─ 이번 주차 과제 (접기/펼치기)       → #gNextHwHead, #nextHwEdit
-├─ 학생 탭바                        → #tabBar
+[panel-head]
+├─ 상태바 / 엑셀 불러오기            → #sbar, #excelInput
+├─ 파일 저장 버튼 (로드 후 표시)      → #btnSave
+├─ 수업일 드롭다운                   → #selDate (#gDate)
+├─ 현재 진도 (접기/펼치기)           → #gCurProgHead / #curProgEdit
+│    └─ 교재·단원·상세진도           → #inCurBook, #inCurChap, #inCurDetail
+├─ 이번 주차 과제 (접기/펼치기)       → #gNextHwHead / #nextHwEdit
+│    └─ 과제 목록 textarea          → #inputNotice
+└─ hidden: 이전진도 (#inPrevBook/Chap/Detail), 미니테스트 수 (#inputCorrect, #inputTotal)
+
+[탭바]
+└─ 학생 탭바                        → #tabBar
+
+[panel-body]
 ├─ 저번 주차 과제 + 이행률 입력       → #gPrevHw, #hwEditor, #inputRate
 ├─ 미니 테스트 토글                  → #toggleMini → #gMini
-│    └─ 맞힌 수/전체 + 오답 번호      → #inputCorrect, #inputTotal, #inputWrong
+│    └─ 오답 번호 + 시험자료 첨부     → #inputWrong, #btnAttach (#pdfInput)
 ├─ 코멘트 토글                      → #toggleComment → #gComment
 │    └─ 강사명 + 코멘트 텍스트        → #inputTeacher, #inputComment
-└─ 버튼 3개                        → #btnSave, #btnAttach, #btnPdf
+└─ PDF 저장 버튼 + 저장시각          → #btnPdf, #lastSaved
 
 B 미리보기 (우측)
 ├─ 페이지 네비                      → #pageNav
 └─ 리포트카드 #reportCard
      ├─ 헤더 (학생명/날짜)           → #rName, #rDate
-     ├─ ① 이행률 + 그래프            → #secRate, #svgChart
+     ├─ ① 이행률 + 그래프            → #secRate, #svgChart, #gLabels
      ├─ ② 저번 주차 과제 목록        → #secPrevHw, #rHwList
-     ├─ ③ 수업 진도 (현재/이전)       → .prog-card
+     ├─ ③ 수업 진도 (현재/이전)       → .prog-card (현재: #rCurBook/Chap/Detail, 이전: #rPrevBook/Chap/Detail)
      ├─ ④ 이번 주차 과제 목록        → #rNoticeList
-     ├─ ⑤ 미니 테스트 (선택)         → #secMini
-     └─ ⑥ 코멘트 (선택)             → #secComment
+     ├─ ⑤ 미니 테스트 (선택)         → #secMini, #rWrongTags
+     └─ ⑥ 코멘트 (선택)             → #secComment, #commentBody, #commentSign
 ```
 
 ---
@@ -37,15 +46,16 @@ B 미리보기 (우측)
 ## 기능 → 파일 상세 매핑
 
 ### 버튼·입력 위치 변경
-| 기능 | HTML ID | 수정 파일 |
-|---|---|---|
-| 엑셀 불러오기 버튼 위치 | `#sbar` | `index.html` |
-| 저장(엑셀) 버튼 | `#btnSave` | `index.html` |
-| 시험자료 첨부 버튼 | `#btnAttach` | `index.html` |
-| PDF 저장 버튼 | `#btnPdf` | `index.html` |
-| 미니 테스트 토글 위치 | `#toggleMini` | `index.html` |
-| 코멘트 토글 위치 | `#toggleComment` | `index.html` |
-| 이행률 입력 위치 | `#inputRate` | `index.html` |
+| 기능 | HTML ID | 위치 | 수정 파일 |
+|---|---|---|---|
+| 엑셀 불러오기 버튼 | `#sbar` | panel-head | `index.html` |
+| 저장(엑셀) 버튼 | `#btnSave` | panel-head | `index.html` |
+| 시험자료 첨부 버튼 | `#btnAttach` | `#gMini` 안 | `index.html` |
+| PDF 저장 버튼 | `#btnPdf` | panel-body 하단 | `index.html` |
+| 미니 테스트 토글 | `#toggleMini` | panel-body | `index.html` |
+| 코멘트 토글 | `#toggleComment` | panel-body | `index.html` |
+| 이행률 입력 | `#inputRate` | `#gPrevHw` 안 | `index.html` |
+| 오답 번호 입력 | `#inputWrong` | `#gMini` 안 | `index.html` |
 
 ### 기능 동작 변경
 | 기능 | 수정 파일 | 관련 함수 |
@@ -81,7 +91,7 @@ B 미리보기 (우측)
 | 요청 예시 | 해석 | 읽을 파일 |
 |---|---|---|
 | "시험자료 첨부 버튼을 미니 테스트 안으로 넣어줘" | HTML 위치 이동 | `index.html` |
-| "그래프 최근 6개로 늘려줘" | 그래프 로직 | `js/report.js` |
+| "그래프 최근 4개에서 늘려줘" | 그래프 로직 | `js/report.js` |
 | "버튼 색 파란색으로 바꿔줘" | 버튼 CSS | `css/layout.css` |
 | "리포트 주색상 파란색으로 바꿔줘" | :root 변수 | `css/report.css` |
 | "점수 계산 방식 바꿔줘" | 점수 공식 | `js/autofill.js` |
