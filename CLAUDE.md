@@ -9,17 +9,17 @@
 ```
 index.html          HTML 구조만 (스타일·JS 없음)
 css/
-  layout.css        패널·탭·인풋·버튼·페이지네비 등 앱 UI 스타일
+  layout.css        패널·탭·인풋·버튼·페이지네비·뷰탭·수업카드·날짜요약 등 앱 UI 스타일
   report.css        리포트카드 A4 스타일 (:root 변수 포함)
 js/
   state.js          G 객체, 상수(DB/STORE), $$ 헬퍼
-  utils.js          getCurL/getPrevL/getNextL, setAuto, setBar, shortD, fmtKo, esc
+  utils.js          getCurL/getPrevL/getNextL, setAuto, rmAuto, setBar, shortD, fmtKo, esc
   db.js             openDB, dbSet, dbGet
-  excel.js          triggerLoad, loadExcel, toDS, parseWB, saveToExcel, stFromExcel, stToExcel
-  ui.js             updateScale, initCE, fp, switchView, renderViewTabs, selectDate, renderLessonCards, renderDateSummary, renderTabs, switchTab, saveTabData, restoreTabData, toggleSec
-  session.js        saveAppData, saveSession, restoreSession, showGroups, autoSelectDate
-  autofill.js       calcScore, autoFillCommon, autoFillAll
-  report.js         rebuildGraph, renderHwEditor, onRateManual, calcRateFromStatus, cycleHwStatus, hwBtnLabel, updateHeaderDate, updateHwDisplay, updateHwBadge, updateNoticeList, updateCommentSign, updateWrongTags, updateCurProgSummary, updateNextHwSummary
+  excel.js          triggerLoad, loadExcel, toDS, normalizeRate, stFromExcel, stToExcel, parseWB, saveToExcel, createTemplate
+  ui.js             updateScale, initCE, fp, switchView, renderViewTabs, shiftDate, selectDate, renderLessonCards, updateLessonField, syncLessonToReport, addLesson, removeLesson, renderDateSummary, renderTabs, switchTab, saveTabData, restoreTabData, toggleSec, addStudent, removeStudent, renderStudentList, toggleStudentSec
+  session.js        saveAppData, saveSession, restoreSession, showGroups, autoSelectDate, renderStudentList, addStudent, removeStudent
+  autofill.js       calcScore, autoFillCommon, autoFillAll, stFromExcel
+  report.js         rebuildGraph, renderHwEditor, onRateManual, cycleHwStatus, hwBtnLabel, updateHeaderDate, updateHwDisplay, updateHwBadge, updateNoticeList, updateCommentSign, updateWrongTags
   pdf.js            loadAttachPdf, renderSpread, drawPdfPrev, prevSpread, nextSpread, dlPdf, dataUrlToBytes
   init.js           window.onload (앱 진입점)
 docs/               참조 문서 (필요 시만 읽기)
