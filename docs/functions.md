@@ -50,9 +50,14 @@
 | `renderViewTabs()` | 뷰 탭 바 렌더링 (⚙ 수업설정 + 날짜 탭) |
 | `shiftDate(dir)` | 날짜 탭 ◀▶ 스크롤 |
 | `selectDate(date)` | 날짜 선택 → date 뷰 전환 |
-| `renderLessonCards()` | 수업설정 뷰: 레슨 카드 렌더링 |
+| `openLessonModal()` | 수업설정 전체화면 모달 열기 |
+| `closeLessonModal()` | 수업설정 모달 닫기 |
+| `getLessonHwKeys(l)` | 레슨 객체의 동적 과제 키 목록 반환 |
+| `renderLessonCards()` | 수업설정 모달: 레슨 카드 렌더링 (날짜 상태 분류·포커스 포함) |
 | `updateLessonField(idx,field,value)` | 레슨 필드 수정 → G.lessons 업데이트 + 리포트 동기화 |
 | `syncLessonToReport()` | 현재 선택 날짜의 수업정보 → 리포트카드 동기화 |
+| `addLessonHw(idx)` | 레슨에 과제 필드 동적 추가 |
+| `removeLessonHw(idx,hwIdx)` | 레슨의 과제 필드 삭제 + 키 재정렬 |
 | `addLesson()` | 새 수업 날짜 추가 (마지막 +7일) |
 | `removeLesson(idx)` | 수업 날짜 삭제 |
 | `renderDateSummary()` | 날짜 뷰 상단: 수업정보 읽기전용 요약 |

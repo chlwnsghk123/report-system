@@ -141,7 +141,7 @@ body{margin:0;padding:0;background-color:#f2f4f6;font-family:'Pretendard',sans-s
 .lc-row{display:flex;gap:6px;}
 .lc-row input{flex:1;}
 .lc-hw-label{font-size:11px;font-weight:700;color:#8a8f9e;margin-top:2px;}
-.lc-hw{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.lc-hw{display:flex;flex-direction:column;gap:6px;}
 
 /* ═══ 날짜 요약 (날짜 뷰 상단) ═══ */
 .date-summary{background:#f0f4ff;border:1px solid #dbeafe;border-radius:12px;padding:12px 16px;margin-bottom:8px;}
@@ -151,6 +151,35 @@ body{margin:0;padding:0;background-color:#f2f4f6;font-family:'Pretendard',sans-s
   padding:2px 8px;border-radius:6px;white-space:nowrap;}
 .ds-detail{font-size:12px;color:#6b7280;margin-top:2px;}
 .ds-hw{font-size:12px;color:#4b5563;margin-top:4px;font-weight:500;}
+
+/* ═══ 수업설정 전체화면 모달 ═══ */
+.lm-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;animation:lmFadeIn .2s;}
+@keyframes lmFadeIn{from{opacity:0}to{opacity:1}}
+.lm-modal{background:#fff;border-radius:16px;width:90vw;max-width:720px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:lmSlideUp .25s;}
+@keyframes lmSlideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.lm-header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid #eaecef;flex-shrink:0;}
+.lm-header h3{margin:0;font-size:17px;font-weight:800;color:#111;}
+.lm-close{background:none;border:none;font-size:18px;color:#9ca3af;cursor:pointer;padding:4px 8px;border-radius:6px;transition:.15s;}
+.lm-close:hover{background:#f3f4f6;color:#374151;}
+.lm-body{padding:20px 24px 28px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;}
+.lm-body::-webkit-scrollbar{width:6px;}
+.lm-body::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:4px;}
+
+/* 레슨 카드 날짜 상태 */
+.lesson-card.lc-past{opacity:.55;}
+.lesson-card.lc-past .lc-head{background:#e5e7eb;}
+.lesson-card.lc-past .lc-date{color:#9ca3af;}
+.lesson-card.lc-next{border:2px solid #3182f6;box-shadow:0 0 0 3px rgba(49,130,246,.12);}
+.lesson-card.lc-next .lc-head{background:#eff6ff;border-bottom-color:#dbeafe;}
+.lesson-card.lc-next .lc-date{color:#1d4ed8;}
+
+/* 과제 동적 추가/삭제 */
+.lc-hw-row{display:flex;gap:6px;align-items:center;}
+.lc-hw-row input{flex:1;}
+.lc-hw-del{background:none;border:none;font-size:13px;cursor:pointer;color:#d1d5db;padding:2px 4px;border-radius:4px;transition:.15s;flex-shrink:0;}
+.lc-hw-del:hover{color:#ef4444;background:#fef2f2;}
+.lc-hw-add{background:none;border:1px dashed #d1d5db;border-radius:8px;padding:6px;font-size:12px;color:#9ca3af;cursor:pointer;transition:.15s;width:100%;font-family:inherit;}
+.lc-hw-add:hover{border-color:#3182f6;color:#3182f6;background:#eff6ff;}
 
 /* ═══ 반응형 ═══ */
 @media screen and (max-width:1024px){

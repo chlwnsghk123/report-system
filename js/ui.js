@@ -58,19 +58,28 @@ function switchView(view){
     el.classList.toggle('active',el.dataset.date===G.selDate&&view==='date');
   });
   // 뷰 토글
-  $$('viewConfig').style.display=view==='config'?'':'none';
   $$('viewDate').style.display=view==='date'?'':'none';
   $$('tabBar').style.display=view==='date'&&G.students.length?'flex':'none';
   if(view==='config'){
-    renderLessonCards();
-    renderStudentList();
+    openLessonModal();
   }else if(view==='date'){
+    closeLessonModal();
     renderDateSummary();
     renderTabs();
     if(G.selDate&&G.selStudent)autoFillAll();
     else if(G.selDate)autoFillCommon();
   }
   saveSession();
+}
+
+// ─── 수업설정 전체화면 모달 ───
+function openLessonModal(){
+  renderLessonCards();
+  renderStudentList();
+  $$('lessonModalOverlay').style.display='flex';
+}
+function closeLessonModal(){
+  $$('lessonModalOverlay').style.display='none';
 }
 
 // ─── 뷰 탭 (상단) ───
@@ -109,14 +118,34 @@ function selectDate(date){
 }
 
 // ─── 수업설정: 레슨 카드 ───
+function getLessonHwKeys(l){
+  // 레슨 객체에서 과제 키 목록 반환 (과제1, 과제2, ... 동적)
+  const keys=[];
+  for(let i=1;;i++){const k=`과제${i}`;if(k in l)keys.push(k);else break;}
+  if(!keys.length){l.과제1='';keys.push('과제1');}
+  return keys;
+}
 function renderLessonCards(){
   const c=$$('lessonCards');
   if(!G.lessons.length){
     c.innerHTML='<div style="font-size:13px;color:#9ca3af;padding:8px;">수업 날짜가 없습니다. 아래 버튼으로 추가하세요.</div>';
     return;
   }
-  c.innerHTML=G.lessons.map((l,i)=>`
-    <div class="lesson-card">
+  const today=new Date().toISOString().slice(0,10);
+  // 오늘 이후 가장 가까운 날짜 찾기
+  const futureDates=G.lessons.filter(l=>l.날짜>=today).map(l=>l.날짜);
+  const nextDate=futureDates.length?futureDates[0]:null;
+  c.innerHTML=G.lessons.map((l,i)=>{
+    let cls='lesson-card';
+    if(l.날짜<today)cls+=' lc-past';
+    else if(l.날짜===nextDate)cls+=' lc-next';
+    const hwKeys=getLessonHwKeys(l);
+    const hwHtml=hwKeys.map((k,hi)=>`
+      <div class="lc-hw-row">
+        <input placeholder="과제 ${hi+1}" value="${esc(l[k]||'')}" oninput="updateLessonField(${i},'${k}',this.value)">
+        ${hwKeys.length>1?`<button class="lc-hw-del" onclick="removeLessonHw(${i},${hi})" title="과제 삭제">✕</button>`:''}
+      </div>`).join('');
+    return`<div class="${cls}" data-idx="${i}">
       <div class="lc-head">
         <span class="lc-date">${fmtKo(l.날짜)}</span>
         <button class="lc-del" onclick="removeLesson(${i})" title="삭제">🗑</button>
@@ -128,14 +157,18 @@ function renderLessonCards(){
         </div>
         <textarea placeholder="상세 진도" rows="1" oninput="updateLessonField(${i},'상세진도',this.value)">${esc(l.상세진도)}</textarea>
         <div class="lc-hw-label">과제</div>
-        <div class="lc-hw">
-          <input placeholder="과제 1" value="${esc(l.과제1)}" oninput="updateLessonField(${i},'과제1',this.value)">
-          <input placeholder="과제 2" value="${esc(l.과제2)}" oninput="updateLessonField(${i},'과제2',this.value)">
-          <input placeholder="과제 3" value="${esc(l.과제3)}" oninput="updateLessonField(${i},'과제3',this.value)">
-          <input placeholder="과제 4" value="${esc(l.과제4)}" oninput="updateLessonField(${i},'과제4',this.value)">
+        <div class="lc-hw">${hwHtml}
+          <button class="lc-hw-add" onclick="addLessonHw(${i})">+ 과제 추가</button>
         </div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+  // 가장 가까운 미래 날짜로 스크롤
+  if(nextDate){
+    const idx=G.lessons.findIndex(l=>l.날짜===nextDate);
+    const card=c.children[idx];
+    if(card)setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'center'}),100);
+  }
 }
 
 function updateLessonField(idx,field,value){
@@ -153,10 +186,34 @@ function syncLessonToReport(){
   $$('inPrevBook').value=prev?.교재||'';fp('rPrevBook','inPrevBook');
   $$('inPrevChap').value=prev?.단원||'';fp('rPrevChap','inPrevChap');
   $$('inPrevDetail').value=prev?.상세진도||'';fp('rPrevDetail','inPrevDetail');
-  const hwT=[1,2,3,4].map(i=>cur[`과제${i}`]||'').filter(x=>x);
+  const hwKeys=getLessonHwKeys(cur);
+  const hwT=hwKeys.map(k=>cur[k]||'').filter(x=>x);
   $$('inputNotice').value=hwT.join('\n');
   updateNoticeList(hwT.join('\n'));
   updateHeaderDate(cur.날짜,next?.날짜||'');
+}
+
+// ─── 과제 동적 추가/삭제 ───
+function addLessonHw(idx){
+  const l=G.lessons[idx];
+  const keys=getLessonHwKeys(l);
+  const newKey=`과제${keys.length+1}`;
+  l[newKey]='';
+  renderLessonCards();saveAppData();
+}
+function removeLessonHw(idx,hwIdx){
+  const l=G.lessons[idx];
+  const keys=getLessonHwKeys(l);
+  if(keys.length<=1)return;
+  // 삭제 후 키 재정렬
+  const vals=keys.map(k=>l[k]);
+  vals.splice(hwIdx,1);
+  // 기존 과제 키 모두 삭제
+  keys.forEach(k=>delete l[k]);
+  // 재정렬된 값으로 다시 설정
+  vals.forEach((v,i)=>{l[`과제${i+1}`]=v;});
+  if(l.날짜===G.selDate)syncLessonToReport();
+  renderLessonCards();saveAppData();
 }
 
 function addLesson(){
@@ -190,7 +247,8 @@ function removeLesson(idx){
 function renderDateSummary(){
   const cur=getCurL(),el=$$('dateSummary');
   if(!cur){el.innerHTML='';return;}
-  const hwT=[1,2,3,4].map(i=>cur[`과제${i}`]||'').filter(x=>x);
+  const hwKeys=getLessonHwKeys(cur);
+  const hwT=hwKeys.map(k=>cur[k]||'').filter(x=>x);
   el.innerHTML=`
     <div class="ds-title">${fmtKo(cur.날짜)}</div>
     <div class="ds-info">
