@@ -10,7 +10,7 @@ const G={
   lessons:[],students:[],
   rates:{},scores:{},corrects:{},wrong:{},hwRec:{},
   selDate:'',selStudent:'',
-  hwItems:[],hwStatus:[],hwRateManual:null,
+  hwItems:[],hwStatus:[],hwItemTypes:[],hwRateManual:null,
   scoreCalc:null,totalQ:5,
   showMini:false,showComment:false,
   tabData:{},

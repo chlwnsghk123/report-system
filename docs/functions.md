@@ -63,8 +63,9 @@
 | `renderDateSummary()` | 날짜 뷰 상단: 수업정보 읽기전용 요약 |
 | `renderTabs()` | 학생 탭바 렌더링 |
 | `switchTab(name)` | 학생 탭 전환 |
-| `saveTabData()` | 현재 학생 입력값 → G.tabData 임시저장 |
-| `restoreTabData(name)` | G.tabData → UI 복원 |
+| `saveTabData()` | 현재 학생 입력값 → G.tabData 임시저장 + hwRec items 동기화 |
+| `syncHwRecItems(student,date)` | G.hwItems/hwStatus/hwItemTypes → hwRec[key].items 동기화 |
+| `restoreTabData(name)` | G.tabData → UI 복원 (hwItems/hwItemTypes 포함) |
 | `toggleSec(type)` | 미니테스트/코멘트 토글 |
 
 ## js/session.js
@@ -85,8 +86,10 @@
 |---|---|
 | `stFromExcel(v)` | 엑셀 기호/숫자(○/△/X/0/1/2) → 한글 상태 변환 |
 | `calcScore()` | 맞힌수/전체 → 점수 계산 및 표시 |
+| `computeCarryover(student,date)` | 직전 날짜 hwRec에서 미완료/부분완료 항목 수집 → 캐리오버 배열 반환 |
+| `updateNoticeWithCarry()` | 이번 주차 과제 + 미완료 캐리오버 → 리포트카드 반영 |
 | `autoFillCommon()` | 날짜 기준 공통 필드 자동채우기 |
-| `autoFillAll()` | 학생+날짜 기준 전체 자동채우기 |
+| `autoFillAll()` | 학생+날짜 기준 전체 자동채우기 (base + 캐리오버 병합) |
 
 ## js/report.js
 | 함수 | 역할 |

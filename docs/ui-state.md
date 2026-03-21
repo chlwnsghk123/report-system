@@ -61,14 +61,15 @@ G = {
   scores: {},      // {학생명:{날짜:점수}}
   corrects: {},    // {학생명:{날짜:맞힌개수}}
   wrong: {},       // {학생명:{날짜:"오답번호문자열"}}
-  hwRec: {},       // {"학생명||날짜":{이행률,과제1_상태~4_상태}}
+  hwRec: {},       // {"학생명||날짜":{이행률,과제1_상태~N_상태,items:[{text,status,type,fromDate}]}}
 
   // 현재 선택
   selDate: '', selStudent: '',
 
   // 과제 입력
-  hwItems: [],        // 이전 수업 과제 항목 문자열 배열
+  hwItems: [],        // 이전 수업 과제 항목 문자열 배열 (base + carry 병합)
   hwStatus: [],       // 각 과제 상태 ('' | '완료' | '부분완료' | '미완료')
+  hwItemTypes: [],    // 각 항목 타입 [{type:'base'} | {type:'carry',fromDate:'YYYY-MM-DD'}]
   hwRateManual: null, // null=엑셀 데이터 사용, 숫자=수동입력
 
   // 미니테스트
