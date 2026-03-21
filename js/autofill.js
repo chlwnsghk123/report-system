@@ -10,20 +10,72 @@ function calcScore(){
   $$('rCorrect').innerText=c;$$('rTotal').innerText=t;
 }
 
+// ─── 캐리오버 계산 ───
+// 직전 날짜의 hwRec에서 미완료/부분완료 항목을 수집
+function computeCarryover(student,date){
+  const curIdx=G.lessons.findIndex(l=>l.날짜===date);
+  if(curIdx<=0)return[];
+  const prevDate=G.lessons[curIdx-1].날짜;
+  const key=`${student}||${prevDate}`;
+  const rec=G.hwRec[key];
+  if(!rec)return[];
+  // 신규 형식: items 배열이 있으면 사용
+  if(rec.items&&rec.items.length){
+    return rec.items
+      .filter(it=>it.status==='미완료'||it.status==='부분완료')
+      .map(it=>({
+        text:it.text,
+        fromDate:it.fromDate||(curIdx>=2?G.lessons[curIdx-2].날짜:prevDate)
+      }));
+  }
+  // 레거시 형식: 과제N_상태로 재구성
+  if(curIdx<2)return[];
+  const ppLesson=G.lessons[curIdx-2];
+  const ppHwKeys=getLessonHwKeys(ppLesson);
+  const result=[];
+  ppHwKeys.forEach((k,i)=>{
+    const text=ppLesson[k];if(!text)return;
+    const status=stFromExcel(rec[`과제${i+1}_상태`]||'');
+    if(status==='미완료'||status==='부분완료'){
+      result.push({text,fromDate:ppLesson.날짜});
+    }
+  });
+  return result;
+}
+
+// ─── 이번 주차 과제 + 캐리오버 반영 (리포트카드) ───
+function updateNoticeWithCarry(){
+  const cur=getCurL();if(!cur)return;
+  const hwKeys=getLessonHwKeys(cur);
+  const baseHw=hwKeys.map(k=>cur[k]||'').filter(x=>x);
+  // 현재 체크에서 미완료/부분완료 항목 수집
+  const unfinished=[];
+  G.hwItems.forEach((text,i)=>{
+    const st=G.hwStatus[i];
+    if(st==='미완료'||st==='부분완료')unfinished.push(text);
+  });
+  const list=$$('rNoticeList');
+  let html=baseHw.map(t=>`<li>${esc(t)}</li>`).join('');
+  if(unfinished.length){
+    html+=unfinished.map(t=>
+      `<li class="carry-notice"><span class="carry-tag">전</span>${esc(t)}</li>`
+    ).join('');
+  }
+  list.innerHTML=html;
+}
+
 // ─── 자동 채우기 (날짜 기준 공통) ───
 function autoFillCommon(){
   const cur=getCurL();if(!cur)return;
   const prev=getPrevL(),next=getNextL();
   G.totalQ=cur.전체문제수||5;setAuto('inputTotal',G.totalQ);
   updateHeaderDate(cur.날짜,next?.날짜||'');
-  // 진도 → hidden inputs → 리포트카드
   $$('inCurBook').value=cur.교재;fp('rCurBook','inCurBook');
   $$('inCurChap').value=cur.단원;fp('rCurChap','inCurChap');
   $$('inCurDetail').value=cur.상세진도;fp('rCurDetail','inCurDetail');
   $$('inPrevBook').value=prev?.교재||'';fp('rPrevBook','inPrevBook');
   $$('inPrevChap').value=prev?.단원||'';fp('rPrevChap','inPrevChap');
   $$('inPrevDetail').value=prev?.상세진도||'';fp('rPrevDetail','inPrevDetail');
-  // 이번 주차 과제 (동적 개수)
   const hwKeys=getLessonHwKeys(cur);
   const hwT=hwKeys.map(k=>cur[k]||'').filter(x=>x);
   $$('inputNotice').value=hwT.join('\n');
@@ -46,7 +98,7 @@ function autoFillAll(){
   autoFillCommon();$$('rName').innerText=G.selStudent;
   const hadData=restoreTabData(G.selStudent);
   if(hadData){
-    renderHwEditor();updateHwDisplay();
+    renderHwEditor();updateHwDisplay();updateNoticeWithCarry();
     if(G.hwRateManual!==null){$$('inputRate').value=G.hwRateManual;$$('inputRate').classList.remove('auto');}
     else{
       setAuto('inputRate',G.rates[G.selStudent]?.[G.selDate]??'');
@@ -61,15 +113,41 @@ function autoFillAll(){
     if(ct!==undefined){$$('rCorrect').innerText=ct;$$('rTotal').innerText=G.totalQ;}
     $$('inputWrong').value=G.wrong[G.selStudent]?.[G.selDate]||'';
     updateWrongTags($$('inputWrong').value);calcScore();
+    // base 항목: 직전 레슨 과제
     const prev=getPrevL();
+    let baseItems=[];
     if(prev){
       const prevHwKeys=getLessonHwKeys(prev);
-      G.hwItems=prevHwKeys.map(k=>prev[k]||'').filter(x=>x);
-    }else{G.hwItems=[];}
-    const key=G.selDate?`${G.selStudent}||${G.selDate}`:null,hwR=key?G.hwRec[key]:null;
-    G.hwStatus=G.hwItems.map((_,i)=>hwR?stFromExcel(hwR[`과제${i+1}_상태`]||''):'');
+      baseItems=prevHwKeys.map(k=>prev[k]||'').filter(x=>x);
+    }
+    // 캐리오버 항목
+    const carryItems=computeCarryover(G.selStudent,G.selDate);
+    // 병합
+    G.hwItems=[...baseItems,...carryItems.map(c=>c.text)];
+    G.hwItemTypes=[
+      ...baseItems.map(()=>({type:'base'})),
+      ...carryItems.map(c=>({type:'carry',fromDate:c.fromDate}))
+    ];
+    // 상태 로드
+    const key=G.selDate?`${G.selStudent}||${G.selDate}`:null;
+    const hwR=key?G.hwRec[key]:null;
+    if(hwR&&hwR.items&&hwR.items.length){
+      // 신규 형식: items 배열에서 매칭
+      G.hwStatus=G.hwItems.map((text,i)=>{
+        const typ=G.hwItemTypes[i];
+        const match=hwR.items.find(it=>it.text===text&&it.type===typ.type
+          &&(typ.type==='base'||it.fromDate===typ.fromDate));
+        return match?match.status:'';
+      });
+    }else{
+      // 레거시: base items만 과제N_상태 사용
+      G.hwStatus=G.hwItems.map((_,i)=>{
+        if(i<baseItems.length&&hwR)return stFromExcel(hwR[`과제${i+1}_상태`]||'');
+        return'';
+      });
+    }
     setAuto('inputRate',G.rates[G.selStudent]?.[G.selDate]??'');G.hwRateManual=null;
-    renderHwEditor();updateHwDisplay();
+    renderHwEditor();updateHwDisplay();updateNoticeWithCarry();
   }
   const rv=$$('inputRate').value;
   const isFirst=G.lessons.length>0&&G.selDate===G.lessons[0].날짜;

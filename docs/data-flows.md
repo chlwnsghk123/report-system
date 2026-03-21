@@ -5,9 +5,9 @@
 ```
 loadExcel() → XLSX.read(arrayBuffer) → parseWB(wb)
   [1] '수업정보' 시트 → G.lessons[]
-      신규 형식: 날짜(0) 교재(1) 단원(2) 상세진도(3) 과제1~4(4~7)
-      구 형식 (강사명 포함): 날짜(0) 강사명(1) 교재(2) 단원(3) 상세진도(4) 과제1~5(5~9)
-      → 헤더에 '강사명' 유무로 자동 감지
+      신규 형식: 날짜(0) 교재(1) 단원(2) 상세진도(3) 과제1~N(4+, 동적)
+      구 형식 (강사명 포함): 날짜(0) 강사명(1) 교재(2) 단원(3) 상세진도(4) 과제1~N(5+)
+      → 헤더에 '강사명' 유무로 자동 감지, 과제 열은 '과제' 접두사로 동적 감지
       날짜 오름차순 정렬, 전체문제수 기본값 5
 
   형식 감지: SheetNames에 YYYY-MM-DD 패턴 존재 → 신규 형식, 없으면 구 형식
@@ -15,13 +15,17 @@ loadExcel() → XLSX.read(arrayBuffer) → parseWB(wb)
   [2-A] 신규 형식 (날짜별 시트) ← 현재 기본 형식
       첫 번째 날짜 시트 → G.students[] 순서 결정
       각 날짜 시트 파싱 → G.corrects, G.wrong, G.rates, G.hwRec
-        열: 이름(0) 성적(1, "맞힌/전체") 오답(2) 이행률(3) 과제1~4_상태(4~7)
+        열: 이름(0) 성적(1) 오답(2) 이행률(3) 과제1~N_상태(4+, 동적) 비고(마지막, 무시)
         과제 상태: 숫자(0/1/2) 또는 기호(○/△/X) → stFromExcel()로 변환
-        키: "학생명||날짜"
 
   [2-B] 구 형식 (하위 호환)
       '성적' 시트 → G.students[], G.corrects, G.wrong
       학생별 시트 → G.hwRec, G.rates
+
+  [3] '이월과제' 시트 → hwRec[key].items (carry 항목만)
+      ▼ 구분행 무시, 학생·확인날짜·과제내용·원본날짜·상태 파싱
+
+  [4] hwRec items 재구성: base(날짜시트) + carry(이월과제시트) 병합
 
 → saveAppData() → showGroups() → autoSelectDate()
 ```
@@ -114,10 +118,32 @@ dlPdf()
 ```
 saveToExcel()
   → saveTabData()       현재 학생 데이터 보존
-  → G.students 순회: tabData → G.hwRec, G.rates, G.corrects 등 갱신
+  → G.students 순회: tabData → G.hwRec (items 배열 포함), G.rates, G.corrects 등 갱신
   → XLSX 워크북 생성:
-    수업정보 시트: [날짜, 교재, 단원, 상세진도, 과제1~4]
-    날짜별 시트: [이름, 성적, 오답, 이행률, 과제1~4(숫자상태)]
-      과제 상태: stToExcel() 사용 (완료→'2', 부분완료→'1', 미완료→'0', 공란→'')
+    수업정보 시트: [날짜, 교재, 단원, 상세진도, 과제1~N] (동적 열)
+    날짜별 시트: [이름, 성적, 오답, 이행률, 과제1~N(숫자상태), 비고]
+      비고 열: 이월과제 요약 자동 생성 (전·원본날짜)과제명→상태)
+    이월과제 시트: [학생, 확인날짜, 과제내용, 원본날짜, 상태] (▼ 날짜 블록 구분)
   → 다운로드
+
+## 9. 캐리오버 시스템
+
+```
+autoFillAll()
+  → computeCarryover(student, date)
+    → hwRec[student||prevDate].items에서 미완료/부분완료 항목 수집
+    → 레거시 호환: items 없으면 과제N_상태 + 2단계 전 레슨 과제 텍스트로 재구성
+  → G.hwItems = baseItems + carryItems
+  → G.hwItemTypes = [{type:'base'}, ..., {type:'carry', fromDate}]
+  → 상태 로드: hwRec[key].items 매칭 또는 레거시 과제N_상태
+
+cycleHwStatus()
+  → updateNoticeWithCarry()
+    → 이번 주차 과제 = 현재 레슨 base hw + 현재 미완료 항목
+    → 리포트카드 #rNoticeList 갱신
+
+saveTabData()
+  → syncHwRecItems()
+    → G.hwItems/hwStatus/hwItemTypes → hwRec[key].items 배열 동기화
+```
 ```

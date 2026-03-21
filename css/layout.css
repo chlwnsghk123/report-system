@@ -72,6 +72,15 @@ body{margin:0;padding:0;background-color:#f2f4f6;font-family:'Pretendard',sans-s
 .hw-btn.s부분완료{color:#111827;border-color:#fcd34d;background:#fffbeb;opacity:1;}
 .hw-btn.s미완료 {color:#111827;border-color:#fca5a5;background:#fef2f2;opacity:1;}
 
+/* ═══ 캐리오버 뱃지 ═══ */
+.hw-carry-divider{font-size:11px;font-weight:700;color:#d97706;padding:6px 0 2px;border-top:1px dashed #fcd34d;margin-top:4px;display:flex;align-items:center;gap:6px;}
+.hw-carry-divider::before{content:'';flex:1;height:1px;background:#fcd34d;}
+.hw-carry-divider::after{content:'';flex:1;height:1px;background:#fcd34d;}
+.hw-carry-badge{font-size:10px;font-weight:800;color:#fff;background:#f59e0b;border-radius:4px;padding:1px 6px;flex-shrink:0;line-height:1.4;}
+.hw-item.hw-carry{border-color:#fcd34d;background:#fffbeb;}
+.hw-carry-mark{font-size:11px;font-weight:700;color:#d97706;margin-right:2px;}
+.carry-notice .carry-tag{display:inline-block;font-size:9px;font-weight:800;color:#fff;background:#f59e0b;border-radius:3px;padding:0 4px;margin-right:4px;vertical-align:middle;line-height:1.5;}
+
 /* ═══ 점수 계산 ═══ */
 .score-calc{background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
 .sc-row{display:flex;align-items:center;gap:8px;font-size:14px;}

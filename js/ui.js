@@ -278,16 +278,43 @@ function switchTab(name){
 function saveTabData(){
   if(!G.selStudent)return;
   G.tabData[G.selStudent]={
-    hwStatus:[...G.hwStatus],scoreCalc:G.scoreCalc,
+    hwStatus:[...G.hwStatus],
+    hwItems:[...G.hwItems],
+    hwItemTypes:G.hwItemTypes.map(t=>({...t})),
+    scoreCalc:G.scoreCalc,
     correctInput:$$('inputCorrect').value,totalInput:$$('inputTotal').value,
     wrongInput:$$('inputWrong').value,rateManual:G.hwRateManual,
     comment:$$('inputComment').value,
   };
+  syncHwRecItems(G.selStudent,G.selDate);
+}
+
+// hwRec에 items 배열 동기화
+function syncHwRecItems(student,date){
+  if(!student||!date)return;
+  const key=`${student}||${date}`;
+  const rec=G.hwRec[key]||{이행률:null};
+  rec.items=G.hwItems.map((text,i)=>({
+    text,
+    status:G.hwStatus[i]||'',
+    type:G.hwItemTypes[i]?.type||'base',
+    fromDate:G.hwItemTypes[i]?.fromDate||''
+  }));
+  // 레거시 필드도 업데이트 (base items)
+  G.hwItems.forEach((_, i)=>{
+    if(!G.hwItemTypes[i]||G.hwItemTypes[i].type==='base'){
+      rec[`과제${i+1}_상태`]=G.hwStatus[i]||'';
+    }
+  });
+  G.hwRec[key]=rec;
 }
 
 function restoreTabData(name){
   const d=G.tabData[name];if(!d)return false;
-  G.hwStatus=d.hwStatus||[];G.scoreCalc=d.scoreCalc??null;G.hwRateManual=d.rateManual??null;
+  G.hwStatus=d.hwStatus||[];
+  G.hwItems=d.hwItems||[];
+  G.hwItemTypes=d.hwItemTypes||G.hwItems.map(()=>({type:'base'}));
+  G.scoreCalc=d.scoreCalc??null;G.hwRateManual=d.rateManual??null;
   $$('inputCorrect').value=d.correctInput||'';$$('inputTotal').value=d.totalInput||'';
   $$('inputWrong').value=d.wrongInput||'';$$('inputComment').value=d.comment||'';
   fp('commentBody','inputComment');return true;

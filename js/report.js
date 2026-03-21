@@ -29,12 +29,23 @@ function rebuildGraph(){
 function renderHwEditor(){
   const c=$$('hwEditor');
   if(!G.hwItems.length){c.innerHTML='<div style="font-size:11px;color:#b5bac4;padding:4px 2px;">이전 주차 과제 없음</div>';updateHwDisplay();return;}
-  c.innerHTML=G.hwItems.map((item,i)=>{
+  const firstCarryIdx=G.hwItemTypes.findIndex(t=>t.type==='carry');
+  let html='';
+  G.hwItems.forEach((item,i)=>{
     const st=G.hwStatus[i]||'';
-    return`<div class="hw-item"><input type="text" class="auto" value="${esc(item)}"
-      oninput="G.hwItems[${i}]=this.value;this.classList.remove('auto');updateHwDisplay();">
+    const isCarry=G.hwItemTypes[i]?.type==='carry';
+    const fromDate=G.hwItemTypes[i]?.fromDate||'';
+    if(i===firstCarryIdx){
+      html+='<div class="hw-carry-divider">이월 과제</div>';
+    }
+    html+=`<div class="hw-item${isCarry?' hw-carry':''}">
+      ${isCarry?`<span class="hw-carry-badge" title="${fromDate?fmtKo(fromDate):''}">전</span>`:''}
+      <input type="text" class="${isCarry?'auto':''}" value="${esc(item)}"
+        oninput="G.hwItems[${i}]=this.value;this.classList.remove('auto');updateHwDisplay();updateNoticeWithCarry();">
       <button class="hw-btn s${st}" onclick="cycleHwStatus(${i})">${hwBtnLabel(st)}</button>
-    </div>`;}).join('');
+    </div>`;
+  });
+  c.innerHTML=html;
 }
 function onRateManual(){
   const v=$$('inputRate').value;G.hwRateManual=v!==''?Number(v):null;
@@ -50,7 +61,6 @@ function onRateManual(){
   }
   updateHwBadge();rebuildGraph();
 }
-// calcRateFromStatus 삭제 — 이행률은 수동 입력만 사용
 
 // ─── 과제 순환 버튼 ───
 const hwBtnLabel=s=>({'완료':'✓ 완료','부분완료':'◑ 부분완료','미완료':'✗ 미완료'}[s]||'— 없음');
@@ -60,7 +70,9 @@ function cycleHwStatus(i){
   G.hwStatus[i]=next;
   const btns=document.querySelectorAll('.hw-btn');
   if(btns[i]){btns[i].className='hw-btn s'+next;btns[i].textContent=hwBtnLabel(next);}
-  updateHwDisplay();updateHwBadge();rebuildGraph();saveSession();
+  updateHwDisplay();updateHwBadge();rebuildGraph();
+  updateNoticeWithCarry();
+  saveSession();
 }
 
 // ─── 리포트 UI 업데이트 ───
@@ -83,7 +95,13 @@ function updateHwDisplay(){
     if(!item.trim()||G.hwStatus[i]==='')return'';
     const st=G.hwStatus[i]||'미완료';
     const icons={'완료':'✓','부분완료':'◑','미완료':'✗'};
-    return`<li class="s${st}"><span class="hw-icon">${icons[st]||'?'}</span><span class="hw-text">${esc(item.trim())}</span><span class="hw-chip ${st}">${st}</span></li>`;}).join('');
+    const isCarry=G.hwItemTypes[i]?.type==='carry';
+    return`<li class="s${st}${isCarry?' carry':''}">
+      <span class="hw-icon">${icons[st]||'?'}</span>
+      ${isCarry?'<span class="hw-carry-mark">(전)</span>':''}
+      <span class="hw-text">${esc(item.trim())}</span>
+      <span class="hw-chip ${st}">${st}</span>
+    </li>`;}).join('');
   updateHwBadge();
 }
 function updateHwBadge(){}
@@ -99,4 +117,3 @@ function updateWrongTags(tagStr){
   const tags=tagStr?tagStr.split(',').map(t=>t.trim()).filter(t=>t):[];
   $$('rWrongTags').innerHTML=tags.map(t=>`<span class="wtag">${esc(t)} 틀림</span>`).join('');
 }
-// updateCurProgSummary, updateNextHwSummary 제거됨 — 수업설정 뷰로 이관
