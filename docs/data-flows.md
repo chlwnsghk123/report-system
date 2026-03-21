@@ -50,13 +50,6 @@ window.onload()
 | `saveSession()` | `'session'` | 날짜·학생 전환, 토글 변경 시 |
 | `saveTabData()` | `'appData'` 내 포함 | 탭 전환 시 |
 
-## 2-1. JSON 로컬 백업·복원
-
-```
-saveLocalData()  → G 전체 → JSON 파일 다운로드
-loadLocalData()  → JSON 파일 → G 복원 → populateSels() + showGroups() + restoreSession()
-```
-
 ## 3. 학생 탭 전환
 
 ```

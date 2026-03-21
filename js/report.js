@@ -50,10 +50,7 @@ function onRateManual(){
   }
   updateHwBadge();rebuildGraph();
 }
-function calcRateFromStatus(s){
-  const v=s.filter(x=>x);if(!v.length)return null;
-  return Math.round(v.reduce((a,x)=>a+(x==='완료'?1:x==='부분완료'?.5:0),0)/v.length*100);
-}
+// calcRateFromStatus 삭제 — 이행률은 수동 입력만 사용
 
 // ─── 과제 순환 버튼 ───
 const hwBtnLabel=s=>({'완료':'✓ 완료','부분완료':'◑ 부분완료','미완료':'✗ 미완료'}[s]||'— 없음');
@@ -63,18 +60,6 @@ function cycleHwStatus(i){
   G.hwStatus[i]=next;
   const btns=document.querySelectorAll('.hw-btn');
   if(btns[i]){btns[i].className='hw-btn s'+next;btns[i].textContent=hwBtnLabel(next);}
-  if(G.hwRateManual===null){
-    const r=calcRateFromStatus(G.hwStatus);
-    const val=r!==null?String(r):'';
-    setAuto('inputRate',val);
-    if(val===''){$$('secRate').style.display='none';}
-    else{$$('secRate').style.display='';$$('rRate').innerText=val;}
-    if(G.selStudent&&G.selDate){
-      G.rates[G.selStudent]=G.rates[G.selStudent]||{};
-      if(r!==null)G.rates[G.selStudent][G.selDate]=r;
-      else delete G.rates[G.selStudent][G.selDate];
-    }
-  }
   updateHwDisplay();updateHwBadge();rebuildGraph();saveSession();
 }
 

@@ -74,7 +74,7 @@ G = {
   // 과제 입력
   hwItems: [],        // 이전 수업 과제 항목 문자열 배열
   hwStatus: [],       // 각 과제 상태 ('' | '완료' | '부분완료' | '미완료')
-  hwRateManual: null, // null=자동계산, 숫자=수동입력
+  hwRateManual: null, // null=엑셀 데이터 사용, 숫자=수동입력 (자동계산 없음)
 
   // 미니테스트
   scoreCalc: null, totalQ: 5,
