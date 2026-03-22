@@ -126,9 +126,16 @@ function parseWB(wb){
           rec[`과제${ci-hwStartCol+1}_상태`]=String(r[ci]||'').trim();
         }
         G.hwRec[key]=rec;
-        // 메모 열 파싱 (비고 다음 열)
-        const memoIdx=hdr.indexOf('메모');
-        if(memoIdx>=0){const mv=String(r[memoIdx]||'').trim();if(mv)G.memos[key]=mv;}
+        // 비고 열에서 사용자 메모 추출 (자동요약 | 메모 형식)
+        const bigoIdx=hdr.indexOf('비고');
+        if(bigoIdx>=0){
+          const bigoVal=String(r[bigoIdx]||'').trim();
+          if(bigoVal){
+            const pipePos=bigoVal.indexOf(' | ');
+            if(pipePos>=0){const userPart=bigoVal.slice(pipePos+3).trim();if(userPart)G.memos[key]=userPart;}
+            else if(!bigoVal.startsWith('(전'))G.memos[key]=bigoVal; // 자동요약 아닌 순수 메모
+          }
+        }
       });
     });
   }else{
@@ -266,7 +273,7 @@ async function saveToExcel(){
     const hwCount=Math.max(4,baseHwCount);
     const hwHdrs=Array.from({length:hwCount},(_,i)=>`과제${i+1}`);
     const aoa=[
-      ['이름','성적','오답','과제이행률',...hwHdrs,'비고','메모'],
+      ['이름','성적','오답','과제이행률',...hwHdrs,'비고'],
       ...G.students.map(n=>{
         const correct=G.corrects[n]?.[date];
         const scoreStr=correct!==undefined?`${correct}/${total}`:'';
@@ -274,16 +281,17 @@ async function saveToExcel(){
         const rate=rec?.이행률;
         const hwVals=Array.from({length:hwCount},(_,i)=>
           stToExcel(rec?.[`과제${i+1}_상태`]||''));
-        // 비고: 캐리오버 요약
+        // 비고: 이월과제 자동 요약 + 사용자 메모 통합
         const carryItems=(rec?.items||[]).filter(it=>it.type==='carry');
         const stLabel={'완료':'완','부분완료':'부분','미완료':'미'};
-        const bigo=carryItems.map(it=>{
+        const autoText=carryItems.map(it=>{
           const fd=it.fromDate?shortD(it.fromDate):'';
           const sl=stLabel[it.status]||'';
           return`(전${fd?'·'+fd:''})${it.text}${sl?'→'+sl:''}`;
         }).join(', ');
-        const memo=G.memos[`${n}||${date}`]||'';
-        return[n,scoreStr,G.wrong[n]?.[date]||'',rate!=null?rate:'',...hwVals,bigo,memo];
+        const userMemo=G.memos[`${n}||${date}`]||'';
+        const bigo=[autoText,userMemo].filter(x=>x).join(' | ');
+        return[n,scoreStr,G.wrong[n]?.[date]||'',rate!=null?rate:'',...hwVals,bigo];
       })
     ];
     const wsD=XLSX.utils.aoa_to_sheet(aoa,{skipHeader:false});
@@ -368,8 +376,8 @@ function createTemplate(){
   XLSX.utils.book_append_sheet(wb,ws1,'수업정보');
   dates.forEach(date=>{
     const wsD=XLSX.utils.aoa_to_sheet([
-      ['이름','성적','오답','과제이행률','과제1','과제2','과제3','과제4','비고','메모'],
-      ...students.map(n=>[n,'','','','','','','','',''])
+      ['이름','성적','오답','과제이행률','과제1','과제2','과제3','과제4','비고'],
+      ...students.map(n=>[n,'','','','','','','',''])
     ]);
     XLSX.utils.book_append_sheet(wb,wsD,date);
   });

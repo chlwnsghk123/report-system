@@ -351,12 +351,35 @@ function restoreTabData(name){
 let _memoKey=''; // 모달 열 때 캡처한 키 (student||date 변경 방지)
 let _memoOriginal=''; // 원본 텍스트 (변경 감지용)
 
+function _getCarryAutoText(student,date){
+  const key=`${student}||${date}`;
+  const rec=G.hwRec[key];
+  if(!rec?.items)return'';
+  const carryItems=rec.items.filter(it=>it.type==='carry');
+  if(!carryItems.length)return'';
+  const stLabel={'완료':'완료','부분완료':'부분완료','미완료':'미완료'};
+  return carryItems.map(it=>{
+    const fd=it.fromDate?shortD(it.fromDate):'';
+    const sl=stLabel[it.status]||'미확인';
+    return`(${fd}) ${it.text} → ${sl}`;
+  }).join('\n');
+}
+
 function openMemo(){
   if(!G.selStudent||!G.selDate)return;
   _memoKey=`${G.selStudent}||${G.selDate}`;
   const text=G.memos[_memoKey]||'';
   _memoOriginal=text;
   $$('memoTitle').textContent=`📋 비고 — ${G.selStudent} (${shortD(G.selDate)})`;
+  // 자동 이월과제 요약 표시
+  const autoText=_getCarryAutoText(G.selStudent,G.selDate);
+  const autoArea=$$('memoAutoArea');
+  if(autoText){
+    $$('memoAutoText').textContent=autoText;
+    autoArea.style.display='';
+  }else{
+    autoArea.style.display='none';
+  }
   $$('memoText').value=text;
   _openModal('memoModalOverlay');
   setTimeout(()=>$$('memoText').focus(),100);

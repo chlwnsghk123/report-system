@@ -244,36 +244,31 @@
 </div>
 
 <!-- ════ 수업설정 전체화면 모달 ════ -->
-<div class="lm-overlay" id="lessonModalOverlay" style="display:none;" onclick="if(event.target===this)closeLessonModal()">
-  <div class="lm-modal">
+<div class="lm-overlay" id="lessonModalOverlay" style="display:none;">
+  <div class="lm-modal lm-full">
     <div class="lm-header">
       <h3>⚙ 수업 진도 설정</h3>
-      <button class="lm-close" onclick="closeLessonModal()">✕</button>
-    </div>
-    <div class="lm-body">
-      <!-- 학생 관리 -->
-      <div style="margin-bottom:16px;">
-        <div onclick="toggleStudentSec()" style="cursor:pointer;background:#f9fafb;border:1px solid #e5e8eb;border-radius:12px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
-          <div>
-            <span style="font-size:11px;font-weight:700;color:#8a8f9e;">학생 목록</span>
-            <div style="font-size:13px;font-weight:600;color:#333;margin-top:2px;" id="studentSummary">—</div>
-          </div>
-          <span id="studentArrow" style="font-size:13px;color:#8a8f9e;transition:transform .2s;display:inline-block;">▾</span>
-        </div>
-        <div id="studentListEdit" style="display:none;margin-top:6px;flex-direction:column;gap:4px;">
-          <div id="studentListItems"></div>
-          <div style="display:flex;gap:4px;margin-top:4px;">
-            <input type="text" id="newStudentInput" placeholder="학생 이름" style="flex:1;padding:8px 12px;border:1px solid #e5e8eb;border-radius:8px;font-size:13px;font-family:inherit;" onkeydown="if(event.key==='Enter')addStudent()">
-            <button onclick="addStudent()" style="padding:8px 14px;background:#3182f6;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">추가</button>
-          </div>
-        </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="lm-hint">날짜 탭을 선택하면 닫힙니다</span>
+        <button class="btn-s" onclick="addLesson()" style="width:auto;padding:6px 14px;font-size:12px;">➕ 날짜 추가</button>
       </div>
-
-      <div class="sdiv">수업 날짜 관리</div>
-      <div id="lessonCards" style="display:flex;flex-direction:column;gap:12px;"></div>
-      <button class="btn-s" onclick="addLesson()" style="margin-top:8px;">
-        <span>➕</span><span>날짜 추가</span>
-      </button>
+    </div>
+    <div class="lm-body lm-split">
+      <!-- 왼쪽: 학생 관리 -->
+      <div class="lm-sidebar">
+        <div class="lm-side-title">학생 관리</div>
+        <div id="studentListItems"></div>
+        <div style="display:flex;gap:4px;margin-top:8px;">
+          <input type="text" id="newStudentInput" placeholder="학생 이름 입력" style="flex:1;padding:8px 12px;border:1px solid #e5e8eb;border-radius:8px;font-size:13px;font-family:inherit;" onkeydown="if(event.key==='Enter')addStudent()">
+          <button onclick="addStudent()" style="padding:8px 14px;background:#3182f6;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;">추가</button>
+        </div>
+        <div style="font-size:11px;color:#9ca3af;margin-top:8px;" id="studentSummary">—</div>
+      </div>
+      <!-- 오른쪽: 수업 날짜 -->
+      <div class="lm-main">
+        <div class="lm-side-title">수업 날짜</div>
+        <div id="lessonCards" style="display:flex;flex-direction:column;gap:12px;"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -288,14 +283,21 @@
 <script src="js/autofill.js"></script>
 <!-- 비고 모달 -->
 <div class="lm-overlay" id="memoModalOverlay" style="display:none;" onclick="if(event.target===this)closeMemo(false)">
-  <div class="lm-modal" style="max-width:520px;">
+  <div class="lm-modal" style="max-width:560px;">
     <div class="lm-header">
       <h3 id="memoTitle">📋 비고</h3>
       <button class="lm-close" onclick="closeMemo()">✕</button>
     </div>
-    <div style="padding:20px 24px;flex:1;display:flex;flex-direction:column;">
-      <textarea id="memoText" placeholder="비고를 입력하세요..." style="flex:1;min-height:200px;resize:vertical;padding:12px;font-size:14px;font-family:inherit;border:1px solid #d1d6db;border-radius:10px;outline:none;line-height:1.7;"></textarea>
-      <button class="btn-p" style="margin-top:14px;" onclick="saveMemo()">저장</button>
+    <div style="padding:20px 24px;flex:1;display:flex;flex-direction:column;gap:14px;overflow-y:auto;">
+      <div id="memoAutoArea" style="display:none;">
+        <div style="font-size:11px;font-weight:700;color:#6b7280;margin-bottom:6px;">자동 기록 (이월과제 요약)</div>
+        <div id="memoAutoText" style="font-size:13px;color:#555;background:#f8f9fa;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px;line-height:1.6;white-space:pre-wrap;"></div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;">
+        <div style="font-size:11px;font-weight:700;color:#6b7280;margin-bottom:6px;">메모</div>
+        <textarea id="memoText" placeholder="추가 메모를 입력하세요..." style="flex:1;min-height:140px;resize:vertical;padding:12px;font-size:14px;font-family:inherit;border:1px solid #d1d6db;border-radius:10px;outline:none;line-height:1.7;"></textarea>
+      </div>
+      <button class="btn-p" onclick="saveMemo()">저장</button>
     </div>
   </div>
 </div>
