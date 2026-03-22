@@ -66,16 +66,20 @@
 | `saveTabData()` | 현재 학생 입력값 → G.tabData 임시저장 + hwRec items 동기화 |
 | `syncHwRecItems(student,date)` | G.hwItems/hwStatus/hwItemTypes → hwRec[key].items 동기화 |
 | `restoreTabData(name)` | G.tabData → UI 복원 (hwItems/hwItemTypes 포함) |
-| `openMemo()` | 비고 모달 열기 (현재 학생+날짜 기준) |
-| `closeMemo()` | 비고 모달 닫기 |
-| `saveMemo()` | 비고 저장 → G.memos + saveAppData |
-| `updateMemoBtn()` | 비고 버튼 상태 업데이트 (작성/수정 텍스트 전환) |
+| `openMemo()` | 비고 모달 열기 (학생+날짜 키 캡처, 미저장 보호) |
+| `closeMemo(force)` | 비고 모달 닫기 (변경 감지 → confirm) |
+| `saveMemo()` | 비고 저장 → G.memos + saveAppData + 토스트 |
+| `updateMemoBtn()` | 비고 버튼 상태 업데이트 (작성/수정 + disabled) |
+| `_openModal(id)` | 모달 열기 공통 (배경 스크롤 잠금) |
+| `_closeModal(id)` | 모달 닫기 공통 (스크롤 복원) |
+| `_showModalToast(id,msg)` | 모달 내 토스트 메시지 표시 |
 | `toggleSec(type)` | 미니테스트/코멘트 토글 |
 
 ## js/session.js
 | 함수 | 역할 |
 |---|---|
-| `saveAppData()` | G → IndexedDB `appData` 저장 |
+| `saveAppData()` | G → IndexedDB `appData` 저장 (300ms 디바운스, 에러 핸들링) |
+| `saveAppDataNow()` | G → IndexedDB `appData` 즉시 저장 (엑셀 저장 등) |
 | `saveSession()` | 세션 상태 → IndexedDB `session` 저장 |
 | `restoreSession(s)` | IndexedDB → 세션 복원 |
 | `showGroups()` | 엑셀 로드 후 UI 요소 표시 + 날짜 자동 선택 |
@@ -128,4 +132,5 @@
 | 함수 | 역할 |
 |---|---|
 | `loadMascotImages()` | 마스코트 이미지 수동 등록 (하드코딩된 파일 목록) |
+| `document keydown` | 전역 키보드: ESC(모달 닫기), Ctrl+S(저장) |
 | `window.onload` | 앱 초기화 진입점: DB오픈→updateScale→initCE→loadMascotImages |

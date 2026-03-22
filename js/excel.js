@@ -8,7 +8,7 @@ async function loadExcel(input){
     const buf=await file.arrayBuffer();
     parseWB(XLSX.read(buf,{type:'array',cellDates:false,raw:false}));
     G.excelFileName=file.name;G.tabData={};
-    await saveAppData();showGroups();
+    await saveAppDataNow();showGroups();
     setBar('ok',`✅ ${file.name}`);
   }catch(e){setBar('err','❌ 파싱 실패: '+e.message);console.error(e);}
   input.value='';
@@ -242,7 +242,7 @@ async function saveToExcel(){
     for(let i=0;i<baseCount;i++)ex[`과제${i+1}_상태`]=hs[i]||ex[`과제${i+1}_상태`]||'';
     G.hwRec[key]=ex;
   });
-  await saveAppData();
+  await saveAppDataNow();
   const wb=XLSX.utils.book_new();
 
   // ─── 수업정보 시트 (동적 과제 열) ───

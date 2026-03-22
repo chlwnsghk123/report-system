@@ -30,6 +30,37 @@ function loadMascotImages(){
   }
 }
 
+// ─── 전역 키보드 핸들러 ───
+document.addEventListener('keydown',function(e){
+  // ESC: 열려있는 모달 닫기 (비고 > 수업설정 우선순위)
+  if(e.key==='Escape'){
+    const memo=$$('memoModalOverlay');
+    if(memo&&memo.style.display==='flex'){closeMemo();e.preventDefault();return;}
+    const lesson=$$('lessonModalOverlay');
+    if(lesson&&lesson.style.display==='flex'){
+      // 수업설정은 날짜 뷰가 있을 때만 닫기
+      if(G.selDate&&G.lessons.length){closeLessonModal();switchView('date');e.preventDefault();}
+      return;
+    }
+  }
+  // Ctrl+S: 저장
+  if((e.ctrlKey||e.metaKey)&&e.key==='s'){
+    e.preventDefault();
+    const memo=$$('memoModalOverlay');
+    if(memo&&memo.style.display==='flex'){
+      saveMemo();return;
+    }
+    const lesson=$$('lessonModalOverlay');
+    if(lesson&&lesson.style.display==='flex'){
+      _showModalToast('lessonModalOverlay','저장되었습니다');
+      saveAppData();return;
+    }
+    // 일반 화면: 파일 저장
+    const btn=$$('btnSave');
+    if(btn&&btn.style.display!=='none'&&!btn.disabled)saveToExcel();
+  }
+});
+
 // ─── 앱 진입점 ───
 window.onload=async()=>{
   db=await openDB();
