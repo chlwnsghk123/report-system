@@ -164,7 +164,8 @@ body{margin:0;padding:0;background-color:#f2f4f6;font-family:'Pretendard',sans-s
 /* ═══ 수업설정 전체화면 모달 ═══ */
 .lm-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;animation:lmFadeIn .2s;}
 @keyframes lmFadeIn{from{opacity:0}to{opacity:1}}
-.lm-modal{background:#fff;border-radius:16px;width:90vw;max-width:720px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:lmSlideUp .25s;}
+.lm-modal{background:#fff;border-radius:16px;width:90vw;max-width:720px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:lmSlideUp .25s;position:relative;}
+.lm-modal.lm-full{max-width:900px;max-height:92vh;width:94vw;}
 @keyframes lmSlideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 .lm-header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid #eaecef;flex-shrink:0;}
 .lm-header h3{margin:0;font-size:17px;font-weight:800;color:#111;}
@@ -173,6 +174,15 @@ body{margin:0;padding:0;background-color:#f2f4f6;font-family:'Pretendard',sans-s
 .lm-body{padding:20px 24px 28px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;}
 .lm-body::-webkit-scrollbar{width:6px;}
 .lm-body::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:4px;}
+
+/* 모달 2단 레이아웃 */
+.lm-split{flex-direction:row!important;gap:0!important;padding:0!important;flex:1;overflow:hidden;}
+.lm-sidebar{width:220px;min-width:200px;border-right:1px solid #eaecef;padding:20px;overflow-y:auto;flex-shrink:0;}
+.lm-main{flex:1;padding:20px 24px;overflow-y:auto;}
+.lm-main::-webkit-scrollbar,.lm-sidebar::-webkit-scrollbar{width:5px;}
+.lm-main::-webkit-scrollbar-thumb,.lm-sidebar::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:4px;}
+.lm-side-title{font-size:12px;font-weight:800;color:#6b7280;margin-bottom:12px;letter-spacing:.5px;}
+.lm-hint{font-size:11px;color:#9ca3af;font-weight:500;}
 
 /* 레슨 카드 날짜 상태 */
 .lesson-card.lc-past{opacity:.55;}
