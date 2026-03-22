@@ -94,6 +94,9 @@
 ## js/report.js
 | 함수 | 역할 |
 |---|---|
+| `MASCOT_IMGS` | 티어별(high/mid/low) 마스코트 이미지 경로 배열 |
+| `registerMascots(tier,files)` | 마스코트 이미지 등록 (tier: high/mid/low) |
+| `updateRateFace()` | 이행률 기반 마스코트 이미지 표시 (75↑high, 30↑mid, 30↓low) |
 | `rebuildGraph()` | SVG 이행률 꺾은선 그래프 재빌드 |
 | `renderHwEditor()` | 과제 에디터 UI 렌더링 |
 | `onRateManual()` | 이행률 수동입력 핸들러 |
@@ -120,4 +123,5 @@
 ## js/init.js
 | 함수 | 역할 |
 |---|---|
-| `window.onload` | 앱 초기화 진입점: DB오픈→updateScale→initCE (세션 자동복원 없음) |
+| `loadMascotImages()` | 마스코트 이미지 디렉토리 스캔 후 자동 등록 |
+| `window.onload` | 앱 초기화 진입점: DB오픈→updateScale→initCE→loadMascotImages |
