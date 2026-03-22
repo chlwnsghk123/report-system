@@ -45,7 +45,7 @@ function rebuildGraph(){
   entries=entries.slice(-4);
   const svg=$$('svgChart');
   if(!entries.length){svg.innerHTML='';$$('gLabels').innerHTML='';return;}
-  const pts=entries.map((e,i)=>{let y=88-(e.v/100)*72;if(y<10)y=10;if(y>88)y=88;return{x:30+i*200,y,v:e.v,date:e.date};});
+  const pts=entries.map((e,i)=>{let y=88-(e.v/100)*62;if(y<22)y=22;if(y>88)y=88;return{x:30+i*200,y,v:e.v,date:e.date};});
   let html=pts.length>1?`<polyline points="${pts.map(p=>`${p.x},${p.y}`).join(' ')}" class="cl"/>`:'';
   pts.forEach((p,i)=>{const a=i===pts.length-1;
     html+=`<circle cx="${p.x}" cy="${p.y}" class="cd ${a?'active':''}"/>

@@ -90,6 +90,118 @@ async function dlPdf(){
   }catch(e){alert('PDF 오류: '+e.message);console.error(e);}
   btn.textContent='📄 PDF 저장';btn.disabled=false;
 }
+// ─── 툴바 메뉴 ───
+function toggleToolbarMenu(id){
+  const el=$$(id);el.classList.toggle('open');
+  // 다른 메뉴 닫기
+  document.querySelectorAll('.tb-dropdown').forEach(d=>{if(d.id!==id)d.classList.remove('open');});
+}
+function closeToolbarMenus(){document.querySelectorAll('.tb-dropdown').forEach(d=>d.classList.remove('open'));}
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.tb-dropdown'))closeToolbarMenus();
+});
+
+// ─── 전체 과제 요약 PDF ───
+async function dlSummaryPdf(){
+  if(!G.selDate||!G.students.length){alert('날짜와 학생 데이터가 필요합니다.');return;}
+  const btn=document.querySelector('#tbMenu .tb-btn');
+  const origText=btn.textContent;btn.textContent='⏳ 생성 중...';btn.disabled=true;
+  try{
+    saveTabData();
+    const date=G.selDate;
+    const prevLesson=getPrevL();
+    const curLesson=getCurL();
+    // 요약 HTML 컨테이너 생성
+    const wrap=document.createElement('div');
+    wrap.style.cssText='position:fixed;left:-9999px;top:0;';
+    document.body.appendChild(wrap);
+
+    const pages=[];
+    for(const name of G.students){
+      const key=`${name}||${date}`;
+      const rec=G.hwRec[key];
+      const rate=G.rates[name]?.[date];
+      // 과제 항목 가져오기
+      let items=rec?.items||[];
+      if(!items.length&&prevLesson){
+        // items가 없으면 레거시에서 구성
+        const hwKeys=getLessonHwKeys(prevLesson);
+        items=hwKeys.map((k,i)=>{
+          const text=prevLesson[k]||'';
+          const status=rec?.[`과제${i+1}_상태`]||'';
+          return{text,status,type:'base',fromDate:''};
+        }).filter(it=>it.text);
+      }
+
+      const card=document.createElement('div');
+      card.style.cssText='width:794px;height:1123px;background:#fff;padding:60px 50px;box-sizing:border-box;font-family:Pretendard,sans-serif;display:flex;flex-direction:column;';
+      // 상단: 학생명 + 날짜
+      const header=`
+        <div style="border-bottom:2px solid #000;padding-bottom:12px;margin-bottom:32px;display:flex;justify-content:space-between;align-items:flex-end;">
+          <div style="font-size:32px;font-weight:800;color:#000;">${esc(name)} <span style="font-size:18px;font-weight:400;color:#555;">학생</span></div>
+          <div style="font-size:15px;color:#555;font-weight:500;">${fmtKo(date)}</div>
+        </div>`;
+      // 이행률
+      const rateDisplay=rate!=null&&!isNaN(rate)?`${rate}%`:'—';
+      const rateColor=rate>=75?'#1b7340':rate>=30?'#b45309':'#dc2626';
+      const rateSection=`
+        <div style="margin-bottom:32px;display:flex;align-items:center;gap:16px;">
+          <div style="font-size:16px;font-weight:700;color:#333;">숙제 이행률</div>
+          <div style="font-size:48px;font-weight:900;color:${rateColor};line-height:1;">${rateDisplay}</div>
+        </div>`;
+      // 과제 목록
+      const stLabel={'완료':'✓ 완료','부분완료':'◑ 부분완료','미완료':'✗ 미완료'};
+      const stColor={'완료':'#166534','부분완료':'#92400e','미완료':'#991b1b'};
+      const stBg={'완료':'#dcfce7','부분완료':'#fef3c7','미완료':'#fee2e2'};
+      let hwHtml='';
+      if(items.length){
+        hwHtml=items.map((it,i)=>{
+          const label=stLabel[it.status]||'— 없음';
+          const color=stColor[it.status]||'#6b7280';
+          const bg=stBg[it.status]||'#f3f4f6';
+          const carryMark=it.type==='carry'?`<span style="font-size:11px;font-weight:700;color:#6b7280;margin-right:4px;">(이월)</span>`:'';
+          return`<div style="display:flex;align-items:center;padding:14px 18px;border-radius:10px;background:#f8f9fa;border:1px solid #e5e7eb;gap:12px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#374151;flex-shrink:0;">${i+1}</div>
+            <div style="flex:1;font-size:15px;color:#222;font-weight:500;">${carryMark}${esc(it.text)}</div>
+            <div style="padding:4px 12px;border-radius:6px;font-size:12px;font-weight:700;color:${color};background:${bg};flex-shrink:0;">${label}</div>
+          </div>`;
+        }).join('');
+      }else{
+        hwHtml='<div style="padding:20px;color:#9ca3af;font-size:14px;text-align:center;">과제 데이터 없음</div>';
+      }
+      const hwSection=`
+        <div>
+          <div style="font-size:16px;font-weight:700;color:#333;margin-bottom:14px;">저번 주차 과제</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">${hwHtml}</div>
+        </div>`;
+
+      card.innerHTML=header+rateSection+hwSection;
+      wrap.appendChild(card);
+      pages.push(card);
+    }
+
+    // html2canvas로 각 페이지 캡처 후 PDF 생성
+    const{PDFDocument}=PDFLib;
+    const outDoc=await PDFDocument.create();
+    for(const page of pages){
+      const canvas=await html2canvas(page,{scale:2,useCORS:true,backgroundColor:'#fff',
+        width:794,height:1123,scrollX:0,scrollY:0,windowWidth:794,windowHeight:1123});
+      const pngBytes=dataUrlToBytes(canvas.toDataURL('image/png'));
+      const pngImg=await outDoc.embedPng(pngBytes);
+      const pdfPage=outDoc.addPage([595.28,841.89]); // A4 세로
+      const{width:iw,height:ih}=pngImg;
+      const scale=Math.min(595.28/iw,841.89/ih);
+      pdfPage.drawImage(pngImg,{x:0,y:0,width:iw*scale,height:ih*scale});
+    }
+    document.body.removeChild(wrap);
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([await outDoc.save()],{type:'application/pdf'}));
+    a.download=`과제요약_${G.selDate}.pdf`;
+    a.click();URL.revokeObjectURL(a.href);
+  }catch(e){alert('요약 PDF 오류: '+e.message);console.error(e);}
+  btn.textContent=origText;btn.disabled=false;
+}
+
 function dataUrlToBytes(u){
   const b=atob(u.split(',')[1]);const a=new Uint8Array(b.length);
   for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a;
