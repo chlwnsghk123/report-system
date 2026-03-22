@@ -66,6 +66,7 @@ function switchView(view){
     closeLessonModal();
     renderDateSummary();
     renderTabs();
+    updateMemoBtn();
     if(G.selDate&&G.selStudent)autoFillAll();
     else if(G.selDate)autoFillCommon();
   }
@@ -76,10 +77,10 @@ function switchView(view){
 function openLessonModal(){
   renderLessonCards();
   renderStudentList();
-  $$('lessonModalOverlay').style.display='flex';
+  _openModal('lessonModalOverlay');
 }
 function closeLessonModal(){
-  $$('lessonModalOverlay').style.display='none';
+  _closeModal('lessonModalOverlay');
 }
 
 // ─── 뷰 탭 (상단) ───
@@ -102,9 +103,23 @@ function shiftDate(dir){
 }
 
 function selectDate(date){
-  // 현재 학생 데이터를 hwRec에 즉시 반영 후 저장
-  if(G.selStudent&&G.selDate){
-    syncHwRecItems(G.selStudent,G.selDate);
+  // 모든 학생의 tabData를 hwRec에 동기화 (현재 학생은 먼저 saveTabData)
+  if(G.selDate){
+    if(G.selStudent)saveTabData();
+    for(const name of Object.keys(G.tabData)){
+      const td=G.tabData[name];if(!td)continue;
+      const key=`${name}||${G.selDate}`;
+      const rec=G.hwRec[key]||{이행률:null};
+      const items=(td.hwItems||[]);
+      const hs=td.hwStatus||[];
+      const types=td.hwItemTypes||items.map(()=>({type:'base'}));
+      if(items.length){
+        rec.items=items.map((text,i)=>({text,status:hs[i]||'',type:types[i]?.type||'base',fromDate:types[i]?.fromDate||''}));
+        items.forEach((_,i)=>{if(!types[i]||types[i].type==='base')rec[`과제${i+1}_상태`]=hs[i]||'';});
+      }
+      if(td.rateManual!=null){rec.이행률=td.rateManual;G.rates[name]=G.rates[name]||{};G.rates[name][G.selDate]=td.rateManual;}
+      G.hwRec[key]=rec;
+    }
     saveAppData();
   }
   G.selDate=date;
@@ -278,6 +293,7 @@ function switchTab(name){
   if(name===G.selStudent)return;
   saveTabData();G.selStudent=name;renderTabs();
   const m=$$('rateMascot');if(m)delete m.dataset.idx;
+  updateMemoBtn();
   if(G.selDate)autoFillAll();
   saveSession();
 }
@@ -329,6 +345,70 @@ function restoreTabData(name){
   $$('inputTeacher').value=d.teacher||'';
   G.reportEdits=d.reportEdits?{...d.reportEdits}:{};
   fp('commentBody','inputComment');return true;
+}
+
+// ─── 비고 모달 ───
+let _memoKey=''; // 모달 열 때 캡처한 키 (student||date 변경 방지)
+let _memoOriginal=''; // 원본 텍스트 (변경 감지용)
+
+function openMemo(){
+  if(!G.selStudent||!G.selDate)return;
+  _memoKey=`${G.selStudent}||${G.selDate}`;
+  const text=G.memos[_memoKey]||'';
+  _memoOriginal=text;
+  $$('memoTitle').textContent=`📋 비고 — ${G.selStudent} (${shortD(G.selDate)})`;
+  $$('memoText').value=text;
+  _openModal('memoModalOverlay');
+  setTimeout(()=>$$('memoText').focus(),100);
+}
+function closeMemo(force){
+  // 변경 감지: 저장 안 한 채 닫으려 할 때 확인
+  const cur=$$('memoText').value.trim();
+  if(!force&&cur!==_memoOriginal){
+    if(!confirm('저장하지 않은 내용이 있습니다. 닫으시겠습니까?'))return;
+  }
+  _closeModal('memoModalOverlay');
+}
+function saveMemo(){
+  const text=$$('memoText').value.trim();
+  if(text)G.memos[_memoKey]=text;
+  else delete G.memos[_memoKey];
+  _memoOriginal=text; // 저장했으므로 원본 갱신
+  saveAppData();
+  _showModalToast('memoModalOverlay','저장되었습니다');
+  _closeModal('memoModalOverlay');
+  updateMemoBtn();
+}
+function updateMemoBtn(){
+  const btn=$$('btnMemo');if(!btn)return;
+  const key=`${G.selStudent||''}||${G.selDate||''}`;
+  const has=!!G.memos[key];
+  btn.classList.toggle('has',has);
+  btn.textContent=has?'📋 비고 수정하기':'📋 비고 작성하기';
+  // 학생/날짜 미선택 시 비활성
+  btn.disabled=!G.selStudent||!G.selDate;
+}
+
+// ─── 모달 공통 (배경스크롤 방지, ESC 처리) ───
+function _openModal(id){
+  $$(id).style.display='flex';
+  document.body.classList.add('modal-open');
+}
+function _closeModal(id){
+  $$(id).style.display='none';
+  // 다른 모달이 열려있지 않으면 스크롤 복원
+  const anyOpen=['lessonModalOverlay','memoModalOverlay'].some(m=>$$(m)&&$$(m).style.display==='flex');
+  if(!anyOpen)document.body.classList.remove('modal-open');
+}
+function _showModalToast(modalId,msg){
+  const modal=$$(modalId);if(!modal)return;
+  let toast=modal.querySelector('.modal-toast');
+  if(!toast){
+    toast=document.createElement('div');toast.className='modal-toast';
+    modal.querySelector('.lm-modal').appendChild(toast);
+  }
+  toast.textContent=msg;toast.classList.add('show');
+  setTimeout(()=>toast.classList.remove('show'),1800);
 }
 
 // ─── 토글 (미니테스트/코멘트) ───

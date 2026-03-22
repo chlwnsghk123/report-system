@@ -1,11 +1,33 @@
-// ─── DB 저장 ───
-async function saveAppData(){
-  await dbSet('appData',{lessons:G.lessons,students:G.students,rates:G.rates,
-    scores:G.scores,corrects:G.corrects,wrong:G.wrong,hwRec:G.hwRec,tabData:G.tabData,fileName:G.excelFileName});
+// ─── DB 저장 (디바운스 + 에러 핸들링) ───
+let _saveTimer=null;
+function saveAppData(){
+  if(_saveTimer)clearTimeout(_saveTimer);
+  _saveTimer=setTimeout(async()=>{
+    try{
+      await dbSet('appData',{lessons:G.lessons,students:G.students,rates:G.rates,
+        scores:G.scores,corrects:G.corrects,wrong:G.wrong,hwRec:G.hwRec,memos:G.memos,tabData:G.tabData,fileName:G.excelFileName});
+    }catch(e){
+      console.error('saveAppData 실패:',e);
+      setBar('err','❌ 데이터 저장 실패');
+    }
+  },300);
+}
+// 즉시 저장 (엑셀 저장 등 타이밍이 중요한 경우)
+async function saveAppDataNow(){
+  if(_saveTimer){clearTimeout(_saveTimer);_saveTimer=null;}
+  try{
+    await dbSet('appData',{lessons:G.lessons,students:G.students,rates:G.rates,
+      scores:G.scores,corrects:G.corrects,wrong:G.wrong,hwRec:G.hwRec,memos:G.memos,tabData:G.tabData,fileName:G.excelFileName});
+  }catch(e){
+    console.error('saveAppData 실패:',e);
+    setBar('err','❌ 데이터 저장 실패');
+  }
 }
 async function saveSession(){
-  await dbSet('session',{selDate:G.selDate,selStudent:G.selStudent,
-    showMini:G.showMini,showComment:G.showComment,currentView:G.currentView});
+  try{
+    await dbSet('session',{selDate:G.selDate,selStudent:G.selStudent,
+      showMini:G.showMini,showComment:G.showComment,currentView:G.currentView});
+  }catch(e){console.error('saveSession 실패:',e);}
 }
 
 // ─── 세션 복원 ───
