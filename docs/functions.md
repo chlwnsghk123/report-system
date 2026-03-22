@@ -132,7 +132,9 @@
 | `dlPdf()` | 리포트+첨부PDF 합성 → 다운로드 |
 | `toggleToolbarMenu(id)` | 툴바 드롭다운 메뉴 토글 |
 | `closeToolbarMenus()` | 모든 툴바 메뉴 닫기 |
-| `dlSummaryPdf()` | 전체 학생 과제 요약 PDF 생성 (학생별 1페이지) |
+| `dlSummaryPdf()` | 전체 과제 요약 이미지 생성 (확인 모달 → 긴 PNG) |
+| `_doSummaryImage()` | 과제 요약 PNG 캡처 및 다운로드 |
+| `showConfirmModal(title,desc,fn)` | 범용 확인/취소 모달 |
 | `dataUrlToBytes(u)` | DataURL → Uint8Array 변환 |
 
 ## js/init.js
