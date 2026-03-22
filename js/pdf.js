@@ -142,41 +142,53 @@ async function dlSummaryPdf(){
           <div style="font-size:28px;font-weight:800;color:#000;">${esc(name)} <span style="font-size:16px;font-weight:400;color:#555;">학생</span></div>
           <div style="font-size:14px;color:#555;font-weight:500;">${fmtKo(date)}</div>
         </div>`;
-      // 이행률 (공란이면 숨김)
+      // 이행률 공란 → 결석 표시
       const hasRate=rate!=null&&!isNaN(rate);
-      const rateColor=hasRate?(rate>=75?'#1b7340':rate>=30?'#b45309':'#dc2626'):'';
-      const rateSection=hasRate?`
-        <div style="margin-bottom:24px;display:flex;align-items:center;gap:14px;">
-          <div style="font-size:15px;font-weight:700;color:#333;">숙제 이행률</div>
-          <div style="font-size:40px;font-weight:900;color:${rateColor};line-height:1;">${rate}%</div>
-        </div>`:'';
-      // 과제 목록
-      const stLabel={'완료':'✓ 완료','부분완료':'◑ 부분완료','미완료':'✗ 미완료'};
-      const stColor={'완료':'#166534','부분완료':'#92400e','미완료':'#991b1b'};
-      const stBg={'완료':'#dcfce7','부분완료':'#fef3c7','미완료':'#fee2e2'};
-      let hwHtml='';
-      if(items.length){
-        hwHtml=items.map((it,i)=>{
-          const label=stLabel[it.status]||'— 없음';
-          const color=stColor[it.status]||'#6b7280';
-          const bg=stBg[it.status]||'#f3f4f6';
-          const carryMark=it.type==='carry'?`<span style="font-size:11px;font-weight:700;color:#6b7280;margin-right:4px;">(이월)</span>`:'';
-          return`<div style="display:flex;align-items:center;padding:14px 18px;border-radius:10px;background:#f8f9fa;border:1px solid #e5e7eb;gap:12px;">
-            <div style="width:28px;height:28px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#374151;flex-shrink:0;">${i+1}</div>
-            <div style="flex:1;font-size:15px;color:#222;font-weight:500;">${carryMark}${esc(it.text)}</div>
-            <div style="padding:4px 12px;border-radius:6px;font-size:12px;font-weight:700;color:${color};background:${bg};flex-shrink:0;">${label}</div>
-          </div>`;
-        }).join('');
-      }else{
-        hwHtml='<div style="padding:20px;color:#9ca3af;font-size:14px;text-align:center;">과제 데이터 없음</div>';
-      }
-      const hwSection=`
-        <div>
-          <div style="font-size:16px;font-weight:700;color:#333;margin-bottom:14px;">저번 주차 과제</div>
-          <div style="display:flex;flex-direction:column;gap:8px;">${hwHtml}</div>
+      let bodyHtml='';
+      if(!hasRate){
+        // 결석: 큰 빨간 글씨
+        bodyHtml=`<div style="flex:1;display:flex;align-items:center;justify-content:center;">
+          <div style="font-size:56px;font-weight:900;color:#dc2626;">결석</div>
         </div>`;
+      }else{
+        const rateColor=rate>=75?'#1b7340':rate>=30?'#b45309':'#dc2626';
+        const rateSection=`
+          <div style="margin-bottom:24px;display:flex;align-items:center;gap:14px;">
+            <div style="font-size:15px;font-weight:700;color:#333;">숙제 이행률</div>
+            <div style="font-size:40px;font-weight:900;color:${rateColor};line-height:1;">${rate}%</div>
+          </div>`;
+        // 과제 목록 ('없음' 상태 제외)
+        const stLabel={'완료':'✓ 완료','부분완료':'◑ 부분완료','미완료':'✗ 미완료'};
+        const stColor={'완료':'#166534','부분완료':'#92400e','미완료':'#991b1b'};
+        const stBg={'완료':'#dcfce7','부분완료':'#fef3c7','미완료':'#fee2e2'};
+        const visibleItems=items.filter(it=>it.status&&stLabel[it.status]);
+        let hwHtml='';
+        if(visibleItems.length){
+          let idx=0;
+          hwHtml=visibleItems.map(it=>{
+            idx++;
+            const label=stLabel[it.status];
+            const color=stColor[it.status];
+            const bg=stBg[it.status];
+            const carryMark=it.type==='carry'?`<span style="font-size:11px;font-weight:700;color:#6b7280;margin-right:4px;">(이월)</span>`:'';
+            return`<div style="display:flex;align-items:center;padding:14px 18px;border-radius:10px;background:#f8f9fa;border:1px solid #e5e7eb;gap:12px;">
+              <div style="width:28px;height:28px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#374151;flex-shrink:0;">${idx}</div>
+              <div style="flex:1;font-size:15px;color:#222;font-weight:500;">${carryMark}${esc(it.text)}</div>
+              <div style="padding:4px 12px;border-radius:6px;font-size:12px;font-weight:700;color:${color};background:${bg};flex-shrink:0;">${label}</div>
+            </div>`;
+          }).join('');
+        }else{
+          hwHtml='<div style="padding:20px;color:#9ca3af;font-size:14px;text-align:center;">상태 지정된 과제 없음</div>';
+        }
+        const hwSection=`
+          <div>
+            <div style="font-size:16px;font-weight:700;color:#333;margin-bottom:14px;">저번 주차 과제</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">${hwHtml}</div>
+          </div>`;
+        bodyHtml=rateSection+hwSection;
+      }
 
-      card.innerHTML=header+rateSection+hwSection;
+      card.innerHTML=header+bodyHtml;
       wrap.appendChild(card);
       pages.push(card);
     }
