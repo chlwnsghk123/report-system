@@ -97,13 +97,15 @@ function parseWB(wb){
       const date=sheetName;
       const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});
       const hdr=rows.length?rows[0].map(h=>String(h||'').trim()):[];
-      // 과제 열 범위 (이행률 다음 ~ 비고 전)
+      // 과제 열 범위 (이행률 다음, 과제1~N → 추가과제1~M → 비고)
       const hwStartCol=4;
-      let hwEndCol=hdr.length;
+      let hwEndCol=hdr.length,extraStartCol=-1,extraEndCol=-1;
       for(let ci=hwStartCol;ci<hdr.length;ci++){
-        if(hdr[ci]==='비고'){hwEndCol=ci;break;}
-        if(!hdr[ci].startsWith('과제')){hwEndCol=ci;break;}
+        if(hdr[ci].startsWith('추가과제')){if(extraStartCol<0)extraStartCol=ci;extraEndCol=ci+1;continue;}
+        if(hdr[ci]==='비고'){if(hwEndCol===hdr.length)hwEndCol=ci;break;}
+        if(!hdr[ci].startsWith('과제')&&extraStartCol<0){hwEndCol=ci;continue;}
       }
+      if(extraStartCol>=0&&hwEndCol>extraStartCol)hwEndCol=extraStartCol;
       rows.slice(1).forEach(r=>{
         const name=String(r[0]||'').trim();if(!name)return;
         if(!G.students.includes(name))G.students.push(name);
@@ -124,6 +126,21 @@ function parseWB(wb){
         const rec={이행률:rate};
         for(let ci=hwStartCol;ci<hwEndCol;ci++){
           rec[`과제${ci-hwStartCol+1}_상태`]=String(r[ci]||'').trim();
+        }
+        // 추가과제 열 파싱 ("내용|상태숫자" 형식)
+        if(extraStartCol>=0){
+          rec.items=rec.items||[];
+          for(let ci=extraStartCol;ci<extraEndCol;ci++){
+            const val=String(r[ci]||'').trim();if(!val)continue;
+            const pipePos=val.lastIndexOf('|');
+            if(pipePos>0){
+              const text=val.slice(0,pipePos).trim();
+              const status=stFromExcel(val.slice(pipePos+1).trim());
+              rec.items.push({text,status,type:'extra',fromDate:''});
+            }else{
+              rec.items.push({text:val,status:'',type:'extra',fromDate:''});
+            }
+          }
         }
         G.hwRec[key]=rec;
         // 비고 열에서 사용자 메모 추출 (자동요약 | 메모 형식)
@@ -227,7 +244,6 @@ async function saveToExcel(){
   // 학생 데이터 → hwRec 동기화
   G.students.forEach(n=>{
     const td=G.tabData[n];if(!td||!G.selDate)return;
-    if(td.scoreCalc!=null){G.scores[n]=G.scores[n]||{};G.scores[n][G.selDate]=td.scoreCalc;}
     if(td.correctInput!==''){G.corrects[n]=G.corrects[n]||{};G.corrects[n][G.selDate]=parseInt(td.correctInput)||0;}
     if(td.wrongInput){G.wrong[n]=G.wrong[n]||{};G.wrong[n][G.selDate]=td.wrongInput;}
     const key=`${n}||${G.selDate}`;
@@ -272,8 +288,14 @@ async function saveToExcel(){
     const baseHwCount=prevLesson?getLessonHwKeys(prevLesson).length:4;
     const hwCount=Math.max(4,baseHwCount);
     const hwHdrs=Array.from({length:hwCount},(_,i)=>`과제${i+1}`);
+    // 추가과제 최대 개수 파악
+    const maxExtra=Math.max(0,...G.students.map(n=>{
+      const rec=G.hwRec[`${n}||${date}`];
+      return(rec?.items||[]).filter(it=>it.type==='extra').length;
+    }));
+    const extraHdrs=Array.from({length:maxExtra},(_,i)=>`추가과제${i+1}`);
     const aoa=[
-      ['이름','성적','오답','과제이행률',...hwHdrs,'비고'],
+      ['이름','성적','오답','과제이행률',...hwHdrs,...extraHdrs,'비고'],
       ...G.students.map(n=>{
         const correct=G.corrects[n]?.[date];
         const scoreStr=correct!==undefined?`${correct}/${total}`:'';
@@ -281,6 +303,12 @@ async function saveToExcel(){
         const rate=rec?.이행률;
         const hwVals=Array.from({length:hwCount},(_,i)=>
           stToExcel(rec?.[`과제${i+1}_상태`]||''));
+        // 추가과제: "내용|상태숫자" 형식
+        const extras=(rec?.items||[]).filter(it=>it.type==='extra');
+        const extraVals=Array.from({length:maxExtra},(_,i)=>{
+          const ex=extras[i];if(!ex)return'';
+          return`${ex.text}|${stToExcel(ex.status)}`;
+        });
         // 비고: 이월과제 자동 요약 + 사용자 메모 통합
         const carryItems=(rec?.items||[]).filter(it=>it.type==='carry');
         const stLabel={'완료':'완','부분완료':'부분','미완료':'미'};
@@ -291,7 +319,7 @@ async function saveToExcel(){
         }).join(', ');
         const userMemo=G.memos[`${n}||${date}`]||'';
         const bigo=[autoText,userMemo].filter(x=>x).join(' | ');
-        return[n,scoreStr,G.wrong[n]?.[date]||'',rate!=null?rate:'',...hwVals,bigo];
+        return[n,scoreStr,G.wrong[n]?.[date]||'',rate!=null?rate:'',...hwVals,...extraVals,bigo];
       })
     ];
     const wsD=XLSX.utils.aoa_to_sheet(aoa,{skipHeader:false});
@@ -300,7 +328,7 @@ async function saveToExcel(){
       for(let C=range.s.c;C<=range.e.c;C++){
         const addr=XLSX.utils.encode_cell({r:R,c:C});
         const cell=wsD[addr];if(!cell)continue;
-        if(C>=4&&C<4+hwCount){cell.t='s';cell.v=String(cell.v===undefined?'':cell.v);continue;}
+        if(C>=4&&C<4+hwCount+maxExtra){cell.t='s';cell.v=String(cell.v===undefined?'':cell.v);continue;}
         if(cell.v===0&&cell.t==='n'){cell.v='';cell.t='s';}
       }
     }

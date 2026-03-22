@@ -304,7 +304,6 @@ function saveTabData(){
     hwStatus:[...G.hwStatus],
     hwItems:[...G.hwItems],
     hwItemTypes:G.hwItemTypes.map(t=>({...t})),
-    scoreCalc:G.scoreCalc,
     correctInput:$$('inputCorrect').value,totalInput:$$('inputTotal').value,
     wrongInput:$$('inputWrong').value,rateManual:G.hwRateManual,
     comment:$$('inputComment').value,
@@ -339,7 +338,7 @@ function restoreTabData(name){
   G.hwStatus=d.hwStatus||[];
   G.hwItems=d.hwItems||[];
   G.hwItemTypes=d.hwItemTypes||G.hwItems.map(()=>({type:'base'}));
-  G.scoreCalc=d.scoreCalc??null;G.hwRateManual=d.rateManual??null;
+  G.hwRateManual=d.rateManual??null;
   $$('inputCorrect').value=d.correctInput||'';$$('inputTotal').value=d.totalInput||'';
   $$('inputWrong').value=d.wrongInput||'';$$('inputComment').value=d.comment||'';
   $$('inputTeacher').value=d.teacher||'';

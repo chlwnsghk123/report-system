@@ -60,24 +60,61 @@ function rebuildGraph(){
 // ─── 과제 에디터 (좌패널: 텍스트 readonly, 상태 버튼만 조작) ───
 function renderHwEditor(){
   const c=$$('hwEditor');
-  if(!G.hwItems.length){c.innerHTML='<div style="font-size:11px;color:#b5bac4;padding:4px 2px;">이전 주차 과제 없음</div>';updateHwDisplay();return;}
   const firstCarryIdx=G.hwItemTypes.findIndex(t=>t.type==='carry');
+  const firstExtraIdx=G.hwItemTypes.findIndex(t=>t.type==='extra');
   let html='';
+  if(!G.hwItems.length||G.hwItems.every((_,i)=>G.hwItemTypes[i]?.type==='extra')){
+    if(!G.hwItems.some((_,i)=>G.hwItemTypes[i]?.type==='extra'))
+      html+='<div style="font-size:11px;color:#b5bac4;padding:4px 2px;">이전 주차 과제 없음</div>';
+  }
   G.hwItems.forEach((item,i)=>{
     const st=G.hwStatus[i]||'';
-    const isCarry=G.hwItemTypes[i]?.type==='carry';
+    const typ=G.hwItemTypes[i]?.type||'base';
     const fromDate=G.hwItemTypes[i]?.fromDate||'';
-    if(i===firstCarryIdx){
-      html+='<div class="hw-carry-divider">이월 과제</div>';
-    }
-    html+=`<div class="hw-item${isCarry?' hw-carry':''}">
+    if(i===firstCarryIdx) html+='<div class="hw-carry-divider">이월 과제</div>';
+    if(i===firstExtraIdx) html+='<div class="hw-carry-divider hw-extra-divider">추가 숙제</div>';
+    const isCarry=typ==='carry';
+    const isExtra=typ==='extra';
+    html+=`<div class="hw-item${isCarry?' hw-carry':''}${isExtra?' hw-extra':''}">
       ${isCarry?`<span class="hw-carry-badge" title="${fromDate?fmtKo(fromDate):''}">(전)</span>`:''}
-      <input type="text" class="${isCarry?'auto':''}" value="${esc(item)}" readonly
-        style="cursor:default;opacity:.8;">
+      ${isExtra?'<span class="hw-extra-badge">(추가)</span>':''}
+      <input type="text" value="${esc(item)}" ${isExtra?`oninput="updateExtraHwText(${i},this.value)"`:'readonly style="cursor:default;opacity:.8;"'}>
       <button class="hw-btn s${st}" onclick="cycleHwStatus(${i})">${hwBtnLabel(st)}</button>
+      ${isExtra?`<button class="hw-extra-del" onclick="removeExtraHw(${i})" title="삭제">✕</button>`:''}
     </div>`;
   });
+  // 추가 숙제 입력
+  html+=`<div class="hw-add-extra">
+    <input type="text" id="extraHwInput" placeholder="추가 숙제 입력" onkeydown="if(event.key==='Enter')addExtraHw()">
+    <button onclick="addExtraHw()">+ 추가</button>
+  </div>`;
   c.innerHTML=html;
+  updateHwDisplay();
+}
+
+// ─── 추가 숙제 관리 ───
+function addExtraHw(){
+  const input=$$('extraHwInput');if(!input)return;
+  const text=input.value.trim();if(!text)return;
+  G.hwItems.push(text);
+  G.hwStatus.push('');
+  G.hwItemTypes.push({type:'extra'});
+  input.value='';
+  renderHwEditor();updateHwDisplay();updateNoticeWithCarry();
+  syncHwRecItems(G.selStudent,G.selDate);saveAppData();
+}
+function removeExtraHw(idx){
+  if(G.hwItemTypes[idx]?.type!=='extra')return;
+  G.hwItems.splice(idx,1);
+  G.hwStatus.splice(idx,1);
+  G.hwItemTypes.splice(idx,1);
+  renderHwEditor();updateHwDisplay();updateNoticeWithCarry();
+  syncHwRecItems(G.selStudent,G.selDate);saveAppData();
+}
+function updateExtraHwText(idx,val){
+  if(G.hwItemTypes[idx]?.type!=='extra')return;
+  G.hwItems[idx]=val;
+  syncHwRecItems(G.selStudent,G.selDate);saveAppData();
 }
 function onRateManual(){
   const v=$$('inputRate').value;G.hwRateManual=v!==''?Number(v):null;
@@ -130,27 +167,33 @@ function updateHwDisplay(){
   if(!G.hwItems.length||!visible.length){if(sec)sec.style.display='none';list.innerHTML='';return;}
   if(sec)sec.style.display='';
   const icons={'완료':'✓','부분완료':'◑','미완료':'✗'};
-  const baseHtml=[],carryHtml=[];
+  const baseHtml=[],carryHtml=[],extraHtml=[];
   G.hwItems.forEach((item,i)=>{
     if(!item.trim()||G.hwStatus[i]==='')return;
     const st=G.hwStatus[i]||'미완료';
-    const isCarry=G.hwItemTypes[i]?.type==='carry';
+    const typ=G.hwItemTypes[i]?.type||'base';
+    const mark=typ==='carry'?'<span class="hw-carry-mark">(전)</span>'
+              :typ==='extra'?'<span class="hw-carry-mark" style="color:#6366f1;">(추가)</span>':'';
     const li=`<div class="hw-li s${st}">
       <span class="hw-icon">${icons[st]||'?'}</span>
-      ${isCarry?'<span class="hw-carry-mark">(전)</span>':''}
+      ${mark}
       <span class="hw-text">${esc(item.trim())}</span>
       <span class="hw-chip">${st}</span>
     </div>`;
-    if(isCarry)carryHtml.push(li);else baseHtml.push(li);
+    if(typ==='carry')carryHtml.push(li);
+    else if(typ==='extra')extraHtml.push(li);
+    else baseHtml.push(li);
   });
-  const total=baseHtml.length+carryHtml.length;
-  if(total>3&&carryHtml.length>0){
+  const total=baseHtml.length+carryHtml.length+extraHtml.length;
+  const nonBase=carryHtml.length+extraHtml.length;
+  if(total>3&&nonBase>0){
     list.className='hw-list compact';
+    const rightLabel=carryHtml.length&&extraHtml.length?'이월+추가':carryHtml.length?'이월과제':'추가과제';
     list.innerHTML=`<div class="hw-col"><div class="hw-col-label">본과제</div>${baseHtml.join('')}</div>`
-      +`<div class="hw-col"><div class="hw-col-label">이월과제</div>${carryHtml.join('')}</div>`;
+      +`<div class="hw-col"><div class="hw-col-label">${rightLabel}</div>${carryHtml.join('')}${extraHtml.join('')}</div>`;
   }else{
     list.className='hw-list';
-    list.innerHTML=baseHtml.join('')+carryHtml.join('');
+    list.innerHTML=baseHtml.join('')+carryHtml.join('')+extraHtml.join('');
   }
   updateHwBadge();
 }

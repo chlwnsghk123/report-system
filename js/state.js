@@ -11,7 +11,7 @@ const G={
   rates:{},scores:{},corrects:{},wrong:{},hwRec:{},memos:{},
   selDate:'',selStudent:'',
   hwItems:[],hwStatus:[],hwItemTypes:[],hwRateManual:null,reportEdits:{},
-  scoreCalc:null,totalQ:5,
+  totalQ:5,
   showMini:false,showComment:false,
   tabData:{},
   excelFileName:'학습리포트_데이터.xlsx',

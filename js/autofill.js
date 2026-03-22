@@ -1,15 +1,3 @@
-// ─── 점수 계산 ───
-function calcScore(){
-  const c=Number($$('inputCorrect').value),t=Number($$('inputTotal').value)||G.totalQ||5;
-  if($$('inputCorrect').value===''){
-    $$('calcResult').textContent='—';G.scoreCalc=null;
-    $$('rCorrect').innerText='—';$$('rTotal').innerText='—';return;
-  }
-  const sc=Math.min(50,20+Math.ceil((Math.min(c,t)/t)*30));
-  $$('calcResult').textContent=`${c} / ${t}`;G.scoreCalc=sc;
-  $$('rCorrect').innerText=c;$$('rTotal').innerText=t;
-}
-
 // ─── 캐리오버 계산 ───
 // 직전 날짜의 hwRec에서 미완료/부분완료 항목을 수집
 function computeCarryover(student,date){
@@ -25,7 +13,7 @@ function computeCarryover(student,date){
       .filter(it=>it.status==='미완료'||it.status==='부분완료')
       .map(it=>({
         text:it.text,
-        fromDate:it.fromDate||(curIdx>=2?G.lessons[curIdx-2].날짜:prevDate)
+        fromDate:it.fromDate||prevDate
       }));
   }
   // 레거시 형식: 과제N_상태로 재구성
@@ -51,18 +39,22 @@ function updateNoticeWithCarry(){
   const unfinished=[];
   G.hwItems.forEach((text,i)=>{
     const st=G.hwStatus[i];
-    if(st==='미완료'||st==='부분완료')unfinished.push(text);
+    if(st==='미완료'||st==='부분완료'){
+      const typ=G.hwItemTypes[i]?.type||'base';
+      unfinished.push({text,typ});
+    }
   });
   const list=$$('rNoticeList');
   const baseHtml=baseHw.map(t=>`<div class="next-hw-li">${esc(t)}</div>`).join('');
-  const carryHtml=unfinished.map(t=>
-    `<div class="next-hw-li"><span class="carry-tag">(전)</span>${esc(t)}</div>`
-  ).join('');
+  const carryHtml=unfinished.map(u=>{
+    const tag=u.typ==='extra'?'(추가)':'(전)';
+    return`<div class="next-hw-li"><span class="carry-tag">${tag}</span>${esc(u.text)}</div>`;
+  }).join('');
   const total=baseHw.length+unfinished.length;
   if(total>3&&unfinished.length>0){
     list.className='next-hw-list compact';
     list.innerHTML=`<div class="hw-col"><div class="hw-col-label">본과제</div>${baseHtml}</div>`
-      +`<div class="hw-col"><div class="hw-col-label">이월과제</div>${carryHtml}</div>`;
+      +`<div class="hw-col"><div class="hw-col-label">미완료</div>${carryHtml}</div>`;
   }else{
     list.className='next-hw-list';
     list.innerHTML=baseHtml+carryHtml;
@@ -108,16 +100,17 @@ function autoFillAll(){
     else{
       setAuto('inputRate',G.rates[G.selStudent]?.[G.selDate]??'');
     }
-    calcScore();updateWrongTags($$('inputWrong').value);
+    updateWrongTags($$('inputWrong').value);
   }else{
     $$('inputCorrect').value='';$$('inputCorrect').classList.remove('auto');
     $$('inputComment').value='';fp('commentBody','inputComment');
-    const sc=G.scores[G.selStudent]?.[G.selDate],ct=G.corrects[G.selStudent]?.[G.selDate];
-    if(ct!==undefined){$$('inputCorrect').value=ct;$$('inputCorrect').classList.add('auto');}
-    if(sc!==undefined){G.scoreCalc=sc;$$('calcResult').textContent=ct!==undefined?`${ct} / ${G.totalQ}`:'—';}
-    if(ct!==undefined){$$('rCorrect').innerText=ct;$$('rTotal').innerText=G.totalQ;}
+    const ct=G.corrects[G.selStudent]?.[G.selDate];
+    if(ct!==undefined){$$('inputCorrect').value=ct;$$('inputCorrect').classList.add('auto');
+      $$('rCorrect').innerText=ct;$$('rTotal').innerText=G.totalQ;
+      $$('calcResult').textContent=`${ct} / ${G.totalQ}`;
+    }
     $$('inputWrong').value=G.wrong[G.selStudent]?.[G.selDate]||'';
-    updateWrongTags($$('inputWrong').value);calcScore();
+    updateWrongTags($$('inputWrong').value);
     // base 항목: 직전 레슨 과제
     const prev=getPrevL();
     let baseItems=[];
@@ -127,7 +120,7 @@ function autoFillAll(){
     }
     // 캐리오버 항목
     const carryItems=computeCarryover(G.selStudent,G.selDate);
-    // 병합
+    // 병합 (base + carry)
     G.hwItems=[...baseItems,...carryItems.map(c=>c.text)];
     G.hwItemTypes=[
       ...baseItems.map(()=>({type:'base'})),
@@ -143,6 +136,12 @@ function autoFillAll(){
         const match=hwR.items.find(it=>it.text===text&&it.type===typ.type
           &&(typ.type==='base'||it.fromDate===typ.fromDate));
         return match?match.status:'';
+      });
+      // extra 항목 로드 (hwRec에 저장된 추가 숙제)
+      hwR.items.filter(it=>it.type==='extra').forEach(it=>{
+        G.hwItems.push(it.text);
+        G.hwStatus.push(it.status||'');
+        G.hwItemTypes.push({type:'extra'});
       });
     }else{
       // 레거시: base items만 과제N_상태 사용

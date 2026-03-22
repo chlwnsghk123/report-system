@@ -81,6 +81,20 @@ body{margin:0;padding:0;background-color:#f2f4f6;font-family:'Pretendard',sans-s
 .hw-carry-mark{font-size:11px;font-weight:700;color:#d97706;margin-right:2px;}
 .carry-notice .carry-tag{display:inline-block;font-size:9px;font-weight:800;color:#fff;background:#f59e0b;border-radius:3px;padding:0 4px;margin-right:4px;vertical-align:middle;line-height:1.5;}
 
+/* 추가 숙제 */
+.hw-extra-divider{color:#6366f1!important;border-top-color:#a5b4fc!important;}
+.hw-extra-divider::before,.hw-extra-divider::after{background:#a5b4fc!important;}
+.hw-item.hw-extra{border-color:#a5b4fc;background:#eef2ff;}
+.hw-item.hw-extra input{background:transparent;cursor:text;opacity:1;}
+.hw-extra-badge{font-size:10px;font-weight:800;color:#fff;background:#6366f1;border-radius:4px;padding:1px 6px;flex-shrink:0;line-height:1.4;}
+.hw-extra-del{background:none;border:none;font-size:13px;cursor:pointer;color:#c7c7c7;padding:2px 4px;border-radius:4px;transition:.15s;flex-shrink:0;}
+.hw-extra-del:hover{color:#ef4444;background:#fef2f2;}
+.hw-add-extra{display:flex;gap:6px;margin-top:6px;}
+.hw-add-extra input{flex:1;padding:8px 12px;border:1px dashed #a5b4fc;border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:#f8f9ff;}
+.hw-add-extra input:focus{border-style:solid;border-color:#6366f1;}
+.hw-add-extra button{padding:6px 14px;background:#6366f1;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;transition:.15s;}
+.hw-add-extra button:hover{background:#4f46e5;}
+
 /* ═══ 점수 계산 ═══ */
 .score-calc{background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
 .sc-row{display:flex;align-items:center;gap:8px;font-size:14px;}

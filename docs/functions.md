@@ -94,7 +94,7 @@
 | 함수 | 역할 |
 |---|---|
 | `stFromExcel(v)` | 엑셀 기호/숫자(○/△/X/0/1/2) → 한글 상태 변환 |
-| `calcScore()` | 맞힌수/전체 → 점수 계산 및 표시 |
+| ~~`calcScore()`~~ | (삭제됨) |
 | `computeCarryover(student,date)` | 직전 날짜 hwRec에서 미완료/부분완료 항목 수집 → 캐리오버 배열 반환 |
 | `updateNoticeWithCarry()` | 이번 주차 과제 + 미완료 캐리오버 → 리포트카드 반영 |
 | `autoFillCommon()` | 날짜 기준 공통 필드 자동채우기 |
@@ -107,7 +107,10 @@
 | `registerMascots(tier,files)` | 마스코트 이미지 등록 (tier: high/mid/low) |
 | `updateRateFace()` | 이행률 기반 마스코트 이미지 표시 (75↑high, 30↑mid, 30↓low) |
 | `rebuildGraph()` | SVG 이행률 꺾은선 그래프 재빌드 |
-| `renderHwEditor()` | 과제 에디터 UI 렌더링 |
+| `renderHwEditor()` | 과제 에디터 UI 렌더링 (base/carry/extra 통합) |
+| `addExtraHw()` | 추가 숙제 항목 추가 |
+| `removeExtraHw(idx)` | 추가 숙제 항목 삭제 |
+| `updateExtraHwText(idx,val)` | 추가 숙제 텍스트 수정 |
 | `onRateManual()` | 이행률 수동입력 핸들러 |
 | `hwBtnLabel(s)` | 상태 → 버튼 라벨 문자열 반환 |
 | `cycleHwStatus(i)` | 과제 상태 순환 (없음→완료→부분→미완료→없음) |
