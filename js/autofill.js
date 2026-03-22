@@ -39,17 +39,13 @@ function updateNoticeWithCarry(){
   const unfinished=[];
   G.hwItems.forEach((text,i)=>{
     const st=G.hwStatus[i];
-    if(st==='미완료'||st==='부분완료'){
-      const typ=G.hwItemTypes[i]?.type||'base';
-      unfinished.push({text,typ});
-    }
+    if(st==='미완료'||st==='부분완료')unfinished.push(text);
   });
   const list=$$('rNoticeList');
   const baseHtml=baseHw.map(t=>`<div class="next-hw-li">${esc(t)}</div>`).join('');
-  const carryHtml=unfinished.map(u=>{
-    const tag=u.typ==='extra'?'(추가)':'(전)';
-    return`<div class="next-hw-li"><span class="carry-tag">${tag}</span>${esc(u.text)}</div>`;
-  }).join('');
+  const carryHtml=unfinished.map(t=>
+    `<div class="next-hw-li"><span class="carry-tag">(전)</span>${esc(t)}</div>`
+  ).join('');
   const total=baseHw.length+unfinished.length;
   if(total>3&&unfinished.length>0){
     list.className='next-hw-list compact';

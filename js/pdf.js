@@ -145,11 +145,9 @@ async function _doSummaryImage(){
           let idx=0;
           html+=visible.map(it=>{
             idx++;
-            const typeMark=it.type==='carry'?'<span style="font-size:10px;font-weight:700;color:#6b7280;margin-right:3px;">(이월)</span>'
-              :it.type==='extra'?'<span style="font-size:10px;font-weight:700;color:#6366f1;margin-right:3px;">(추가)</span>':'';
             return`<div style="display:flex;align-items:center;padding:10px 14px;border-radius:8px;background:#f8f9fa;border:1px solid #e5e7eb;gap:10px;margin-bottom:5px;">
               <div style="width:22px;height:22px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#374151;flex-shrink:0;">${idx}</div>
-              <div style="flex:1;font-size:13px;color:#222;font-weight:500;">${typeMark}${esc(it.text)}</div>
+              <div style="flex:1;font-size:13px;color:#222;font-weight:500;">${esc(it.text)}</div>
               <div style="padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;color:${stColor[it.status]};background:${stBg[it.status]};flex-shrink:0;">${stLabel[it.status]}</div>
             </div>`;
           }).join('');

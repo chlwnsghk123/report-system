@@ -172,28 +172,24 @@ function updateHwDisplay(){
     if(!item.trim()||G.hwStatus[i]==='')return;
     const st=G.hwStatus[i]||'미완료';
     const typ=G.hwItemTypes[i]?.type||'base';
-    const mark=typ==='carry'?'<span class="hw-carry-mark">(전)</span>'
-              :typ==='extra'?'<span class="hw-carry-mark" style="color:#6366f1;">(추가)</span>':'';
+    const isCarry=typ==='carry';
     const li=`<div class="hw-li s${st}">
       <span class="hw-icon">${icons[st]||'?'}</span>
-      ${mark}
+      ${isCarry?'<span class="hw-carry-mark">(전)</span>':''}
       <span class="hw-text">${esc(item.trim())}</span>
       <span class="hw-chip">${st}</span>
     </div>`;
-    if(typ==='carry')carryHtml.push(li);
-    else if(typ==='extra')extraHtml.push(li);
-    else baseHtml.push(li);
+    if(isCarry)carryHtml.push(li);
+    else baseHtml.push(li); // extra도 일반 과제와 동일 취급
   });
-  const total=baseHtml.length+carryHtml.length+extraHtml.length;
-  const nonBase=carryHtml.length+extraHtml.length;
-  if(total>3&&nonBase>0){
+  const total=baseHtml.length+carryHtml.length;
+  if(total>3&&carryHtml.length>0){
     list.className='hw-list compact';
-    const rightLabel=carryHtml.length&&extraHtml.length?'이월+추가':carryHtml.length?'이월과제':'추가과제';
     list.innerHTML=`<div class="hw-col"><div class="hw-col-label">본과제</div>${baseHtml.join('')}</div>`
-      +`<div class="hw-col"><div class="hw-col-label">${rightLabel}</div>${carryHtml.join('')}${extraHtml.join('')}</div>`;
+      +`<div class="hw-col"><div class="hw-col-label">이월과제</div>${carryHtml.join('')}</div>`;
   }else{
     list.className='hw-list';
-    list.innerHTML=baseHtml.join('')+carryHtml.join('')+extraHtml.join('');
+    list.innerHTML=baseHtml.join('')+carryHtml.join('');
   }
   updateHwBadge();
 }
