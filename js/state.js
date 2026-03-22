@@ -8,7 +8,7 @@ const $$=id=>document.getElementById(id);
 // ─── 전역 상태 G ───
 const G={
   lessons:[],students:[],
-  rates:{},scores:{},corrects:{},wrong:{},hwRec:{},
+  rates:{},scores:{},corrects:{},wrong:{},hwRec:{},memos:{},
   selDate:'',selStudent:'',
   hwItems:[],hwStatus:[],hwItemTypes:[],hwRateManual:null,reportEdits:{},
   scoreCalc:null,totalQ:5,

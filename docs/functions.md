@@ -66,6 +66,10 @@
 | `saveTabData()` | 현재 학생 입력값 → G.tabData 임시저장 + hwRec items 동기화 |
 | `syncHwRecItems(student,date)` | G.hwItems/hwStatus/hwItemTypes → hwRec[key].items 동기화 |
 | `restoreTabData(name)` | G.tabData → UI 복원 (hwItems/hwItemTypes 포함) |
+| `openMemo()` | 비고 모달 열기 (현재 학생+날짜 기준) |
+| `closeMemo()` | 비고 모달 닫기 |
+| `saveMemo()` | 비고 저장 → G.memos + saveAppData |
+| `updateMemoBtn()` | 비고 버튼 상태 업데이트 (작성/수정 텍스트 전환) |
 | `toggleSec(type)` | 미니테스트/코멘트 토글 |
 
 ## js/session.js
@@ -123,5 +127,5 @@
 ## js/init.js
 | 함수 | 역할 |
 |---|---|
-| `loadMascotImages()` | 마스코트 이미지 디렉토리 스캔 후 자동 등록 |
+| `loadMascotImages()` | 마스코트 이미지 수동 등록 (하드코딩된 파일 목록) |
 | `window.onload` | 앱 초기화 진입점: DB오픈→updateScale→initCE→loadMascotImages |

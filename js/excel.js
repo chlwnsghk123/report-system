@@ -80,7 +80,7 @@ function parseWB(wb){
     }
   }
 
-  G.students=[];G.scores={};G.corrects={};G.wrong={};G.hwRec={};G.rates={};
+  G.students=[];G.scores={};G.corrects={};G.wrong={};G.hwRec={};G.rates={};G.memos={};
 
   const hasDateSheets=wb.SheetNames.some(n=>/^\d{4}-\d{2}-\d{2}$/.test(n));
 
@@ -126,6 +126,9 @@ function parseWB(wb){
           rec[`과제${ci-hwStartCol+1}_상태`]=String(r[ci]||'').trim();
         }
         G.hwRec[key]=rec;
+        // 메모 열 파싱 (비고 다음 열)
+        const memoIdx=hdr.indexOf('메모');
+        if(memoIdx>=0){const mv=String(r[memoIdx]||'').trim();if(mv)G.memos[key]=mv;}
       });
     });
   }else{
@@ -263,7 +266,7 @@ async function saveToExcel(){
     const hwCount=Math.max(4,baseHwCount);
     const hwHdrs=Array.from({length:hwCount},(_,i)=>`과제${i+1}`);
     const aoa=[
-      ['이름','성적','오답','과제이행률',...hwHdrs,'비고'],
+      ['이름','성적','오답','과제이행률',...hwHdrs,'비고','메모'],
       ...G.students.map(n=>{
         const correct=G.corrects[n]?.[date];
         const scoreStr=correct!==undefined?`${correct}/${total}`:'';
@@ -279,7 +282,8 @@ async function saveToExcel(){
           const sl=stLabel[it.status]||'';
           return`(전${fd?'·'+fd:''})${it.text}${sl?'→'+sl:''}`;
         }).join(', ');
-        return[n,scoreStr,G.wrong[n]?.[date]||'',rate!=null?rate:'',...hwVals,bigo];
+        const memo=G.memos[`${n}||${date}`]||'';
+        return[n,scoreStr,G.wrong[n]?.[date]||'',rate!=null?rate:'',...hwVals,bigo,memo];
       })
     ];
     const wsD=XLSX.utils.aoa_to_sheet(aoa,{skipHeader:false});
@@ -364,8 +368,8 @@ function createTemplate(){
   XLSX.utils.book_append_sheet(wb,ws1,'수업정보');
   dates.forEach(date=>{
     const wsD=XLSX.utils.aoa_to_sheet([
-      ['이름','성적','오답','과제이행률','과제1','과제2','과제3','과제4','비고'],
-      ...students.map(n=>[n,'','','','','','','',''])
+      ['이름','성적','오답','과제이행률','과제1','과제2','과제3','과제4','비고','메모'],
+      ...students.map(n=>[n,'','','','','','','','',''])
     ]);
     XLSX.utils.book_append_sheet(wb,wsD,date);
   });

@@ -1,7 +1,7 @@
 // ─── DB 저장 ───
 async function saveAppData(){
   await dbSet('appData',{lessons:G.lessons,students:G.students,rates:G.rates,
-    scores:G.scores,corrects:G.corrects,wrong:G.wrong,hwRec:G.hwRec,tabData:G.tabData,fileName:G.excelFileName});
+    scores:G.scores,corrects:G.corrects,wrong:G.wrong,hwRec:G.hwRec,memos:G.memos,tabData:G.tabData,fileName:G.excelFileName});
 }
 async function saveSession(){
   await dbSet('session',{selDate:G.selDate,selStudent:G.selStudent,

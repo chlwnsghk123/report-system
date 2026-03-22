@@ -66,6 +66,7 @@ function switchView(view){
     closeLessonModal();
     renderDateSummary();
     renderTabs();
+    updateMemoBtn();
     if(G.selDate&&G.selStudent)autoFillAll();
     else if(G.selDate)autoFillCommon();
   }
@@ -278,6 +279,7 @@ function switchTab(name){
   if(name===G.selStudent)return;
   saveTabData();G.selStudent=name;renderTabs();
   const m=$$('rateMascot');if(m)delete m.dataset.idx;
+  updateMemoBtn();
   if(G.selDate)autoFillAll();
   saveSession();
 }
@@ -329,6 +331,38 @@ function restoreTabData(name){
   $$('inputTeacher').value=d.teacher||'';
   G.reportEdits=d.reportEdits?{...d.reportEdits}:{};
   fp('commentBody','inputComment');return true;
+}
+
+// ─── 비고 모달 ───
+function openMemo(){
+  if(!G.selStudent||!G.selDate)return;
+  const key=`${G.selStudent}||${G.selDate}`;
+  $$('memoTitle').textContent=`📋 비고 — ${G.selStudent} (${shortD(G.selDate)})`;
+  $$('memoText').value=G.memos[key]||'';
+  $$('memoModalOverlay').style.display='flex';
+  setTimeout(()=>$$('memoText').focus(),100);
+}
+function closeMemo(){
+  $$('memoModalOverlay').style.display='none';
+}
+function saveMemo(){
+  if(!G.selStudent||!G.selDate)return;
+  const key=`${G.selStudent}||${G.selDate}`;
+  const text=$$('memoText').value.trim();
+  if(text)G.memos[key]=text;
+  else delete G.memos[key];
+  saveAppData();closeMemo();
+  // 버튼 상태 업데이트
+  const btn=$$('btnMemo');
+  if(text){btn.classList.add('has');btn.textContent='📋 비고 수정하기';}
+  else{btn.classList.remove('has');btn.textContent='📋 비고 작성하기';}
+}
+function updateMemoBtn(){
+  const btn=$$('btnMemo');if(!btn)return;
+  const key=`${G.selStudent||''}||${G.selDate||''}`;
+  const has=!!G.memos[key];
+  btn.classList.toggle('has',has);
+  btn.textContent=has?'📋 비고 수정하기':'📋 비고 작성하기';
 }
 
 // ─── 토글 (미니테스트/코멘트) ───

@@ -102,6 +102,7 @@
       <input type="hidden" id="inputTeacher">
       <input type="hidden" id="inputComment">
 
+      <button class="btn-s" id="btnMemo" onclick="openMemo()">📋 비고 작성하기</button>
       <button class="btn-d" id="btnPdf" onclick="dlPdf()">📄 PDF로 저장</button>
       <div id="lastSaved" style="font-size:11px;color:#9ca3af;text-align:center;display:none;"></div>
     </div>
@@ -272,6 +273,20 @@
 <script src="js/ui.js"></script>
 <script src="js/session.js"></script>
 <script src="js/autofill.js"></script>
+<!-- 비고 모달 -->
+<div class="lm-overlay" id="memoModalOverlay" style="display:none;" onclick="if(event.target===this)closeMemo()">
+  <div class="lm-modal" style="max-width:520px;">
+    <div class="lm-header">
+      <h3 id="memoTitle">📋 비고</h3>
+      <button class="lm-close" onclick="closeMemo()">✕</button>
+    </div>
+    <div style="padding:20px 24px;flex:1;display:flex;flex-direction:column;">
+      <textarea id="memoText" placeholder="비고를 입력하세요..." style="flex:1;min-height:200px;resize:vertical;padding:12px;font-size:14px;font-family:inherit;border:1px solid #d1d6db;border-radius:10px;outline:none;line-height:1.7;"></textarea>
+      <button class="btn-p" style="margin-top:14px;" onclick="saveMemo()">저장</button>
+    </div>
+  </div>
+</div>
+
 <script src="js/report.js"></script>
 <script src="js/pdf.js"></script>
 <script src="js/init.js"></script>

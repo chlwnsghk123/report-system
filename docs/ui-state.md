@@ -29,6 +29,7 @@ body (flex, 100vh)
 │        ├─ #gMini           미니 테스트 입력 영역
 │        ├─ #toggleComment   코멘트 토글 스위치
 │        ├─ #gComment        코멘트 입력 영역
+│        ├─ #btnMemo          비고 작성 버튼
 │        ├─ #btnPdf          PDF 저장 버튼
 │        └─ #lastSaved       저장 시각 표시
 │  (hidden inputs: inCurBook, inCurChap, inCurDetail, inPrevBook/Chap/Detail, inputNotice, inputCorrect/Total, calcResult)
@@ -62,6 +63,7 @@ G = {
   corrects: {},    // {학생명:{날짜:맞힌개수}}
   wrong: {},       // {학생명:{날짜:"오답번호문자열"}}
   hwRec: {},       // {"학생명||날짜":{이행률,과제1_상태~N_상태,items:[{text,status,type,fromDate}]}}
+  memos: {},       // {"학생명||날짜":"비고 텍스트"} — 리포트 미반영, 엑셀 저장용
 
   // 현재 선택
   selDate: '', selStudent: '',
@@ -103,4 +105,4 @@ G = {
 
 ## IndexedDB
 - DB: `reportApp4`, Store: `data`
-- 키: `'appData'`(G.lessons/students/rates/scores/corrects/wrong/hwRec/tabData/excelFileName), `'session'`(selDate·selStudent·showMini·showComment·currentView)
+- 키: `'appData'`(G.lessons/students/rates/scores/corrects/wrong/hwRec/memos/tabData/excelFileName), `'session'`(selDate·selStudent·showMini·showComment·currentView)
