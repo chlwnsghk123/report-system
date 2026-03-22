@@ -38,7 +38,7 @@ B 미리보기 (우측)
 ├─ 페이지 네비                      → #pageNav
 └─ 리포트카드 #reportCard
      ├─ 헤더 (학생명/날짜)           → #rName, #rDate
-     ├─ ① 이행률 + 그래프            → #secRate, #svgChart, #gLabels
+     ├─ ① 이행률 + 그래프 + 마스코트  → #secRate, #svgChart, #gLabels, #rateMascot
      ├─ ② 저번 주차 과제 목록        → #secPrevHw, #rHwList (캐리오버: (전) 마크)
      ├─ ③ 수업 진도 (현재/이전)       → .prog-card
      ├─ ④ 이번 주차 과제 목록        → #rNoticeList (미완료 캐리오버 자동 추가)
@@ -66,6 +66,7 @@ B 미리보기 (우측)
 | 기능 | 수정 파일 | 관련 함수 |
 |---|---|---|
 | 이행률 그래프 표시 방식 | `js/report.js` | `rebuildGraph()` |
+| 마스코트 이미지 (이행률 티어별) | `js/report.js` | `updateRateFace()`, `registerMascots()` |
 | 과제 상태 버튼 순환 | `js/report.js` | `cycleHwStatus()` |
 | 과제 에디터 렌더링 | `js/report.js` | `renderHwEditor()` (캐리오버 뱃지 포함) |
 | 점수 계산 공식 | `js/autofill.js` | `calcScore()` |
@@ -83,6 +84,7 @@ B 미리보기 (우측)
 | 엑셀 저장 | `js/excel.js` | `saveToExcel()` (이월과제 시트 + 비고열) |
 | PDF 저장 | `js/pdf.js` | `dlPdf()` |
 | 시험자료 PDF 뷰어 | `js/pdf.js` | `loadAttachPdf()`, `renderSpread()` |
+| 마스코트 이미지 로드 | `js/init.js` | `loadMascotImages()` |
 | 날짜 자동 선택 | `js/session.js` | `autoSelectDate()` |
 | 앱 저장/복원 | `js/session.js` | `saveAppData()`, `restoreSession()` |
 
@@ -109,3 +111,4 @@ B 미리보기 (우측)
 | "탭 폰트 크게 해줘" | 탭 CSS | `css/layout.css` |
 | "이행률 없으면 그래프 섹션 숨겨줘" | 조건부 표시 | `js/report.js` or `js/autofill.js` |
 | "저장 시간 표시 없애줘" | HTML + JS | `index.html` + `js/excel.js` |
+| "마스코트 이미지 바꿔줘" | 이미지 파일 교체 | `img/mascots/` |

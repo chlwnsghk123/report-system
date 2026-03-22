@@ -61,6 +61,7 @@ window.onload()
   → openDB()
   → updateScale() + resize 리스너 등록
   → initCE()
+  → loadMascotImages()
   // 항상 새로 시작 — 이전 세션 자동 복원 없음
 ```
 
@@ -145,5 +146,4 @@ cycleHwStatus()
 saveTabData()
   → syncHwRecItems()
     → G.hwItems/hwStatus/hwItemTypes → hwRec[key].items 배열 동기화
-```
 ```

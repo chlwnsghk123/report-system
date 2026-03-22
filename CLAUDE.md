@@ -19,9 +19,9 @@ js/
   ui.js             updateScale, initCE, fp, switchView, openLessonModal, closeLessonModal, renderViewTabs, shiftDate, selectDate, getLessonHwKeys, renderLessonCards, updateLessonField, syncLessonToReport, addLessonHw, removeLessonHw, addLesson, removeLesson, renderDateSummary, renderTabs, switchTab, saveTabData, syncHwRecItems, restoreTabData, toggleSec
   session.js        saveAppData, saveSession, restoreSession, showGroups, autoSelectDate, renderStudentList, addStudent, removeStudent, toggleStudentSec
   autofill.js       calcScore, computeCarryover, updateNoticeWithCarry, autoFillCommon, stFromExcel, autoFillAll
-  report.js         rebuildGraph, renderHwEditor, onRateManual, cycleHwStatus, hwBtnLabel, updateHeaderDate, updateHwDisplay, updateHwBadge, updateNoticeList, updateCommentSign, updateWrongTags
+  report.js         rebuildGraph, renderHwEditor, onRateManual, cycleHwStatus, hwBtnLabel, updateHeaderDate, updateHwDisplay, updateHwBadge, updateNoticeList, updateCommentSign, updateWrongTags, registerMascots, updateRateFace
   pdf.js            loadAttachPdf, renderSpread, drawPdfPrev, prevSpread, nextSpread, dlPdf, dataUrlToBytes
-  init.js           window.onload (앱 진입점)
+  init.js           window.onload (앱 진입점), loadMascotImages
 docs/               참조 문서 (필요 시만 읽기)
 ```
 
