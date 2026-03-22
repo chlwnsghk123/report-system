@@ -126,6 +126,9 @@
 | `prevSpread()` | 이전 spread 이동 |
 | `nextSpread()` | 다음 spread 이동 |
 | `dlPdf()` | 리포트+첨부PDF 합성 → 다운로드 |
+| `toggleToolbarMenu(id)` | 툴바 드롭다운 메뉴 토글 |
+| `closeToolbarMenus()` | 모든 툴바 메뉴 닫기 |
+| `dlSummaryPdf()` | 전체 학생 과제 요약 PDF 생성 (학생별 1페이지) |
 | `dataUrlToBytes(u)` | DataURL → Uint8Array 변환 |
 
 ## js/init.js

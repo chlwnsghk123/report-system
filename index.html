@@ -123,6 +123,19 @@
 
 <!-- ════ 미리보기 (B 영역) ════ -->
 <div class="preview" id="previewArea">
+  <!-- 상단 메뉴 바 -->
+  <div class="toolbar">
+    <div class="tb-group">
+      <div class="tb-dropdown" id="tbMenu">
+        <button class="tb-btn" onclick="toggleToolbarMenu('tbMenu')">☰ 메뉴</button>
+        <div class="tb-menu">
+          <button onclick="dlSummaryPdf();closeToolbarMenus()">📊 전체 과제 요약 PDF</button>
+        </div>
+      </div>
+      <button class="tb-btn" disabled title="준비 중">🖨 프린트</button>
+      <button class="tb-btn" disabled title="준비 중">⚙ 설정</button>
+    </div>
+  </div>
   <div class="page-nav" id="pageNav" style="display:none;">
     <button id="btnPrev" onclick="prevSpread()" disabled>‹</button>
     <span class="pinfo" id="pageInfo">1 / 1</span>
