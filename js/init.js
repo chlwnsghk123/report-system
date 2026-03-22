@@ -20,9 +20,9 @@ function loadMascotImages(){
     ],
     low:[
       '03_char_r0_c2___.png',
-      '04_char_r0_c3_.png','04_char_r0_c3__.png','04_char_r0_c3___.png',
+      '04_char_r0_c3_.png','04_char_r0_c3___.png',
       '05_char_r0_c4__.png',
-      '13_char_r2_c2_.png','14_char_r2_c3.png','15_char_r2_c4.png'
+      '13_char_r2_c2_.png'
     ]
   };
   for(const tier of ['high','mid','low']){
