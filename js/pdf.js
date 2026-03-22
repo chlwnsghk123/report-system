@@ -133,22 +133,23 @@ async function dlSummaryPdf(){
         }).filter(it=>it.text);
       }
 
+      const cardH=674; // A4 높이의 약 60% (1123 * 0.6)
       const card=document.createElement('div');
-      card.style.cssText='width:794px;height:1123px;background:#fff;padding:60px 50px;box-sizing:border-box;font-family:Pretendard,sans-serif;display:flex;flex-direction:column;';
+      card.style.cssText=`width:794px;height:${cardH}px;background:#fff;padding:50px 50px;box-sizing:border-box;font-family:Pretendard,sans-serif;display:flex;flex-direction:column;`;
       // 상단: 학생명 + 날짜
       const header=`
-        <div style="border-bottom:2px solid #000;padding-bottom:12px;margin-bottom:32px;display:flex;justify-content:space-between;align-items:flex-end;">
-          <div style="font-size:32px;font-weight:800;color:#000;">${esc(name)} <span style="font-size:18px;font-weight:400;color:#555;">학생</span></div>
-          <div style="font-size:15px;color:#555;font-weight:500;">${fmtKo(date)}</div>
+        <div style="border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end;">
+          <div style="font-size:28px;font-weight:800;color:#000;">${esc(name)} <span style="font-size:16px;font-weight:400;color:#555;">학생</span></div>
+          <div style="font-size:14px;color:#555;font-weight:500;">${fmtKo(date)}</div>
         </div>`;
-      // 이행률
-      const rateDisplay=rate!=null&&!isNaN(rate)?`${rate}%`:'—';
-      const rateColor=rate>=75?'#1b7340':rate>=30?'#b45309':'#dc2626';
-      const rateSection=`
-        <div style="margin-bottom:32px;display:flex;align-items:center;gap:16px;">
-          <div style="font-size:16px;font-weight:700;color:#333;">숙제 이행률</div>
-          <div style="font-size:48px;font-weight:900;color:${rateColor};line-height:1;">${rateDisplay}</div>
-        </div>`;
+      // 이행률 (공란이면 숨김)
+      const hasRate=rate!=null&&!isNaN(rate);
+      const rateColor=hasRate?(rate>=75?'#1b7340':rate>=30?'#b45309':'#dc2626'):'';
+      const rateSection=hasRate?`
+        <div style="margin-bottom:24px;display:flex;align-items:center;gap:14px;">
+          <div style="font-size:15px;font-weight:700;color:#333;">숙제 이행률</div>
+          <div style="font-size:40px;font-weight:900;color:${rateColor};line-height:1;">${rate}%</div>
+        </div>`:'';
       // 과제 목록
       const stLabel={'완료':'✓ 완료','부분완료':'◑ 부분완료','미완료':'✗ 미완료'};
       const stColor={'완료':'#166534','부분완료':'#92400e','미완료':'#991b1b'};
@@ -181,17 +182,17 @@ async function dlSummaryPdf(){
     }
 
     // html2canvas로 각 페이지 캡처 후 PDF 생성
+    const pageW=794,pageH=674;
+    const pdfW=595.28,pdfH=pdfW*(pageH/pageW); // 비율 유지
     const{PDFDocument}=PDFLib;
     const outDoc=await PDFDocument.create();
     for(const page of pages){
       const canvas=await html2canvas(page,{scale:2,useCORS:true,backgroundColor:'#fff',
-        width:794,height:1123,scrollX:0,scrollY:0,windowWidth:794,windowHeight:1123});
+        width:pageW,height:pageH,scrollX:0,scrollY:0,windowWidth:pageW,windowHeight:pageH});
       const pngBytes=dataUrlToBytes(canvas.toDataURL('image/png'));
       const pngImg=await outDoc.embedPng(pngBytes);
-      const pdfPage=outDoc.addPage([595.28,841.89]); // A4 세로
-      const{width:iw,height:ih}=pngImg;
-      const scale=Math.min(595.28/iw,841.89/ih);
-      pdfPage.drawImage(pngImg,{x:0,y:0,width:iw*scale,height:ih*scale});
+      const pdfPage=outDoc.addPage([pdfW,pdfH]);
+      pdfPage.drawImage(pngImg,{x:0,y:0,width:pdfW,height:pdfH});
     }
     document.body.removeChild(wrap);
     const a=document.createElement('a');
