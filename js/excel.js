@@ -285,6 +285,9 @@ function parseWB(wb){
     });
   });
 
+  // ─── 전체 이월 전파 (미완료/부분완료 → 다음 날짜에 이월 레코드 생성) ───
+  buildAllCarryover();
+
   // ─── 설정 시트 파싱 ───
   const wsCfg=wb.Sheets['설정'];
   if(wsCfg){
