@@ -5,6 +5,12 @@ if(typeof pdfjsLib!=='undefined')
 // ─── DOM 헬퍼 ───
 const $$=id=>document.getElementById(id);
 
+// ─── 상태값 판별 헬퍼 (''과 -1 모두 "없음") ───
+const isNone=s=>s===''||s===-1||s==null||s===undefined;
+
+// ─── 수업 ID 생성 (10자리 난수) ───
+function genLessonId(){return String(Math.floor(Math.random()*9e9)+1e9);}
+
 // ─── 전역 상태 G ───
 const G={
   lessons:[],students:[],

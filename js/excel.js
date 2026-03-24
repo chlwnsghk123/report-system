@@ -59,11 +59,14 @@ function parseWB(wb){
     const rows=XLSX.utils.sheet_to_json(ws1,{header:1,defval:'',raw:false});
     if(rows.length>0){
       const hdr=rows[0].map(h=>String(h||'').trim());
+      const hasId=hdr[0]==='ID';
+      const s=hasId?1:0; // ID열 오프셋
       const hasTeacher=hdr.includes('강사명');
-      const off=hasTeacher?2:1; // 교재 열 시작 오프셋
+      const off=s+(hasTeacher?2:1); // 교재 열 시작 오프셋
       rows.slice(1).forEach(r=>{
-        const d=toDS(r[0]);if(!d)return;
-        const lesson={날짜:d,전체문제수:5,
+        const d=toDS(r[s]);if(!d)return;
+        const id=hasId?String(r[0]||'').trim():genLessonId();
+        const lesson={id,날짜:d,전체문제수:5,
           교재:String(r[off]||'').trim(),
           단원:String(r[off+1]||'').trim(),
           상세진도:String(r[off+2]||'').trim()};
@@ -200,13 +203,17 @@ function parseWB(wb){
       const name=col0;
       const checkDate=toDS(r[1]);
       const text=String(r[2]||'').trim();
-      const fromDate=toDS(r[3]);
+      const refOrDate=String(r[3]||'').trim();
       const status=stFromExcel(String(r[4]||'').trim());
       if(!name||!checkDate||!text)return;
+      // 하위호환: 4열이 날짜면 fromDate, 아니면 ref
+      const isDate=/^\d{4}-\d{2}-\d{2}$/.test(refOrDate);
+      const ref=isDate?'':refOrDate;
+      const fromDate=isDate?refOrDate:'';
       const key=`${name}||${checkDate}`;
       const rec=G.hwRec[key]=G.hwRec[key]||{이행률:null};
       rec.items=rec.items||[];
-      rec.items.push({text,status,type:'carry',fromDate});
+      rec.items.push({text,status,type:'carry',ref,fromDate});
     });
   }
 
@@ -224,7 +231,8 @@ function parseWB(wb){
       const baseItems=prevHwKeys.map((k,i)=>{
         const text=prevLesson[k]||'';
         const status=stFromExcel(rec[`과제${i+1}_상태`]??'');
-        return{text,status,type:'base',fromDate:''};
+        const ref=`${prevLesson.id}-${k}`;
+        return{text,status,type:'base',ref,fromDate:prevLesson.날짜};
       }).filter(it=>it.text);
       // 이전 날짜의 학생별 추가과제도 base로 포함
       const prevDateKey=`${name}||${prevLesson.날짜}`;
@@ -233,7 +241,8 @@ function parseWB(wb){
         const extraBaseStart=baseItems.length;
         prevRec.extraHw.forEach((ex,ei)=>{
           const status=stFromExcel(rec[`과제${extraBaseStart+ei+1}_상태`]??'');
-          baseItems.push({text:ex.text,status,type:'base',fromDate:''});
+          const ref=`${prevLesson.id}-추가과제${ei+1}`;
+          baseItems.push({text:ex.text,status,type:'base',ref,fromDate:prevLesson.날짜});
         });
       }
       const carryItems=(rec.items||[]).filter(it=>it.type==='carry');
@@ -304,17 +313,21 @@ async function saveToExcel(){
   await saveAppDataNow();
   const wb=XLSX.utils.book_new();
 
-  // ─── 수업정보 시트 (동적 과제 열) ───
+  // ─── 수업정보 시트 (ID열 + 동적 과제 열) ───
   const maxHw=Math.max(4,...G.lessons.map(l=>getLessonHwKeys(l).length));
   const hwHeaders=Array.from({length:maxHw},(_,i)=>`과제${i+1}`);
   const ws1=XLSX.utils.aoa_to_sheet([
-    ['날짜','교재','단원','상세진도',...hwHeaders],
+    ['ID','날짜','교재','단원','상세진도',...hwHeaders],
     ...G.lessons.map(l=>{
+      if(!l.id)l.id=genLessonId();
       const vals=Array.from({length:maxHw},(_,i)=>l[`과제${i+1}`]||'');
-      return[l.날짜,l.교재,l.단원,l.상세진도,...vals];
+      return[l.id,l.날짜,l.교재,l.단원,l.상세진도,...vals];
     })
   ]);
-  G.lessons.forEach((_,i)=>{const c=ws1[XLSX.utils.encode_cell({r:i+1,c:0})];if(c)c.t='s';});
+  // ID열·날짜열 문자열 강제
+  G.lessons.forEach((_,i)=>{
+    [0,1].forEach(c=>{const cell=ws1[XLSX.utils.encode_cell({r:i+1,c})];if(cell)cell.t='s';});
+  });
   XLSX.utils.book_append_sheet(wb,ws1,'수업정보');
 
   // ─── 날짜별 시트 (동적 과제 열 + 비고) ───
@@ -343,13 +356,11 @@ async function saveToExcel(){
           const ex=extras[i];if(!ex)return'';
           return ex.text;
         });
-        // 비고: 이월과제 자동 요약 + 사용자 메모 통합
-        const carryItems=(rec?.items||[]).filter(it=>it.type==='carry');
-        const stLabel={2:'완',1:'부분',0:'미'};
-        const autoText=carryItems.map(it=>{
+        // 비고: 이월과제 완료분만 자동 요약 + 사용자 메모 통합
+        const doneCarry=(rec?.items||[]).filter(it=>it.type==='carry'&&it.status===2);
+        const autoText=doneCarry.map(it=>{
           const fd=it.fromDate?shortD(it.fromDate):'';
-          const sl=stLabel[it.status]||'';
-          return`(전${fd?'·'+fd:''})${it.text}${sl?'→'+sl:''}`;
+          return`(전${fd?'·'+fd:''})${it.text}→완`;
         }).join(', ');
         const userMemo=G.memos[`${n}||${date}`]||'';
         const bigo=[autoText,userMemo].filter(x=>x).join(' | ');
@@ -369,12 +380,11 @@ async function saveToExcel(){
     XLSX.utils.book_append_sheet(wb,wsD,date);
   });
 
-  // ─── 이월과제 시트 (▼ 날짜별 블록 구분) ───
-  const carryAoa=[['학생','확인날짜','과제내용','원본날짜','상태']];
+  // ─── 이월과제 시트 (▼ 날짜별 블록, ref 기반) ───
+  const carryAoa=[['학생','확인날짜','과제내용','참조','상태']];
   let lastCarryDate='';
   G.lessons.forEach(les=>{
     const date=les.날짜;
-    let dateHasItems=false;
     G.students.forEach(n=>{
       const key=`${n}||${date}`;
       const rec=G.hwRec[key];
@@ -384,10 +394,9 @@ async function saveToExcel(){
       if(date!==lastCarryDate){
         carryAoa.push([`▼ ${fmtKo(date)}`,'','','','']);
         lastCarryDate=date;
-        dateHasItems=true;
       }
       carryItems.forEach(it=>{
-        carryAoa.push([n,date,it.text,it.fromDate,stToExcel(it.status)]);
+        carryAoa.push([n,date,it.text,it.ref||'',stToExcel(it.status)]);
       });
     });
   });
@@ -395,9 +404,11 @@ async function saveToExcel(){
     const wsC=XLSX.utils.aoa_to_sheet(carryAoa);
     const cRange=XLSX.utils.decode_range(wsC['!ref']||'A1');
     for(let R=1;R<=cRange.e.r;R++){
-      const addr=XLSX.utils.encode_cell({r:R,c:4});
-      const cell=wsC[addr];
-      if(cell){cell.t='s';cell.v=String(cell.v===undefined?'':cell.v);}
+      [3,4].forEach(C=>{
+        const addr=XLSX.utils.encode_cell({r:R,c:C});
+        const cell=wsC[addr];
+        if(cell){cell.t='s';cell.v=String(cell.v===undefined?'':cell.v);}
+      });
     }
     XLSX.utils.book_append_sheet(wb,wsC,'이월과제');
   }
