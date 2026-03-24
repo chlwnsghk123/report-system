@@ -360,19 +360,46 @@ function renderTabs(){
     const hasPdf=pdfs.length>0;
     const cls=`ss-item${n===G.selStudent?' active':''}${hasPdf?' has-pdf':''}`;
     const en=esc(n);
-    // 호버 세부 메뉴 (왼쪽으로 펼침)
-    const pdfLabel=hasPdf?'📎 PDF 교체':'📎 PDF 첨부';
-    const menu=`<div class="ss-hover-menu" onclick="event.stopPropagation();">
-      <button class="ss-hm-btn" onclick="openStudentReportFor('${en}')">📊 이행률 요약표</button>
-      <div class="ss-hm-sep"></div>
-      <button class="ss-hm-btn" onclick="attachPdfForStudent('${en}')">${pdfLabel}</button>
-    </div>`;
     return`<div class="${cls}" onclick="switchTab('${en}')" data-student="${en}">
       <div class="ss-name">${en}</div>
       ${hasPdf?`<span class="ss-pdf-badge">📎</span>`:''}
-      ${menu}
     </div>`;
   }).join('');
+  // 호버 메뉴 이벤트 바인딩
+  list.querySelectorAll('.ss-item').forEach(item=>{
+    let hoverTimer=null;
+    item.addEventListener('mouseenter',()=>{
+      hoverTimer=setTimeout(()=>_showSsMenu(item),200);
+    });
+    item.addEventListener('mouseleave',()=>{
+      clearTimeout(hoverTimer);
+      setTimeout(()=>{const m=document.querySelector('.ss-hover-menu');if(m&&!m.matches(':hover'))m.remove();},150);
+    });
+  });
+}
+
+function _showSsMenu(item){
+  // 기존 메뉴 제거
+  document.querySelectorAll('.ss-hover-menu').forEach(m=>m.remove());
+  const name=item.dataset.student;
+  const hasPdf=(G.studentPdfs[name]||[]).length>0;
+  const pdfLabel=hasPdf?'📎 PDF 교체':'📎 PDF 첨부';
+  const menu=document.createElement('div');
+  menu.className='ss-hover-menu';
+  menu.style.display='block';
+  menu.innerHTML=`
+    <button class="ss-hm-btn" onclick="openStudentReportFor('${esc(name)}')">📊 이행률 요약표</button>
+    <div class="ss-hm-sep"></div>
+    <button class="ss-hm-btn" onclick="attachPdfForStudent('${esc(name)}')">${pdfLabel}</button>`;
+  document.body.appendChild(menu);
+  // 위치: 아이템 왼쪽에
+  const rect=item.getBoundingClientRect();
+  menu.style.top=(rect.top+rect.height/2-menu.offsetHeight/2)+'px';
+  menu.style.left=(rect.left-menu.offsetWidth-8)+'px';
+  // 화면 밖 방지
+  if(parseInt(menu.style.left)<0)menu.style.left='4px';
+  if(parseInt(menu.style.top)<0)menu.style.top='4px';
+  menu.addEventListener('mouseleave',()=>setTimeout(()=>menu.remove(),100));
 }
 
 // 학생별 이행률 요약표 바로 열기
