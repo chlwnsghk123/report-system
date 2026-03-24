@@ -714,8 +714,8 @@ function _renderStudentReport(student,startDate,endDate,container){
     const hasRate=rate!=null&&!isNaN(rate);
     const isAbsent=!hasRate;
 
-    html+=`<div style="border:1px solid #e5e7eb;border-radius:10px;margin-bottom:8px;overflow:hidden;">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:${isAbsent?'#fef2f2':'#f8f9fa'};border-bottom:1px solid #e5e7eb;">
+    html+=`<div style="border:1.5px solid #d1d5db;border-radius:10px;margin-bottom:10px;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:${isAbsent?'#fef2f2':'#f0f1f3'};border-bottom:1.5px solid #d1d5db;">
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="font-size:13px;font-weight:800;color:#222;">${fmtKo(d)}</span>
           ${lesson?`<span style="font-size:11px;color:#888;">${esc(lesson.교재||'')} ${esc(lesson.단원||'')}</span>`:''}
@@ -738,12 +738,19 @@ function _renderStudentReport(student,startDate,endDate,container){
       }else{
         html+=`<div style="padding:8px 14px;font-size:11px;color:#9ca3af;">상태 지정된 과제 없음</div>`;
       }
-      // 이월과제 비고
+      // 이월과제 비고 (상태가 변한 것만 + 중복 제거)
       const carryStDesc={2:'완료',1:'일부 완료',0:'미완료'};
-      const carries=(rec?.items||[]).filter(it=>it.type==='carry'&&!isNone(it.status));
-      if(carries.length){
-        html+=`<div style="padding:6px 12px 8px;border-top:1px dashed #e5e7eb;">`;
-        carries.forEach(it=>{
+      const allCarries=(rec?.items||[]).filter(it=>it.type==='carry'&&!isNone(it.status));
+      const changedCarries=allCarries.filter(it=>{
+        const ps=_getPrevCarryStatus(student,d,it);
+        return ps==null||it.status!==ps;
+      });
+      const cSeen=new Map();
+      changedCarries.forEach(it=>{const k=`${it.text}||${it.fromDate}`;cSeen.set(k,it);});
+      const uniqueCarries=[...cSeen.values()];
+      if(uniqueCarries.length){
+        html+=`<div style="padding:6px 12px 8px;border-top:1px dashed #d1d5db;">`;
+        uniqueCarries.forEach(it=>{
           const fd=it.fromDate?`${shortD(it.fromDate)} 출제`:'이전 수업';
           const isDone=it.status===2;
           const cColor=isDone?'#166534':it.status===1?'#92400e':'#991b1b';

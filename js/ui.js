@@ -427,11 +427,37 @@ function _getCarryAutoText(student,date){
   const carries=rec.items.filter(it=>it.type==='carry'&&!isNone(it.status));
   if(!carries.length)return'';
   const stDesc={2:'완료',1:'일부 완료',0:'미완료'};
-  return carries.map(it=>{
+  // 상태가 변한 이월과제만 표시, 중복 제거 (같은 텍스트+출제일이면 최신만)
+  const changed=carries.filter(it=>{
+    const prevSt=_getPrevCarryStatus(student,date,it);
+    return prevSt==null||it.status!==prevSt;
+  });
+  // 중복 제거: 같은 과제(텍스트+출제일)면 마지막 것만
+  const seen=new Map();
+  changed.forEach(it=>{const k=`${it.text}||${it.fromDate}`;seen.set(k,it);});
+  return[...seen.values()].map(it=>{
     const fd=it.fromDate?`${shortD(it.fromDate)} 출제`:'이전 수업';
     const desc=stDesc[it.status]||'확인 전';
     return`[이월] ${it.text} (${fd}) → ${desc}`;
   }).join('\n');
+}
+
+// 이월과제의 직전 날짜 상태 조회
+function _getPrevCarryStatus(student,date,carryItem){
+  const curIdx=G.lessons.findIndex(l=>l.날짜===date);
+  if(curIdx<=0)return null;
+  const prevDate=G.lessons[curIdx-1].날짜;
+  const prevRec=G.hwRec[`${student}||${prevDate}`];
+  if(!prevRec?.items)return null;
+  // ref 기반 매칭
+  if(carryItem.ref){
+    const match=prevRec.items.find(it=>it.ref===carryItem.ref);
+    if(match&&!isNone(match.status))return match.status;
+  }
+  // 텍스트+fromDate 폴백 매칭
+  const match=prevRec.items.find(it=>it.text===carryItem.text&&it.fromDate===carryItem.fromDate);
+  if(match&&!isNone(match.status))return match.status;
+  return null;
 }
 
 function openMemo(){
