@@ -155,8 +155,10 @@
 | `_getStudentPdfPageCount(student)` | 학생별 PDF 총 페이지 수 반환 |
 | `_syncGlobalPdf()` | 현재 학생 기준 전역 pdfCanvases/pdfPageCount 동기화 |
 | `handlePdfInput(input)` | PDF 파일 입력 핸들러 (학생별/전체 분기) |
-| `showPdfAttachMenu(e)` | PDF 첨부 팝업 메뉴 (이 학생/모든 학생 선택) |
-| `attachPdfForStudent(name)` | 특정 학생에게 PDF 직접 첨부 |
+| `inlinePdfAttach()` | 리포트 옆 + 버튼 핸들러 (스마트 분기: 개별 PDF 존재 시 현재 학생만, 없으면 선택 메뉴) |
+| `attachPdfForStudent(name)` | 특정 학생에게 PDF 직접 첨부 (기존 PDF 있으면 교체 모드) |
+| `openStudentReportFor(name)` | 사이드바에서 학생별 이행률 요약표 바로 열기 |
+| `_attachStudentReportToView(student,dates)` | 이행률 요약표를 PNG로 캡처하여 학생 PDF로 첨부 |
 | `removeStudentPdf(student,idx)` | 학생별 PDF 개별 삭제 (confirm) |
 | `removeAllStudentPdfs(student)` | 학생별 PDF 전체 삭제 (confirm) |
 | `_savePdfData()` | 학생별 PDF bytes → IndexedDB 저장 |
