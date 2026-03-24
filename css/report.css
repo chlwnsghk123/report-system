@@ -49,13 +49,18 @@
 .rate-unit{font-size:24px;font-weight:500;color:#777;margin-bottom:8px;margin-left:4px;}
 .rate-mascot{position:absolute;right:15px;bottom:calc(100% - 17.7px);width:120px;height:120px;z-index:2;cursor:pointer;}
 .rate-mascot img{width:100%;height:100%;object-fit:contain;pointer-events:none;}
-/* 마스코트 선택 팝업 */
-.mascot-picker{position:absolute;right:0;bottom:calc(100% + 5px);z-index:20;background:#fff;border:1px solid #ddd;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding:10px;width:260px;}
-.mascot-picker-title{font-size:12px;font-weight:600;color:#555;margin-bottom:8px;text-align:center;}
-.mascot-picker-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
-.mascot-pick-item{width:100%;aspect-ratio:1;border:2px solid transparent;border-radius:8px;cursor:pointer;padding:3px;background:#fafafa;transition:border-color .15s,transform .15s;}
-.mascot-pick-item:hover{border-color:#aaa;transform:scale(1.08);}
-.mascot-pick-item.selected{border-color:#4f8cff;background:#e8f0ff;}
+/* 마스코트 선택 팝업 — 오버레이 */
+.mascot-picker-overlay{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;animation:mpFadeIn .15s ease;}
+@keyframes mpFadeIn{from{opacity:0}to{opacity:1}}
+.mascot-picker{background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.2);padding:20px 24px 24px;width:420px;max-width:90vw;max-height:80vh;display:flex;flex-direction:column;}
+.mascot-picker-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.mascot-picker-title{font-size:15px;font-weight:700;color:#333;}
+.mascot-picker-close{width:28px;height:28px;border:none;background:#f3f4f6;border-radius:50%;cursor:pointer;font-size:16px;color:#888;display:flex;align-items:center;justify-content:center;transition:background .15s;}
+.mascot-picker-close:hover{background:#e5e7eb;color:#333;}
+.mascot-picker-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;overflow-y:auto;padding:4px 2px;}
+.mascot-pick-item{aspect-ratio:1;border:3px solid transparent;border-radius:12px;cursor:pointer;padding:6px;background:#f9fafb;transition:all .15s ease;display:flex;align-items:center;justify-content:center;}
+.mascot-pick-item:hover{border-color:#c5d4f0;background:#f0f4ff;transform:scale(1.06);box-shadow:0 2px 8px rgba(79,140,255,.15);}
+.mascot-pick-item.selected{border-color:#4f8cff;background:#e8f0ff;box-shadow:0 0 0 2px rgba(79,140,255,.25);}
 .mascot-pick-item img{width:100%;height:100%;object-fit:contain;pointer-events:none;}
 .rate-chart{width:100%;height:150px;position:relative;background-color:#fafafa;border-radius:4px;
   padding:30px 0 10px 0;border:1px solid #ddd;display:flex;flex-direction:column;justify-content:space-between;}

@@ -43,22 +43,31 @@ function updateRateFace(){
 function openMascotPicker(e){
   e.stopPropagation();
   // 이미 열려 있으면 닫기
-  const exist=document.querySelector('.mascot-picker');
+  const exist=document.querySelector('.mascot-picker-overlay');
   if(exist){exist.remove();return;}
   const el=$$('rateMascot');if(!el)return;
   const tier=el.dataset.mascotTier;
   const imgs=MASCOT_IMGS[tier];if(!imgs||!imgs.length)return;
   const curIdx=+el.dataset.mascotIdx;
-  // 팝업 생성
+  // 오버레이 생성
+  const overlay=document.createElement('div');
+  overlay.className='mascot-picker-overlay';
   const picker=document.createElement('div');
   picker.className='mascot-picker';
-  picker.innerHTML=`<div class="mascot-picker-title">캐릭터 선택</div><div class="mascot-picker-grid">`
+  picker.innerHTML=`<div class="mascot-picker-header"><span class="mascot-picker-title">캐릭터 선택 (${imgs.length}개)</span><button class="mascot-picker-close">✕</button></div>`
+    +`<div class="mascot-picker-grid">`
     +imgs.map((src,i)=>`<div class="mascot-pick-item${i===curIdx?' selected':''}" data-idx="${i}"><img src="${src}" draggable="false"></div>`).join('')
     +`</div>`;
-  // 위치: rateMascot 기준
-  el.parentElement.appendChild(picker);
+  overlay.appendChild(picker);
+  document.body.appendChild(overlay);
+  // 닫기 함수
+  function closePicker(){overlay.remove();}
+  // 닫기 버튼
+  picker.querySelector('.mascot-picker-close').addEventListener('click',closePicker);
+  // 바깥 클릭 시 닫기
+  overlay.addEventListener('click',function(ev){if(ev.target===overlay)closePicker();});
   // 선택 이벤트
-  picker.addEventListener('click',function(ev){
+  picker.querySelector('.mascot-picker-grid').addEventListener('click',function(ev){
     const item=ev.target.closest('.mascot-pick-item');if(!item)return;
     const idx=+item.dataset.idx;
     el.dataset.mascotIdx=idx;
@@ -66,14 +75,11 @@ function openMascotPicker(e){
     if(!G.mascotChoices)G.mascotChoices={};
     G.mascotChoices[G.selStudent+'_'+G.selDate]=idx;
     saveAppData();
-    picker.remove();
+    closePicker();
   });
-  // 바깥 클릭 시 닫기
-  setTimeout(()=>{
-    document.addEventListener('click',function _close(ev){
-      if(!picker.contains(ev.target)){picker.remove();document.removeEventListener('click',_close);}
-    });
-  },0);
+  // ESC 닫기
+  function onEsc(ev){if(ev.key==='Escape'){closePicker();document.removeEventListener('keydown',onEsc);}}
+  document.addEventListener('keydown',onEsc);
 }
 
 // ─── 이행률 그래프 ───
