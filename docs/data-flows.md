@@ -69,7 +69,8 @@ window.onload()
 
 | 함수 | 키 | 시점 |
 |---|---|---|
-| `saveAppData()` | `'appData'` | 엑셀 로드/저장 후, 레슨 편집 시 |
+| `saveAppData()` | `'appData'` | 엑셀 로드/저장 후, 레슨 편집 시 (300ms 디바운스) |
+| `saveAppDataNow()` | `'appData'` | 엑셀 저장 직전 등 즉시 저장이 필요한 시점 |
 | `saveSession()` | `'session'` | 뷰 전환, 날짜·학생 변경, 토글 변경 시 |
 | `saveTabData()` | `G.tabData` 내 | 탭 전환 시 |
 
@@ -136,10 +137,11 @@ dlPdf()
 saveToExcel()
   → saveTabData()       현재 학생 데이터 보존
   → G.students 순회: tabData → G.hwRec (items 배열 포함), G.rates, G.corrects 등 갱신
+  → await saveAppDataNow()  즉시 DB 저장
   → XLSX 워크북 생성:
     수업정보 시트: [날짜, 교재, 단원, 상세진도, 과제1~N] (동적 열)
-    날짜별 시트: [이름, 성적, 오답, 이행률, 과제1~N(숫자상태), 비고]
-      비고 열: 이월과제 요약 자동 생성 (전·원본날짜)과제명→상태)
+    날짜별 시트: [이름, 성적, 오답, 이행률, 과제1~N(숫자상태), 추가과제1~M, 비고]
+      비고 열: 이월과제 자동 요약 `(전·M.D)과제명→상태, ...` + 사용자 메모 (`자동요약 | 메모`)
     이월과제 시트: [학생, 확인날짜, 과제내용, 원본날짜, 상태] (▼ 날짜 블록 구분)
   → 다운로드
 

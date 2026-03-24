@@ -16,11 +16,11 @@ js/
   utils.js          getCurL/getPrevL/getNextL, setAuto, rmAuto, setBar, shortD, fmtKo, esc
   db.js             openDB, dbSet, dbGet
   excel.js          triggerLoad, loadExcel, toDS, normalizeRate, stFromExcel, stToExcel, parseWB, saveToExcel, createTemplate
-  ui.js             updateScale, initCE, fp, switchView, openLessonModal, closeLessonModal, renderViewTabs, shiftDate, selectDate, getLessonHwKeys, renderLessonCards, updateLessonField, syncLessonToReport, addLessonHw, removeLessonHw, addLesson, removeLesson, renderDateSummary, renderTabs, switchTab, saveTabData, syncHwRecItems, restoreTabData, toggleSec
-  session.js        saveAppData, saveSession, restoreSession, showGroups, autoSelectDate, renderStudentList, addStudent, removeStudent, toggleStudentSec
-  autofill.js       calcScore, computeCarryover, updateNoticeWithCarry, autoFillCommon, stFromExcel, autoFillAll
-  report.js         rebuildGraph, renderHwEditor, onRateManual, cycleHwStatus, hwBtnLabel, updateHeaderDate, updateHwDisplay, updateHwBadge, updateNoticeList, updateCommentSign, updateWrongTags, registerMascots, updateRateFace, openMascotPicker
-  pdf.js            loadAttachPdf, renderSpread, drawPdfPrev, prevSpread, nextSpread, dlPdf, dataUrlToBytes
+  ui.js             updateScale, initCE, fp, switchView, openLessonModal, closeLessonModal, renderViewTabs, shiftDate, selectDate, getLessonHwKeys, renderLessonCards, updateLessonField, syncLessonToReport, addLessonHw, removeLessonHw, addLesson, removeLesson, renderDateSummary, renderTabs, switchTab, saveTabData, syncHwRecItems, restoreTabData, _getCarryAutoText, openMemo, closeMemo, saveMemo, updateMemoBtn, _openModal, _closeModal, _showModalToast, toggleSec
+  session.js        saveAppData, saveAppDataNow, saveSession, restoreSession, showGroups, autoSelectDate, renderStudentList, addStudent, removeStudent, toggleStudentSec
+  autofill.js       computeCarryover, updateNoticeWithCarry, autoFillCommon, stFromExcel, autoFillAll
+  report.js         rebuildGraph, renderHwEditor, addExtraHw, removeExtraHw, updateExtraHwText, onRateManual, cycleHwStatus, hwBtnLabel, updateHeaderDate, updateHwDisplay, updateHwBadge, updateNoticeList, updateCommentSign, updateWrongTags, registerMascots, updateRateFace, openMascotPicker, applyReportEdits, initReportListeners
+  pdf.js            loadAttachPdf, renderSpread, drawPdfPrev, prevSpread, nextSpread, dlPdf, toggleToolbarMenu, closeToolbarMenus, dlSummaryPdf, _doSummaryImage, showConfirmModal, dataUrlToBytes
   init.js           window.onload (앱 진입점), loadMascotImages
 docs/               참조 문서 (필요 시만 읽기)
 ```
