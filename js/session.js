@@ -48,6 +48,7 @@ function showGroups(){
   $$('viewTabs').style.display='';
   $$('btnSave').style.display='';
   $$('btnSave').disabled=false;
+  const pdfBtn=$$('btnPdf');if(pdfBtn)pdfBtn.style.display='';
   renderStudentList();
   renderViewTabs();
   autoSelectDate();

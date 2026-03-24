@@ -236,7 +236,7 @@ function nextSpread(){const s=Math.ceil((1+G.pdfPageCount)/2);if(G.currentSpread
 
 // ─── PDF 저장 ───
 async function dlPdf(){
-  const btn=$$('btnPdf');btn.textContent='⏳ 생성 중...';btn.disabled=true;
+  const btn=$$('btnPdf');if(!btn)return;const origPdfText=btn.textContent;btn.textContent='⏳ 생성 중...';btn.disabled=true;
   try{
     document.querySelectorAll('[contenteditable]').forEach(e=>e.blur());
     const rc=$$('reportCard');
@@ -268,7 +268,7 @@ async function dlPdf(){
     a.download=`${G.selStudent||'학생'}_${G.selDate||'report'}_리포트.pdf`;
     a.click();URL.revokeObjectURL(a.href);
   }catch(e){alert('PDF 오류: '+e.message);console.error(e);}
-  btn.textContent='📄 PDF 저장';btn.disabled=false;
+  btn.textContent=origPdfText;btn.disabled=false;
 }
 // ─── 툴바 메뉴 ───
 function toggleToolbarMenu(id){
@@ -840,7 +840,7 @@ function dlStudentReport(preselect){
 
   let wingOpen=false;
   const render=()=>{
-    _renderStudentReport($$('stuRptStudent').value,$$('stuRptStart').value,$$('stuRptEnd').value,$$('stuRptPreview'),{compact:true});
+    _renderStudentReport($$('stuRptStudent').value,$$('stuRptStart').value,$$('stuRptEnd').value,$$('stuRptPreview'));
     if(wingOpen)_renderWingPanel();
     // 요약 카드 영역에 미완료 버튼 삽입
     setTimeout(()=>{
@@ -850,7 +850,7 @@ function dlStudentReport(preselect){
         if(!wingBtn){
           wingBtn=document.createElement('button');
           wingBtn.className='stu-rpt-wing-toggle';
-          wingBtn.style.cssText='position:absolute;top:10px;right:10px;padding:4px 10px;border-radius:6px;font-size:10px;font-weight:700;border:1px solid #fca5a5;background:#fef2f2;color:#991b1b;cursor:pointer;transition:.15s;font-family:inherit;';
+          wingBtn.style.cssText='position:absolute;top:8px;right:8px;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700;border:1px solid #fca5a5;background:#fef2f2;color:#991b1b;cursor:pointer;transition:.15s;font-family:inherit;';
           wingBtn.textContent=wingOpen?'✕ 닫기':'📋 미완료 모아보기';
           wingBtn.onclick=toggleWing;
           summaryDiv.style.position='relative';
@@ -892,19 +892,21 @@ function dlStudentReport(preselect){
   };
   const toggleWing=()=>{
     wingOpen=!wingOpen;
-    const wing=$$('stuRptWing');const modal=$$('stuRptModal');const btn=$$('stuRptWingBtn');
-    if(wingOpen){_renderWingPanel();wing.style.width='260px';wing.style.borderLeftWidth='1.5px';modal.style.maxWidth='800px';btn.style.background='#fef2f2';btn.style.borderColor='#fca5a5';}
-    else{wing.style.width='0';wing.style.borderLeftWidth='0';modal.style.maxWidth='520px';btn.style.background='';btn.style.borderColor='';}
+    const wing=$$('stuRptWing');const modal=$$('stuRptModal');
+    if(wingOpen){_renderWingPanel();wing.style.width='260px';wing.style.borderLeftWidth='1.5px';modal.style.maxWidth='800px';}
+    else{wing.style.width='0';wing.style.borderLeftWidth='0';modal.style.maxWidth='520px';}
+    // 요약 카드 내 버튼 텍스트 갱신
+    const wb=$$('stuRptPreview')?.querySelector('.stu-rpt-wing-toggle');
+    if(wb)wb.textContent=wingOpen?'✕ 닫기':'📋 미완료 모아보기';
   };
   $$('stuRptStudent').onchange=render;
   $$('stuRptStart').onchange=render;
   $$('stuRptEnd').onchange=render;
-  $$('stuRptWingBtn').onclick=toggleWing;
   render();
 
   overlay.style.display='flex';
   document.body.classList.add('modal-open');
-  const close=()=>{overlay.style.display='none';document.body.classList.remove('modal-open');wingOpen=false;$$('stuRptWing').style.width='0';$$('stuRptWing').style.borderLeftWidth='0';$$('stuRptModal').style.maxWidth='520px';const b=$$('stuRptWingBtn');b.style.background='';b.style.borderColor='';};
+  const close=()=>{overlay.style.display='none';document.body.classList.remove('modal-open');wingOpen=false;$$('stuRptWing').style.width='0';$$('stuRptWing').style.borderLeftWidth='0';$$('stuRptModal').style.maxWidth='520px';};
   $$('stuRptClose').onclick=close;
   $$('stuRptCancel').onclick=close;
   overlay.onclick=e=>{if(e.target===overlay)close();};
