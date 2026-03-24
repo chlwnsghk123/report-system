@@ -421,12 +421,13 @@ function _getCarryAutoText(student,date){
   const key=`${student}||${date}`;
   const rec=G.hwRec[key];
   if(!rec?.items)return'';
-  // 이월 과제 중 완료(2)된 것만 자동 기록
-  const done=rec.items.filter(it=>it.type==='carry'&&it.status===2);
-  if(!done.length)return'';
-  return done.map(it=>{
-    const fd=it.fromDate?shortD(it.fromDate):'';
-    return`(전${fd?'·'+fd:''}) ${it.text} → 완료`;
+  const carries=rec.items.filter(it=>it.type==='carry'&&!isNone(it.status));
+  if(!carries.length)return'';
+  const stDesc={2:'완료',1:'일부 완료',0:'미완료'};
+  return carries.map(it=>{
+    const fd=it.fromDate?`${shortD(it.fromDate)} 출제`:'이전 수업';
+    const desc=stDesc[it.status]||'확인 전';
+    return`[이월] ${it.text} (${fd}) → ${desc}`;
   }).join('\n');
 }
 
