@@ -27,6 +27,8 @@ loadExcel() → XLSX.read(arrayBuffer) → parseWB(wb)
 
   [4] hwRec items 재구성: base(날짜시트) + carry(이월과제시트) 병합
 
+  [5] buildAllCarryover(): 전체 날짜·학생 순회 → 미완료/부분완료 항목의 이월 레코드 자동 생성
+
 → saveAppData() → showGroups() → autoSelectDate()
 ```
 

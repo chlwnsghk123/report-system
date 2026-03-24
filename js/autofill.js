@@ -41,6 +41,24 @@ function propagateCarryover(student,date,refStr,newStatus){
   }
 }
 
+// ─── 엑셀 로드 후 전체 이월 전파 ───
+// 모든 날짜·학생의 items를 순회하며 미완료/부분완료 항목의 이월 레코드를 자동 생성
+function buildAllCarryover(){
+  G.lessons.forEach((les,idx)=>{
+    if(idx>=G.lessons.length-1)return;
+    const date=les.날짜;
+    G.students.forEach(name=>{
+      const rec=G.hwRec[`${name}||${date}`];
+      if(!rec?.items)return;
+      rec.items.forEach(it=>{
+        if((it.status===0||it.status===1)&&it.ref){
+          propagateCarryover(name,date,it.ref,it.status);
+        }
+      });
+    });
+  });
+}
+
 // ─── 캐리오버 계산 ───
 // 직전 날짜의 hwRec.items에서 미완료(0)/부분완료(1) 항목을 수집
 function computeCarryover(student,date){
