@@ -104,8 +104,9 @@ onRateManual()
   → inputRate 빈값(''): G.hwRateManual=null, G.rates에서 해당 키 삭제 (=결석)
   → inputRate '0': G.hwRateManual=0, G.rates[학생][날짜]=0 (=출석, 0%)
 
-syncHwRecItems()
-  → G.hwRateManual 또는 G.rates에서 이행률 읽어 hwRec[key].이행률에 동기화
+syncHwRecItems() / selectDate() / saveToExcel()
+  → hwRec.이행률 동기화 우선순위: rateManual > G.rates[학생][날짜] > 기존값
+  → rateManual이 null(자동값)이어도 G.rates에 값이 있으면 hwRec에 반영
   → 0과 null 구분 보존
 
 rebuildGraph()
