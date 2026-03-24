@@ -132,6 +132,9 @@
 | `updateWrongTags(tagStr)` | 오답 번호 태그 UI 업데이트 |
 | `applyReportEdits()` | 리포트카드 contenteditable 직접편집 오버라이드 적용 |
 | `initReportListeners()` | 리포트카드 contenteditable 요소에 input 이벤트 리스너 등록 |
+| `setAttend(val)` | 출결 상태 설정 (2=출석,1=지각,0=결석) |
+| `updateAttendUI()` | 출결 토글 버튼 UI 갱신 |
+| `autoAttendOnRate()` | 이행률 변경 시 결석→출석 자동전환 |
 
 ## js/pdf.js
 | 함수 | 역할 |
@@ -153,8 +156,10 @@
 | `dlGradeSummary()` | 성적 요약표 날짜 범위 선택 모달 열기 |
 | `_renderGradeTable(dates,container)` | 학생×날짜 성적 테이블 HTML 렌더링 |
 | `_downloadGradeImage(dates)` | 성적 요약표 PNG 캡처·다운로드 |
+| `_buildJournalAttendHtml(date)` | 수업 일지 출결 현황 HTML (프리뷰용) |
 | `dlClassJournal()` | 수업 일지 날짜 선택 모달 열기 |
 | `_downloadJournalImage(date)` | 수업 일지 PNG 캡처·다운로드 |
+| `_buildJournalAttendImageHtml(date)` | 수업 일지 출결 현황 HTML (이미지 다운로드용) |
 | `dlStudentReport()` | 학생별 리포트 요약 모달 열기 (학생·날짜 범위 선택) |
 | `_renderStudentReport(student,s,e,container)` | 학생별 종합 요약 + 날짜별 과제 상세 HTML 렌더링 |
 | `_downloadStudentReportPdf(student,dates)` | 학생별 리포트 요약 PDF 캡처·다운로드 (A4 멀티페이지) |

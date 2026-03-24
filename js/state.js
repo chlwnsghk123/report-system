@@ -14,7 +14,7 @@ function genLessonId(){return String(Math.floor(Math.random()*9e9)+1e9);}
 // ─── 전역 상태 G ───
 const G={
   lessons:[],students:[],
-  rates:{},scores:{},corrects:{},wrong:{},hwRec:{},memos:{},
+  rates:{},scores:{},corrects:{},wrong:{},hwRec:{},memos:{},attend:{},
   selDate:'',selStudent:'',
   hwItems:[],hwStatus:[],hwItemTypes:[],hwRateManual:null,extraHw:[],reportEdits:{},
   totalQ:5,

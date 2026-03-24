@@ -64,6 +64,7 @@ G = {
   wrong: {},       // {학생명:{날짜:"오답번호문자열"}}
   hwRec: {},       // {"학생명||날짜":{이행률,과제1_상태~N_상태,items:[{text,status,type,fromDate}]}}
   memos: {},       // {"학생명||날짜":"비고 텍스트"} — 리포트 미반영, 엑셀 저장용
+  attend: {},      // {학생명:{날짜:값}} — -1=특수, 0=결석, 1=지각, 2=출석
 
   // 현재 선택
   selDate: '', selStudent: '',
@@ -113,5 +114,5 @@ G = {
 
 ## IndexedDB
 - DB: `reportApp4`, Store: `data`
-- 키: `'appData'`(lessons/students/rates/scores/corrects/wrong/hwRec/memos/tabData/fileName/mascotChoices), `'session'`(selDate·selStudent·showMini·showComment·currentView)
+- 키: `'appData'`(lessons/students/rates/scores/corrects/wrong/hwRec/memos/attend/tabData/fileName/mascotChoices), `'session'`(selDate·selStudent·showMini·showComment·currentView)
 - 참고: IndexedDB에 저장되는 키는 `fileName` (G.excelFileName 값을 저장)

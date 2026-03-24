@@ -69,6 +69,7 @@ function switchView(view){
     updateMemoBtn();
     if(G.selDate&&G.selStudent)autoFillAll();
     else if(G.selDate)autoFillCommon();
+    updateAttendUI();
   }
   saveSession();
 }
@@ -145,6 +146,7 @@ function selectDate(date){
   }
   renderViewTabs();
   switchView('date');
+  updateAttendUI();
 }
 
 // ─── 수업설정: 레슨 카드 ───
@@ -353,6 +355,7 @@ function switchTab(name){
   const m=$$('rateMascot');if(m)delete m.dataset.idx;
   updateMemoBtn();
   if(G.selDate)autoFillAll();
+  updateAttendUI();
   saveSession();
 }
 
