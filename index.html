@@ -74,7 +74,7 @@
       </div>
       <div class="cg" id="gCurHw">
         <label>이번 주차 과제 <span class="ab">자동</span> <span style="font-size:10px;color:#9ca3af;">(학생별 추가 가능)</span></label>
-        <div id="curHwList" style="display:flex;flex-direction:column;gap:3px;"></div>
+        <div id="curHwList" style="display:flex;flex-direction:column;gap:3px;overflow:hidden;"></div>
         <div id="extraHwEditor" style="display:flex;flex-direction:column;gap:3px;"></div>
         <div class="hw-add-extra">
           <input type="text" id="extraHwInput" placeholder="추가 과제 입력" onkeydown="if(event.key==='Enter')addExtraHw()">
@@ -151,7 +151,7 @@
           <div class="tb-menu-sep"></div>
           <button onclick="dlSummaryPdf();closeToolbarMenus()">📋 전체 과제 요약 이미지</button>
           <div class="tb-menu-sep"></div>
-          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.19)</button>
+          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.20)</button>
         </div>
       </div>
       <button class="tb-btn" disabled title="준비 중">🖨 프린트</button>
