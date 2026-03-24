@@ -7,43 +7,45 @@
 ## 화면 구조 (index.html)
 
 ```
-A 패널 (좌측)
+A 패널 (좌측, 드래그 리사이즈 가능)
 [panel-head]
+├─ 📝 학습 리포트 (제목) + 마지막 저장 시간 → .panel-brand, #rLastSaved
 ├─ 상태바 / 엑셀 불러오기            → #sbar, #excelInput
-├─ 파일 저장 버튼 (로드 후 표시)      → #btnSave
-[viewTabs]
-├─ ⚙ 수업설정 탭 (클릭 → 모달)     → .vt-item[config]
-├─ 날짜 탭 영역 (◀ 날짜들 ▶)       → .vt-date-nav, #vtDates
-[tabBar]
-└─ 학생 탭바 (날짜 뷰에서만)        → #tabBar
 
 [panel-body > viewDate]
-├─ 수업 정보 읽기전용 요약           → #dateSummary
-├─ 저번 주차 과제 + 이행률 입력       → #gPrevHw, #hwEditor, #inputRate
-│    └─ base 과제 + 이월 과제 (캐리오버 뱃지)
-├─ 미니 테스트 토글                  → #toggleMini → #gMini
-│    └─ 오답 번호 + 시험자료 첨부     → #inputWrong, #btnAttach (#pdfInput)
-├─ 코멘트 토글                      → #toggleComment → #gComment
-│    └─ 강사명 + 코멘트 텍스트        → #inputTeacher, #inputComment
-└─ PDF 저장 버튼 + 저장시각          → #btnPdf, #lastSaved
+├─ 수업 정보 읽기전용 요약 (카드형)   → #dateSummary
+├─ [과제 & 이행률 섹션]
+│  ├─ 저번 주차 과제 + 이행률 입력    → .panel-card > #gPrevHw, #hwEditor, #inputRate
+│  │    └─ base 과제 + 이월 과제 (캐리오버 뱃지)
+│  └─ 이번 주차 과제 + 추가 과제 입력  → .panel-card > #gCurHw, #extraHwEditor
+├─ [선택 항목 섹션]
+│  ├─ 미니 테스트 토글               → #toggleMini → #gMini > #inputWrong
+│  └─ 코멘트 토글 (임시 숨김)        → #toggleComment → #gComment
 hidden: #inCurBook/Chap/Detail, #inPrevBook/Chap/Detail, #inputNotice, #inputCorrect/#inputTotal
 
+[panel-resize] 드래그 리사이즈 핸들   → #panelResize
+
 수업설정 전체화면 모달 (#lessonModalOverlay)
-├─ 학생 관리 (접기/펼치기)           → #studentSummary, #studentListEdit
+├─ 학생 관리                        → #studentListItems, #newStudentInput
 └─ 수업 날짜별 레슨 카드             → #lessonCards
      └─ .lesson-card × N (교재/단원/상세진도/과제 동적 추가·삭제)
-        └─ 날짜 상태: .lc-past(과거 회색) / .lc-next(다음 파란 강조)
+접근: ⚙ 설정 메뉴 → '📋 수업 진도 설정'
 
 B 미리보기 (우측)
-├─ 페이지 네비                      → #pageNav
-└─ 리포트카드 #reportCard
-     ├─ 헤더 (학생명/날짜)           → #rName, #rDate
-     ├─ ① 이행률 + 그래프 + 마스코트  → #secRate, #svgChart, #gLabels, #rateMascot
-     ├─ ② 저번 주차 과제 목록        → #secPrevHw, #rHwList (캐리오버: (전) 마크)
-     ├─ ③ 수업 진도 (현재/이전)       → .prog-card
-     ├─ ④ 이번 주차 과제 목록        → #rNoticeList (미완료 캐리오버 자동 추가)
-     ├─ ⑤ 미니 테스트 (선택)         → #secMini, #rWrongTags
-     └─ ⑥ 코멘트 (선택)             → #secComment, #commentBody, #commentSign
+├─ 상단 툴바                        → .toolbar (#btnPdf, #btnSave, #tbMenu, #tbSettings)
+│  └─ ⚙ 설정 안에: 수업 진도 설정, 흑백 모드
+├─ 상단 날짜 네비게이션              → #dateNavBar (‹ 날짜 › + 클릭 드롭다운)
+├─ 리포트카드 #reportCard (슬라이드 전환 애니메이션)
+│    ├─ 헤더 (학생명/날짜)           → #rName, #rDate
+│    ├─ ① 이행률 + 그래프 + 마스코트  → #secRate, #svgChart, #gLabels, #rateMascot
+│    ├─ ② 저번 주차 과제 목록        → #secPrevHw, #rHwList (캐리오버: (전) 마크)
+│    ├─ ③ 수업 진도 (현재/이전)       → .prog-card
+│    ├─ ④ 이번 주차 과제 목록        → #rNoticeList (미완료 캐리오버 자동 추가)
+│    ├─ ⑤ 미니 테스트 (선택)         → #secMini, #rWrongTags
+│    └─ ⑥ 코멘트 (선택)             → #secComment, #commentBody, #commentSign
+├─ PDF 첨부 버튼 (+)                → #pdfAddInline (리포트카드 바로 오른쪽)
+├─ 세로 날짜 사이드바 (다크 사선)     → #dateSidebar > #dsList (.ds-item × N)
+└─ 학생 사이드바 (폴더탭)            → #studentSidebar > #ssList (.ss-item × N, 호버 메뉴)
 ```
 
 ---
@@ -54,9 +56,13 @@ B 미리보기 (우측)
 | 기능 | HTML ID | 위치 | 수정 파일 |
 |---|---|---|---|
 | 엑셀 불러오기 버튼 | `#sbar` | panel-head | `index.html` |
-| 저장(엑셀) 버튼 | `#btnSave` | panel-head | `index.html` |
-| 시험자료 첨부 버튼 | `#btnAttach` | `#gMini` 안 | `index.html` |
-| PDF 저장 버튼 | `#btnPdf` | panel-body 하단 | `index.html` |
+| 저장(엑셀) 버튼 | `#btnSave` | 상단 툴바 | `index.html` |
+| PDF 내보내기 버튼 | `#btnPdf` | 상단 툴바 | `index.html` |
+| PDF 첨부(+) 버튼 | `#pdfAddInline` | 리포트카드 우측 | `index.html` |
+| 날짜 네비게이션 | `#dateNavBar` | 미리보기 상단 | `index.html` + `js/ui.js` |
+| 세로 날짜 사이드바 | `#dateSidebar` | 학생 사이드바 왼쪽 | `index.html` + `js/ui.js` |
+| 패널 리사이즈 핸들 | `#panelResize` | 패널과 미리보기 사이 | `index.html` + `js/init.js` |
+| 수업 진도 설정 | `#tbSettings` 메뉴 안 | 상단 설정 드롭다운 | `index.html` |
 | 미니 테스트 토글 | `#toggleMini` | panel-body | `index.html` |
 | 코멘트 토글 | `#toggleComment` | panel-body | `index.html` |
 | 이행률 입력 | `#inputRate` | `#gPrevHw` 안 | `index.html` |
@@ -93,6 +99,10 @@ B 미리보기 (우측)
 | 마스코트 이미지 로드 | `js/init.js` | `loadMascotImages()` |
 | 날짜 자동 선택 | `js/session.js` | `autoSelectDate()` |
 | 앱 저장/복원 | `js/session.js` | `saveAppData()`, `saveAppDataNow()`, `restoreSession()` |
+| 상단 날짜 네비게이션 | `js/ui.js` | `renderDateNav()`, `navDatePrev()`, `navDateNext()`, `toggleDateDropdown()` |
+| 세로 날짜 사이드바 | `js/ui.js` | `renderDateSidebar()` |
+| 패널 드래그 리사이즈 | `js/init.js` | `initPanelResize()` |
+| 학생 전환 애니메이션 | `js/ui.js` + `css/layout.css` | `switchTab()` (.rc-transition) |
 
 ### 스타일 수정
 | 수정 대상 | 수정 파일 |
@@ -118,3 +128,6 @@ B 미리보기 (우측)
 | "이행률 없으면 그래프 섹션 숨겨줘" | 조건부 표시 | `js/report.js` or `js/autofill.js` |
 | "저장 시간 표시 없애줘" | HTML + JS | `index.html` + `js/excel.js` |
 | "마스코트 이미지 바꿔줘" | 이미지 파일 교체 | `img/mascots/` |
+| "패널 크기 최소값 바꿔줘" | 리사이즈 로직 | `js/init.js` |
+| "날짜 선택 방식 바꿔줘" | 날짜 네비/사이드바 | `js/ui.js` + `css/layout.css` |
+| "수업설정 들어가는 곳 바꿔줘" | 설정 메뉴 | `index.html` |
