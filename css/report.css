@@ -7,36 +7,47 @@
   --blue:#444; --blue-light:#f5f5f5;
   --text:#111; --muted:#666; --border:#ccc;
 }
-/* ─── 컬러 모드 ─── */
-.rc.color-mode{--main-color:#c0392b; --bg-accent:#fef2f2;
-  --green:#c0392b; --green-light:#fff5f5;
-  --blue:#c0392b; --blue-light:#fff5f5;
-  --text:#1a1a1a; --muted:#777; --border:#e5c4c4;}
-.rc.color-mode .rc-header{border-bottom-color:#c0392b;}
-.rc.color-mode .sec-title{color:#c0392b;}
-.rc.color-mode .sec-icon{color:#c0392b;}
-.rc.color-mode .rate-num{color:#c0392b;}
-.rc.color-mode .rate-unit{color:#e74c3c;}
-.rc.color-mode .prog-card.current{border-left-color:#c0392b;}
-.rc.color-mode .prog-card.current .prog-label{color:#c0392b;}
-.rc.color-mode .prog-book{background:#fde8e8;color:#c0392b;}
-.rc.color-mode .rate-chart{border-color:#e5c4c4;background:#fff8f8;}
-.rc.color-mode .cl{stroke:#c0392b;}
-.rc.color-mode .cd{stroke:#c0392b;}
-.rc.color-mode .cd.active{fill:#c0392b;}
-.rc.color-mode .clbl{fill:#c0392b;}
-.rc.color-mode .clbl.past{fill:#d4a0a0;}
-.rc.color-mode .hw-li{background:#fff5f5;}
-.rc.color-mode .hw-li .hw-icon{background:#fde8e8;color:#c0392b;}
-.rc.color-mode .hw-chip{background:#fde8e8;color:#c0392b;}
-.rc.color-mode .next-hw-li{background:#fff5f5;}
-.rc.color-mode .mini-wrong-row{background:#fff5f5;border-color:#e5c4c4;}
-.rc.color-mode .wtag{border-color:#d4a0a0;color:#c0392b;}
-.rc.color-mode .comment-wrap{background:#fff5f5;color:#c0392b;}
+/* ─── 컬러 모드 (다양한 색상) ─── */
+.rc.color-mode{--main-color:#222; --bg-accent:#f8f9fa;
+  --green:#15803d; --green-light:#f0fdf4;
+  --blue:#1d4ed8; --blue-light:#eff6ff;
+  --text:#1a1a1a; --muted:#64748b; --border:#e2e8f0;}
+/* 헤더: 검은색 유지 + 빨간 포인트 */
+.rc.color-mode .rc-header{border-bottom-color:#222;}
+/* 섹션 제목: 검은색 유지 */
+.rc.color-mode .sec-title{color:#222;}
+.rc.color-mode .sec-icon{color:#64748b;}
+/* 이행률: 빨간색 강조 */
+.rc.color-mode .rate-num{color:#dc2626;}
+.rc.color-mode .rate-unit{color:#ef4444;}
+.rc.color-mode .rb-val{color:#dc2626;}
+/* 그래프: 빨간 라인 */
+.rc.color-mode .rate-chart{border-color:#e2e8f0;background:#fafbfc;}
+.rc.color-mode .cl{stroke:#dc2626;}
+.rc.color-mode .cd{stroke:#dc2626;}
+.rc.color-mode .cd.active{fill:#dc2626;}
+.rc.color-mode .clbl{fill:#dc2626;}
+.rc.color-mode .clbl.past{fill:#fca5a5;}
+/* 진도: 녹색 계열 */
+.rc.color-mode .prog-card.current{border-left-color:#15803d;background:#f8fdf8;}
+.rc.color-mode .prog-card.current .prog-label{color:#15803d;}
+.rc.color-mode .prog-card.prev{border-left-color:#d1d5db;}
+.rc.color-mode .prog-book{background:#dcfce7;color:#15803d;}
+/* 저번 과제: 파란 계열 */
+.rc.color-mode .hw-li{background:#f0f7ff;}
+.rc.color-mode .hw-li .hw-icon{background:#dbeafe;color:#1d4ed8;}
+.rc.color-mode .hw-chip{background:#dbeafe;color:#1d4ed8;}
+.rc.color-mode .hw-carry-mark{color:#9333ea;}
+/* 다음 과제: 연한 녹색 */
+.rc.color-mode .next-hw-li{background:#f0fdf4;}
+.rc.color-mode .next-hw-li .carry-tag{color:#9333ea;}
+/* 미니테스트: 빨간 계열 */
+.rc.color-mode .mini-wrong-row{background:#fff5f5;border-color:#fca5a5;}
+.rc.color-mode .wtag{border-color:#fca5a5;color:#dc2626;background:#fff;}
+/* 코멘트: 따뜻한 계열 */
+.rc.color-mode .comment-wrap{background:#fef3c7;border:1px solid #fcd34d;}
 .rc.color-mode .comment-text{color:#333;}
-.rc.color-mode .teacher-sign{color:#c0392b;}
-.rc.color-mode .rb-val{color:#c0392b;}
-.rc.color-mode .hw-carry-mark{color:#c0392b;}
+.rc.color-mode .teacher-sign{color:#92400e;}
 .rc{
   width:210mm; height:297mm;
   padding:13mm 20mm 20mm 20mm;
