@@ -161,20 +161,18 @@ saveToExcel()
 
 ```
 autoFillAll()
-  → computeCarryover(student, date)
-    → hwRec[student||prevDate].items에서 미완료/부분완료 항목 수집
-    → 레거시 호환: items 없으면 과제N_상태 + 2단계 전 레슨 과제 텍스트로 재구성
-  → G.hwItems = baseItems + carryItems
-  → G.hwItemTypes = [{type:'base'}, ..., {type:'carry', fromDate}]
-  → 상태 로드: hwRec[key].items 매칭 또는 레거시 과제N_상태
+  → hwRec[key].items 있으면 그대로 사용 (parseWB에서 구축된 ref 보존)
+  → 없으면: 직전 레슨 과제 + 추가과제 + computeCarryover() 결과를 조합
+  → G.hwItems = [텍스트], G.hwItemRefs = [{ref, fromDate}], G.hwStatus = [상태]
+  → 이월 판별: isCarryItem(fromDate) — fromDate !== 직전수업날짜
 
 cycleHwStatus()
   → updateNoticeWithCarry()
-    → 이번 주차 과제 = 현재 레슨 base hw + 현재 미완료 항목
+    → 이번 주차 과제 = 현재 레슨 hw + 현재 미완료 이월 항목
     → 리포트카드 #rNoticeList 갱신
 
 saveTabData()
   → syncHwRecItems()
-    → G.hwItems/hwStatus/hwItemTypes → hwRec[key].items 배열 동기화
-    → base 항목에 ref 자동 부여 (`${date}-hw${baseIdx}`) — 이월 추적용
+    → G.hwItems/hwStatus/hwItemRefs → hwRec[key].items 배열 동기화
+    → 모든 항목 통일 구조: {text, status, ref, fromDate}
 ```

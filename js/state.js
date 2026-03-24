@@ -16,7 +16,7 @@ const G={
   lessons:[],students:[],
   rates:{},scores:{},corrects:{},wrong:{},hwRec:{},memos:{},attend:{},
   selDate:'',selStudent:'',
-  hwItems:[],hwStatus:[],hwItemTypes:[],hwRateManual:null,extraHw:[],reportEdits:{},
+  hwItems:[],hwStatus:[],hwItemRefs:[],hwRateManual:null,extraHw:[],reportEdits:{},
   totalQ:5,
   showMini:false,showComment:false,colorMode:false,
   tabData:{},

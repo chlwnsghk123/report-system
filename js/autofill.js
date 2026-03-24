@@ -12,6 +12,12 @@ function computeCarryover(student,date){
     .map(it=>({text:it.text,ref:it.ref,fromDate:it.fromDate||prevDate}));
 }
 
+// ─── 직전 수업 날짜 반환 (date 기준) ───
+function _prevDateFor(date){
+  const idx=G.lessons.findIndex(l=>l.날짜===date);
+  return idx>0?G.lessons[idx-1].날짜:null;
+}
+
 // ─── 이번 주차 과제 + 추가과제 + 미완료 캐리 반영 (리포트카드) ───
 function updateNoticeWithCarry(){
   const cur=getCurL();if(!cur)return;
@@ -19,11 +25,11 @@ function updateNoticeWithCarry(){
   const baseHw=hwKeys.map(k=>cur[k]||'').filter(x=>x);
   // 학생별 추가 과제
   const extraHw=(G.extraHw||[]).map(it=>it.text).filter(x=>x);
-  // 미완료 이월
+  // 미완료 이월 (직전 수업이 아닌 과제 = 이월과제)
   const unfinished=[];
   G.hwItems.forEach((text,i)=>{
     const st=G.hwStatus[i];
-    if(!isNone(st)&&(st===0||st===1))unfinished.push(text);
+    if(!isNone(st)&&(st===0||st===1)&&isCarryItem(G.hwItemRefs[i]?.fromDate))unfinished.push(text);
   });
   // disabled 과제 필터링
   const dis=G.hwDisabled||new Set();
@@ -54,10 +60,10 @@ function renderCurHwList(){
   const cur=getCurL();if(!cur){c.innerHTML='';return;}
   const hwKeys=getLessonHwKeys(cur);
   const hw=hwKeys.map(k=>cur[k]||'').filter(x=>x);
-  // 이월과제 수집
+  // 이월과제 수집 (직전 수업이 아닌 과제)
   const carry=[];
   G.hwItems.forEach((text,i)=>{
-    if(G.hwItemTypes[i]?.type==='carry')carry.push(text);
+    if(isCarryItem(G.hwItemRefs[i]?.fromDate))carry.push(text);
   });
   const extra=(G.extraHw||[]).map(it=>it.text).filter(x=>x);
   // Enable/Disable 상태 (G.hwDisabled: Set of disabled indices)
@@ -165,52 +171,40 @@ function autoFillAll(){
     $$('inputComment').value='';fp('commentBody','inputComment');
     $$('inputWrong').value=G.wrong[G.selStudent]?.[G.selDate]||'';
     updateWrongTags($$('inputWrong').value);
-    // base 항목: 직전 레슨 과제 + 직전 날짜의 학생별 추가과제
-    const prev=getPrevL();
-    let baseItems=[];
-    if(prev){
-      const prevHwKeys=getLessonHwKeys(prev);
-      baseItems=prevHwKeys.map(k=>prev[k]||'').filter(x=>x);
-    }
-    const prevExtra=getPrevExtraHw(G.selStudent,G.selDate);
-    baseItems=[...baseItems,...prevExtra];
-    // 캐리오버 항목
-    const carryItems=computeCarryover(G.selStudent,G.selDate);
-    // 병합 (base + carry)
-    G.hwItems=[...baseItems,...carryItems.map(c=>c.text)];
-    G.hwItemTypes=[
-      ...baseItems.map(()=>({type:'base'})),
-      ...carryItems.map(c=>({type:'carry',ref:c.ref,fromDate:c.fromDate}))
-    ];
-    // 상태 로드 — 인덱스 기반 매칭 (base), ref 기반 (carry)
+    // hwRec에 이미 items가 구성되어 있으면 그대로 사용 (parseWB에서 구축)
     const key=G.selDate?`${G.selStudent}||${G.selDate}`:null;
     const hwR=key?G.hwRec[key]:null;
     if(hwR&&hwR.items&&hwR.items.length){
-      const savedBase=hwR.items.filter(it=>it.type==='base');
-      const savedCarry=hwR.items.filter(it=>it.type==='carry');
-      let baseIdx=0;
-      G.hwStatus=G.hwItems.map((_,i)=>{
-        const typ=G.hwItemTypes[i];
-        if(typ.type==='base'){
-          const saved=savedBase[baseIdx];
-          const st=saved?.status??stFromExcel(hwR[`과제${baseIdx+1}_상태`]??'');
-          baseIdx++;
-          return st;
-        }else if(typ.type==='carry'){
-          // ref 기반 매칭 (하위호환: ref 없으면 fromDate+text)
-          let match;
-          if(typ.ref){
-            match=savedCarry.find(it=>it.ref===typ.ref);
-          }else{
-            const sameDate=savedCarry.filter(it=>it.fromDate===typ.fromDate);
-            match=sameDate.length===1?sameDate[0]:sameDate.find(it=>it.text===G.hwItems[i]);
-          }
-          return match?.status??-1;
-        }
-        return -1;
-      });
+      G.hwItems=hwR.items.map(it=>it.text);
+      G.hwItemRefs=hwR.items.map(it=>({ref:it.ref||'',fromDate:it.fromDate||''}));
+      G.hwStatus=hwR.items.map(it=>it.status??-1);
     }else{
-      G.hwStatus=G.hwItems.map(()=>-1);
+      // hwRec에 items가 없으면 직접 구성
+      const prev=getPrevL();
+      let allItems=[];
+      if(prev){
+        const prevHwKeys=getLessonHwKeys(prev);
+        prevHwKeys.forEach(k=>{
+          const text=prev[k]||'';if(!text)return;
+          allItems.push({text,ref:`${prev.id}-${k}`,fromDate:prev.날짜});
+        });
+      }
+      const prevExtra=getPrevExtraHw(G.selStudent,G.selDate);
+      const prev2=getPrevL();
+      prevExtra.forEach((text,ei)=>{
+        if(!text)return;
+        allItems.push({text,ref:prev2?`${prev2.id}-추가과제${ei+1}`:'',fromDate:prev2?.날짜||''});
+      });
+      // 캐리오버 항목 (직전 날짜에서 미완료인 것)
+      const carryItems=computeCarryover(G.selStudent,G.selDate);
+      carryItems.forEach(c=>allItems.push({text:c.text,ref:c.ref,fromDate:c.fromDate}));
+      G.hwItems=allItems.map(it=>it.text);
+      G.hwItemRefs=allItems.map(it=>({ref:it.ref,fromDate:it.fromDate}));
+      // 레거시 상태 로드
+      G.hwStatus=allItems.map((_,i)=>{
+        const st=hwR?.[`과제${i+1}_상태`];
+        return st!=null?stFromExcel(st):-1;
+      });
     }
     // 이번 날짜의 학생별 추가 과제 로드
     G.extraHw=(hwR?.extraHw||[]).map(it=>({...it}));

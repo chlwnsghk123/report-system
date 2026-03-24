@@ -129,7 +129,7 @@ async function _doSummaryImage(){
       let items=rec?.items||[];
       if(!items.length&&prevLesson){
         const hwKeys=getLessonHwKeys(prevLesson);
-        items=hwKeys.map((k,i)=>({text:prevLesson[k]||'',status:rec?.[`과제${i+1}_상태`]||'',type:'base',fromDate:''})).filter(it=>it.text);
+        items=hwKeys.map((k,i)=>({text:prevLesson[k]||'',status:rec?.[`과제${i+1}_상태`]||'',ref:`${prevLesson.id}-${k}`,fromDate:prevLesson.날짜})).filter(it=>it.text);
       }
       const hasRate=rate!=null&&!isNaN(rate);
       // 헤더
@@ -683,9 +683,8 @@ function _renderStudentReport(student,startDate,endDate,container){
     const key=`${student}||${d}`;
     const rec=G.hwRec[key];
     (rec?.items||[]).forEach(it=>{
-      if(it.type==='carry'&&it.ref&&!isNone(it.status)){
+      if(isCarryForDate(it.fromDate,d)&&it.ref&&!isNone(it.status)){
         const prev=resolvedMap.get(it.ref);
-        // 가장 높은(최종) 상태를 유지
         if(prev==null||it.status>prev)resolvedMap.set(it.ref,it.status);
       }
     });
@@ -698,19 +697,16 @@ function _renderStudentReport(student,startDate,endDate,container){
     const key=`${student}||${d}`;
     const rec=G.hwRec[key];
     const items=rec?.items||[];
-    let baseIdx=0;
     items.forEach(it=>{
-      if(it.type==='carry')return;
-      const idx=baseIdx++;
+      if(isCarryForDate(it.fromDate,d))return; // 이월항목은 본과제 집계에서 제외
       if(isNone(it.status))return;
       totalHw++;
       if(it.status===2){doneHw++;completedHw++;}
       else if(it.status===1){partialHw++;completedHw++;}
       else if(it.status===0){
-        const ref=`${d}-${idx}`;
-        const resolved=resolvedMap.get(ref);
-        if(resolved===2){doneHw++;completedHw++;} // 이월 통해 완료
-        else if(resolved===1){partialHw++;completedHw++;} // 이월 통해 부분완료
+        const resolved=resolvedMap.get(it.ref);
+        if(resolved===2){doneHw++;completedHw++;}
+        else if(resolved===1){partialHw++;completedHw++;}
         else missHw++;
       }
     });
@@ -747,7 +743,7 @@ function _renderStudentReport(student,startDate,endDate,container){
     const key=`${student}||${d}`;
     const rec=G.hwRec[key];
     const lesson=G.lessons.find(l=>l.날짜===d);
-    const items=(rec?.items||[]).filter(it=>it.type!=='carry');
+    const items=(rec?.items||[]).filter(it=>!isCarryForDate(it.fromDate,d));
     const hasRate=rate!=null&&!isNaN(rate);
     const isAbsent=!hasRate;
 
@@ -777,7 +773,7 @@ function _renderStudentReport(student,startDate,endDate,container){
       }
       // 이월과제 비고 (원본 대비 상태가 변한 것만 + 중복 제거)
       const carryStDesc={2:'완료',1:'일부 완료',0:'미완료'};
-      const allCarries=(rec?.items||[]).filter(it=>it.type==='carry'&&it.ref&&!isNone(it.status));
+      const allCarries=(rec?.items||[]).filter(it=>isCarryForDate(it.fromDate,d)&&it.ref&&!isNone(it.status));
       const changedCarries=allCarries.filter(it=>{
         const orig=_getOriginalRefStatus(student,it.ref);
         return orig!=null&&it.status!==orig;

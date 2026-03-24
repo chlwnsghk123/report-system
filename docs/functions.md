@@ -18,6 +18,8 @@
 | `setBar(t,m)` | 상태바 타입·메시지 업데이트 |
 | `shortD(d)` | YYYY-MM-DD → M.D |
 | `fmtKo(d)` | YYYY-MM-DD → 한글날짜 (요일 포함) |
+| `isCarryItem(fromDate)` | 현재 선택 날짜 기준 이월 과제 여부 판별 (fromDate !== 직전 수업 날짜) |
+| `isCarryForDate(fromDate,date)` | 특정 날짜 기준 이월 과제 여부 판별 |
 | `esc(s)` | HTML 특수문자 이스케이프 |
 | `nowKST()` | 한국 시간(KST) Date 객체 반환 |
 | `todayKST()` | 한국 시간 기준 오늘 날짜 (YYYY-MM-DD) |
@@ -70,8 +72,8 @@
 | `renderTabs()` | 학생 탭바 렌더링 |
 | `switchTab(name)` | 학생 탭 전환 |
 | `saveTabData()` | 현재 학생 입력값 → G.tabData 임시저장 + hwRec items 동기화 |
-| `syncHwRecItems(student,date)` | G.hwItems/hwStatus/hwItemTypes → hwRec[key].items 동기화 (base 항목에 ref 자동 부여) |
-| `restoreTabData(name)` | G.tabData → UI 복원 (hwItems/hwItemTypes 포함) |
+| `syncHwRecItems(student,date)` | G.hwItems/hwStatus/hwItemRefs → hwRec[key].items 동기화 (통일 구조: ref+fromDate) |
+| `restoreTabData(name)` | G.tabData → UI 복원 (hwItems/hwItemRefs 포함) |
 | `_getCarryAutoText(student,date)` | 이월과제 자동 요약 텍스트 생성 (상태 변경분만, 중복 제거) |
 | `_getOriginalRefStatus(student,ref)` | ref로 원본 과제의 최초 상태 조회 (변경 감지용) |
 | `openMemo()` | 비고 모달 열기 (자동 요약 표시 + 메모 편집) |
@@ -110,7 +112,7 @@
 | `renderExtraHwEditor()` | 패널 학생별 추가 과제 에디터 렌더 (수정/삭제 가능) |
 | `autoFillCommon()` | 날짜 기준 공통 필드 자동채우기 |
 | `getPrevExtraHw(student,date)` | 이전 날짜의 학생별 추가과제 텍스트 배열 반환 |
-| `autoFillAll()` | 학생+날짜 기준 전체 자동채우기 (base + 이전extraHw + 캐리오버, 인덱스 기반 매칭) |
+| `autoFillAll()` | 학생+날짜 기준 전체 자동채우기 (hwRec.items 우선 사용, 없으면 직접 구성) |
 
 ## js/report.js
 | 함수 | 역할 |

@@ -114,17 +114,17 @@ function rebuildGraph(){
 // ─── 과제 에디터 (좌패널: 저번 주차 과제 체크, base + carry만) ───
 function renderHwEditor(){
   const c=$$('hwEditor');
-  const firstCarryIdx=G.hwItemTypes.findIndex(t=>t.type==='carry');
+  const firstCarryIdx=G.hwItemRefs.findIndex(r=>isCarryItem(r?.fromDate));
   let html='';
   if(!G.hwItems.length){
     html+='<div style="font-size:11px;color:#b5bac4;padding:4px 2px;">이전 주차 과제 없음</div>';
   }
   G.hwItems.forEach((item,i)=>{
     const st=G.hwStatus[i]??-1;
-    const typ=G.hwItemTypes[i]?.type||'base';
-    const fromDate=G.hwItemTypes[i]?.fromDate||'';
+    const fromDate=G.hwItemRefs[i]?.fromDate||'';
+    const carry=isCarryItem(fromDate);
     if(i===firstCarryIdx) html+='<div class="hw-carry-divider">이월 과제</div>';
-    const isCarry=typ==='carry';
+    const isCarry=carry;
     const stCls=isNone(st)?'':'st'+st;
     html+=`<div class="hw-item${isCarry?' hw-carry':''} ${stCls}" onclick="cycleHwStatus(${i})">
       ${isCarry?`<span class="hw-carry-badge" title="${fromDate?fmtKo(fromDate):''}">(전)</span>`:''}
@@ -222,8 +222,7 @@ function updateHwDisplay(){
   G.hwItems.forEach((item,i)=>{
     if(!item.trim()||isNone(G.hwStatus[i]))return;
     const st=G.hwStatus[i]??0;
-    const typ=G.hwItemTypes[i]?.type||'base';
-    const isCarry=typ==='carry';
+    const isCarry=isCarryItem(G.hwItemRefs[i]?.fromDate);
     const li=`<div class="hw-li s${st}">
       <span class="hw-icon">${icons[st]||'?'}</span>
       ${isCarry?'<span class="hw-carry-mark">(전)</span>':''}

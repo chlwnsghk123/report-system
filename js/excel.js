@@ -220,7 +220,7 @@ function parseWB(wb){
       const key=`${name}||${checkDate}`;
       const rec=G.hwRec[key]=G.hwRec[key]||{이행률:null};
       rec.items=rec.items||[];
-      rec.items.push({text,status,type:'carry',ref,fromDate});
+      rec.items.push({text,status,ref,fromDate});
     });
   }
 
@@ -256,7 +256,7 @@ function parseWB(wb){
         const text=prevLesson[k]||'';
         const status=stFromExcel(rec[`과제${i+1}_상태`]??'');
         const ref=`${prevLesson.id}-${k}`;
-        return{text,status,type:'base',ref,fromDate:prevLesson.날짜};
+        return{text,status,ref,fromDate:prevLesson.날짜};
       }).filter(it=>it.text);
       // 이전 날짜의 학생별 추가과제도 base로 포함
       const prevDateKey=`${name}||${prevLesson.날짜}`;
@@ -266,10 +266,10 @@ function parseWB(wb){
         prevRec.extraHw.forEach((ex,ei)=>{
           const status=stFromExcel(rec[`과제${extraBaseStart+ei+1}_상태`]??'');
           const ref=`${prevLesson.id}-추가과제${ei+1}`;
-          baseItems.push({text:ex.text,status,type:'base',ref,fromDate:prevLesson.날짜});
+          baseItems.push({text:ex.text,status,ref,fromDate:prevLesson.날짜});
         });
       }
-      const carryItems=(rec.items||[]).filter(it=>it.type==='carry');
+      const carryItems=(rec.items||[]).filter(it=>isCarryForDate(it.fromDate,date));
       // carry 텍스트가 없으면 ref에서 해석
       carryItems.forEach(it=>{
         if(!it.text&&it.ref){
@@ -330,17 +330,16 @@ async function saveToExcel(){
     // items 배열 동기화
     const hs=td.hwStatus||[];
     const items=td.hwItems||[];
-    const types=td.hwItemTypes||items.map(()=>({type:'base'}));
+    const refs=td.hwItemRefs||items.map(()=>({ref:'',fromDate:''}));
     if(items.length){
       ex.items=items.map((text,i)=>({
         text,status:hs[i]??-1,
-        type:types[i]?.type||'base',
-        fromDate:types[i]?.fromDate||''
+        ref:refs[i]?.ref||'',
+        fromDate:refs[i]?.fromDate||''
       }));
     }
     // 레거시 필드
-    const baseCount=types.filter(t=>!t.type||t.type==='base').length;
-    for(let i=0;i<baseCount;i++)ex[`과제${i+1}_상태`]=hs[i]??ex[`과제${i+1}_상태`]??-1;
+    for(let i=0;i<items.length;i++)ex[`과제${i+1}_상태`]=hs[i]??ex[`과제${i+1}_상태`]??-1;
     // 이번 주차 추가 과제 동기화
     if(td.extraHw)ex.extraHw=td.extraHw.map(it=>({...it}));
     G.hwRec[key]=ex;
@@ -399,7 +398,7 @@ async function saveToExcel(){
         });
         // 비고: 원본 대비 상태가 변한 이월과제만 자동 요약 + 중복 제거
         const stDesc={2:'완료',1:'일부 완료',0:'미완료'};
-        const carries=(rec?.items||[]).filter(it=>it.type==='carry'&&it.ref&&!isNone(it.status));
+        const carries=(rec?.items||[]).filter(it=>isCarryForDate(it.fromDate,date)&&it.ref&&!isNone(it.status));
         const changed=carries.filter(it=>{
           const orig=_getOriginalRefStatus(n,it.ref);
           return orig!=null&&it.status!==orig;
@@ -437,7 +436,7 @@ async function saveToExcel(){
       const key=`${n}||${date}`;
       const rec=G.hwRec[key];
       if(!rec?.items)return;
-      const carryItems=rec.items.filter(it=>it.type==='carry'&&it.ref);
+      const carryItems=rec.items.filter(it=>isCarryForDate(it.fromDate,date)&&it.ref);
       if(!carryItems.length)return;
       if(date!==lastCarryDate){
         carryAoa.push([`▼ ${fmtKo(date)}`,'','','']);
