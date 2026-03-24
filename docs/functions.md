@@ -96,6 +96,8 @@
 | `addStudent()` | 새 학생 G.students에 추가 |
 | `removeStudent(idx)` | 학생 삭제 (G.students에서 제거) |
 | `toggleStudentSec()` | 학생 목록 섹션 접기·펼치기 |
+| `markUnsaved()` | 미저장 상태 배너 표시 (G.unsaved=true) |
+| `markSaved()` | 미저장 배너 숨김 (G.unsaved=false) |
 
 ## js/autofill.js
 | 함수 | 역할 |

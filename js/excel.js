@@ -8,7 +8,7 @@ async function loadExcel(input){
     const buf=await file.arrayBuffer();
     parseWB(XLSX.read(buf,{type:'array',cellDates:false,raw:false}));
     G.excelFileName=file.name;G.tabData={};
-    await saveAppDataNow();showGroups();
+    await saveAppDataNow();showGroups();markSaved();
     setBar('ok',`✅ ${file.name}`);
   }catch(e){setBar('err','❌ 파싱 실패: '+e.message);console.error(e);}
   input.value='';
@@ -484,6 +484,7 @@ async function saveToExcel(){
   a.href=URL.createObjectURL(new Blob([XLSX.write(wb,{bookType:'xlsx',type:'array'})],{type:'application/octet-stream'}));
   a.download=G.excelFileName;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   updateLastSavedDisplay();
+  markSaved();
   btn.disabled=false;btn.textContent='💾 저장';
   setBar('ok',`✅ ${G.excelFileName} 저장 완료`);
   }catch(e){
