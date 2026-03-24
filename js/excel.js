@@ -425,8 +425,7 @@ async function saveToExcel(){
     });
   }
   // 마지막 저장 시각
-  const now=new Date();
-  G.lastSaved=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  G.lastSaved=nowKSTStr();
   cfgAoa.push(['▼ 마지막저장','','']);
   cfgAoa.push(['lastSaved',G.lastSaved,'']);
 
@@ -451,7 +450,7 @@ function createTemplate(){
   if(!confirm('6월까지 주 1회 수업 날짜가 포함된 새 엑셀 템플릿을 생성합니다.\n계속하시겠습니까?'))return;
   const students=G.students.length?G.students:['학생1','학생2','학생3'];
   const dates=[];
-  const now=new Date();
+  const now=nowKST();
   const start=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   const endY=now.getMonth()<6?now.getFullYear():now.getFullYear()+1;
   const end=new Date(endY,5,30);
