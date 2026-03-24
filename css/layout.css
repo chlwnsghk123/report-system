@@ -270,14 +270,15 @@ body.modal-open .preview{overflow:hidden!important;}
   opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:10000;white-space:nowrap;}
 .modal-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
-/* ═══ 출결 토글 ═══ */
-.attend-toggle{display:inline-flex;gap:2px;background:#f3f4f6;border-radius:8px;padding:2px;}
-.att-btn{border:none;padding:4px 10px;font-size:11px;font-weight:700;border-radius:6px;cursor:pointer;font-family:inherit;background:transparent;color:#888;transition:all .15s;}
-.att-btn.active{color:#fff;}
-.att-present.active{background:#16a34a;color:#fff;}
+/* ═══ 출결 세그먼트 컨트롤 ═══ */
+.attend-toggle{display:inline-flex;background:#e5e7eb;border-radius:10px;padding:3px;gap:0;}
+.att-btn{border:none;padding:7px 18px;font-size:13px;font-weight:700;border-radius:8px;cursor:pointer;font-family:inherit;background:transparent;color:#6b7280;transition:all .15s;min-width:56px;text-align:center;}
+.att-btn+.att-btn{margin-left:2px;}
+.att-btn.active{color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15);}
+.att-present.active{background:#16a34a;}
 .att-late.active{background:#eab308;color:#fff;}
-.att-absent.active{background:#dc2626;color:#fff;}
-.att-btn:hover:not(.active){background:#e5e7eb;}
+.att-absent.active{background:#dc2626;}
+.att-btn:hover:not(.active){background:#d1d5db;}
 
 /* ═══ 반응형 ═══ */
 @media screen and (max-width:1024px){
