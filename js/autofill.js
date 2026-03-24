@@ -25,9 +25,12 @@ function updateNoticeWithCarry(){
     const st=G.hwStatus[i];
     if(!isNone(st)&&(st===0||st===1))unfinished.push(text);
   });
+  // disabled 과제 필터링
+  const dis=G.hwDisabled||new Set();
+  let di=0;
   const list=$$('rNoticeList');
-  const baseHtml=baseHw.map(t=>`<div class="next-hw-li">${esc(t)}</div>`).join('');
-  const extraHtml=extraHw.map(t=>`<div class="next-hw-li"><span class="carry-tag">(추가)</span>${esc(t)}</div>`).join('');
+  const baseHtml=baseHw.map(t=>{const d=dis.has(di);di++;return d?'':`<div class="next-hw-li">${esc(t)}</div>`;}).join('');
+  const extraHtml=extraHw.map(t=>{const d=dis.has(di);di++;return d?'':`<div class="next-hw-li"><span class="carry-tag">(추가)</span>${esc(t)}</div>`;}).join('');
   const carryHtml=unfinished.map(t=>
     `<div class="next-hw-li"><span class="carry-tag">(전)</span>${esc(t)}</div>`
   ).join('');
@@ -45,13 +48,54 @@ function updateNoticeWithCarry(){
   renderCurHwList();
 }
 
-// ─── 패널: 이번 주차 과제 목록 (읽기전용 레슨 과제) ───
+// ─── 패널: 이번 주차 과제 목록 (레슨 과제 + 이월과제 + Enable/Disable) ───
 function renderCurHwList(){
   const c=$$('curHwList');if(!c)return;
   const cur=getCurL();if(!cur){c.innerHTML='';return;}
   const hwKeys=getLessonHwKeys(cur);
   const hw=hwKeys.map(k=>cur[k]||'').filter(x=>x);
-  c.innerHTML=hw.map(t=>`<div class="cur-hw-item">${esc(t)}</div>`).join('');
+  // 이월과제 수집
+  const carry=[];
+  G.hwItems.forEach((text,i)=>{
+    if(G.hwItemTypes[i]?.type==='carry')carry.push(text);
+  });
+  const extra=(G.extraHw||[]).map(it=>it.text).filter(x=>x);
+  // Enable/Disable 상태 (G.hwDisabled: Set of disabled indices)
+  if(!G.hwDisabled)G.hwDisabled=new Set();
+  let html='';
+  let idx=0;
+  hw.forEach(t=>{
+    const dis=G.hwDisabled.has(idx);
+    html+=`<div class="cur-hw-item${dis?' disabled':''}" onclick="toggleHwDisabled(${idx})">
+      <span class="cur-hw-text">${esc(t)}</span>
+      <span class="cur-hw-toggle">${dis?'OFF':'ON'}</span>
+    </div>`;idx++;
+  });
+  extra.forEach(t=>{
+    const dis=G.hwDisabled.has(idx);
+    html+=`<div class="cur-hw-item extra${dis?' disabled':''}" onclick="toggleHwDisabled(${idx})">
+      <span class="cur-hw-badge">(추가)</span><span class="cur-hw-text">${esc(t)}</span>
+      <span class="cur-hw-toggle">${dis?'OFF':'ON'}</span>
+    </div>`;idx++;
+  });
+  carry.forEach(t=>{
+    const dis=G.hwDisabled.has(idx);
+    html+=`<div class="cur-hw-item carry${dis?' disabled':''}" onclick="toggleHwDisabled(${idx})">
+      <span class="cur-hw-badge">(전)</span><span class="cur-hw-text">${esc(t)}</span>
+      <span class="cur-hw-toggle">${dis?'OFF':'ON'}</span>
+    </div>`;idx++;
+  });
+  c.innerHTML=html;
+}
+
+// 이번 주차 과제 Enable/Disable 토글
+function toggleHwDisabled(idx){
+  if(!G.hwDisabled)G.hwDisabled=new Set();
+  if(G.hwDisabled.has(idx))G.hwDisabled.delete(idx);
+  else G.hwDisabled.add(idx);
+  renderCurHwList();
+  updateNoticeWithCarry();
+  saveAppData();
 }
 
 // ─── 패널: 추가 과제 에디터 (학생별) ───
