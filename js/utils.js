@@ -36,6 +36,16 @@ function isCarryForDate(fromDate,date){
   return fromDate!==G.lessons[idx-1].날짜;
 }
 
+// ref → 체크 날짜 (원본 수업 다음 수업일 = 숙제 확인일)
+function refToCheckDate(ref){
+  if(!ref)return'';
+  const di=ref.lastIndexOf('-');if(di<0)return'';
+  const lid=ref.slice(0,di);
+  const sl=G.lessons.find(l=>l.id===lid);if(!sl)return'';
+  const si=G.lessons.indexOf(sl);
+  return(si>=0&&si<G.lessons.length-1)?G.lessons[si+1].날짜:'';
+}
+
 // ─── HTML 이스케이프 ───
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 

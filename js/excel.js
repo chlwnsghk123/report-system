@@ -407,9 +407,10 @@ async function saveToExcel(){
           return orig!=null&&it.status!==orig;
         });
         const seen=new Map();
-        changed.forEach(it=>{const k=`${it.text}||${it.fromDate}`;seen.set(k,it);});
+        changed.forEach(it=>{seen.set(it.ref,it);});
         const autoText=[...seen.values()].map(it=>{
-          const fd=it.fromDate?`${shortD(it.fromDate)} 출제`:'이전';
+          const cd=refToCheckDate(it.ref);
+          const fd=cd?`${shortD(cd)} 출제`:'이전';
           return`[이월] ${it.text} (${fd}) → ${stDesc[it.status]||'확인 전'}`;
         }).join(', ');
         const userMemo=G.memos[`${n}||${date}`]||'';

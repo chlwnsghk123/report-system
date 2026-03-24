@@ -20,6 +20,7 @@
 | `fmtKo(d)` | YYYY-MM-DD → 한글날짜 (요일 포함) |
 | `isCarryItem(fromDate)` | 현재 선택 날짜 기준 이월 과제 여부 판별 (fromDate !== 직전 수업 날짜) |
 | `isCarryForDate(fromDate,date)` | 특정 날짜 기준 이월 과제 여부 판별 |
+| `refToCheckDate(ref)` | ref → 체크 날짜 변환 (원본 수업 다음 수업일 = 숙제 확인일) |
 | `esc(s)` | HTML 특수문자 이스케이프 |
 | `nowKST()` | 한국 시간(KST) Date 객체 반환 |
 | `todayKST()` | 한국 시간 기준 오늘 날짜 (YYYY-MM-DD) |

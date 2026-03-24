@@ -702,7 +702,12 @@ function _renderStudentReport(student,startDate,endDate,container){
       if(isNone(it.status))return;
       totalHw++;
       if(it.status===2){doneHw++;completedHw++;}
-      else if(it.status===1){partialHw++;completedHw++;}
+      else if(it.status===1){
+        partialHw++;
+        // 이월 통해 부분완료 이상으로 해결된 경우에만 완료 인정
+        const resolved=resolvedMap.get(it.ref);
+        if(resolved!=null&&resolved>=1)completedHw++;
+      }
       else if(it.status===0){
         const resolved=resolvedMap.get(it.ref);
         if(resolved===2){doneHw++;completedHw++;}
@@ -779,12 +784,13 @@ function _renderStudentReport(student,startDate,endDate,container){
         return orig!=null&&it.status!==orig;
       });
       const cSeen=new Map();
-      changedCarries.forEach(it=>{const k=`${it.text}||${it.fromDate}`;cSeen.set(k,it);});
+      changedCarries.forEach(it=>{cSeen.set(it.ref,it);});
       const uniqueCarries=[...cSeen.values()];
       if(uniqueCarries.length){
         html+=`<div style="padding:6px 12px 8px;border-top:1px dashed #d1d5db;">`;
         uniqueCarries.forEach(it=>{
-          const fd=it.fromDate?`${shortD(it.fromDate)} 출제`:'이전 수업';
+          const cd=refToCheckDate(it.ref);
+          const fd=cd?`${shortD(cd)} 출제`:'이전 수업';
           const isDone=it.status===2;
           const cColor=isDone?'#166534':it.status===1?'#92400e':'#991b1b';
           const cBg=isDone?'#f0fdf4':it.status===1?'#fffbeb':'#fef2f2';
