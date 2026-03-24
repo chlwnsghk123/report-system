@@ -330,7 +330,7 @@ async function saveToExcel(){
         const addr=XLSX.utils.encode_cell({r:R,c:C});
         const cell=wsD[addr];if(!cell)continue;
         if(C>=4&&C<4+hwCount+maxExtra){cell.t='s';cell.v=String(cell.v===undefined?'':cell.v);continue;}
-        if(cell.v===0&&cell.t==='n'){cell.v='';cell.t='s';}
+        if(cell.v===0&&cell.t==='n'&&C!==3){cell.v='';cell.t='s';}
       }
     }
     XLSX.utils.book_append_sheet(wb,wsD,date);
