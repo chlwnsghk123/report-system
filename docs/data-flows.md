@@ -91,11 +91,26 @@ switchTab(name)
 예) 0/5 → 20점 | 3/5 → 38점 | 5/5 → 50점
 ```
 
-## 6. 이행률 그래프
+## 6. 이행률 데이터 흐름
 
 ```
+이행률 값 규칙:
+  null / undefined  = 결석 (데이터 없음, 그래프에서 제외)
+  -1                = 표시 안 함 (리포트에 '-' 표시, 그래프 제외)
+  0                 = 출석했지만 이행률 0% (그래프에 0% 표시)
+  1~100             = 정상 이행률
+
+onRateManual()
+  → inputRate 빈값(''): G.hwRateManual=null, G.rates에서 해당 키 삭제 (=결석)
+  → inputRate '0': G.hwRateManual=0, G.rates[학생][날짜]=0 (=출석, 0%)
+
+syncHwRecItems()
+  → G.hwRateManual 또는 G.rates에서 이행률 읽어 hwRec[key].이행률에 동기화
+  → 0과 null 구분 보존
+
 rebuildGraph()
   → G.rates[학생][날짜] (현재 날짜 이하만, 첫 번째 날짜 제외, -1 제외)
+  → v!=null 필터 → null(결석)은 제외, 0은 포함
   → 수동입력값 반영
   → 최근 4개 slice(-4)
   → SVG polyline + circle + text

@@ -318,6 +318,9 @@ function syncHwRecItems(student,date){
   if(!student||!date)return;
   const key=`${student}||${date}`;
   const rec=G.hwRec[key]||{이행률:null};
+  // 이행률 동기화: 수동입력 우선, 없으면 G.rates에서 가져옴
+  if(G.hwRateManual!=null) rec.이행률=G.hwRateManual;
+  else if(G.rates[student]?.[date]!=null) rec.이행률=G.rates[student][date];
   rec.items=G.hwItems.map((text,i)=>({
     text,
     status:G.hwStatus[i]||'',
