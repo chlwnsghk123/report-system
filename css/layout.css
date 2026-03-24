@@ -290,35 +290,31 @@ body.modal-open .preview{overflow:hidden!important;}
 .preview-content{flex:1;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;position:relative;}
 
 /* ═══ 학생 사이드바 ═══ */
-.student-sidebar{width:100px;min-width:90px;background:linear-gradient(180deg,#f8f9fb 0%,#fff 100%);
+.student-sidebar{width:140px;min-width:120px;background:linear-gradient(180deg,#f8f9fb 0%,#fff 100%);
   border-left:1px solid #e5e7eb;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;
   box-shadow:-4px 0 16px rgba(0,0,0,.04);z-index:5;}
-.ss-header{padding:10px 10px 6px;font-size:10px;font-weight:800;color:#9ca3af;letter-spacing:.5px;
+.ss-header{padding:10px 12px 6px;font-size:10px;font-weight:800;color:#9ca3af;letter-spacing:.5px;
   text-transform:uppercase;flex-shrink:0;}
-.ss-list{flex:1;overflow-y:auto;padding:2px 5px 5px;display:flex;flex-direction:column;gap:2px;}
-.ss-list::-webkit-scrollbar{width:4px;}
-.ss-list::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:4px;}
-.ss-item{position:relative;display:flex;align-items:center;gap:4px;padding:7px 8px;
-  border-radius:3px 10px 10px 3px;cursor:pointer;transition:all .2s ease;
-  border-left:3px solid transparent;user-select:none;overflow:visible;}
-.ss-item:hover{background:#f0f2f5;border-left-color:#c7d2fe;}
-.ss-item.active{background:linear-gradient(135deg,#eff6ff,#dbeafe);border-left-color:#3182f6;
-  box-shadow:0 2px 6px rgba(49,130,246,.12);}
-.ss-name{font-size:12px;font-weight:600;color:#4b5563;transition:all .15s;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.ss-item.active .ss-name{font-size:13px;font-weight:800;color:#1d4ed8;}
-.ss-pdf-badge{display:none;padding:0 4px;border-radius:4px;font-size:8px;font-weight:700;
+.ss-list{flex:1;overflow-y:auto;padding:4px 6px;display:flex;flex-direction:column;gap:2px;
+  scrollbar-width:none;-ms-overflow-style:none;}
+.ss-list::-webkit-scrollbar{display:none;}
+.ss-item{position:relative;display:flex;align-items:center;gap:6px;padding:10px 10px;
+  border-radius:4px 14px 14px 4px;cursor:pointer;transition:all .25s ease;
+  border-left:4px solid transparent;user-select:none;overflow:visible;}
+.ss-item:hover{background:#f0f2f5;border-left-color:#c7d2fe;transform:translateX(-2px);}
+.ss-item.active{background:linear-gradient(135deg,#dbeafe,#bfdbfe);border-left-color:#2563eb;
+  box-shadow:0 3px 12px rgba(37,99,235,.2);transform:translateX(-3px);}
+.ss-name{font-size:14px;font-weight:600;color:#6b7280;transition:all .25s;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ss-item:hover .ss-name{color:#374151;font-weight:700;}
+.ss-item.active .ss-name{font-size:16px;font-weight:900;color:#1e40af;letter-spacing:-.3px;}
+.ss-pdf-badge{display:none;padding:1px 5px;border-radius:5px;font-size:9px;font-weight:700;
   color:#6366f1;background:#eef2ff;border:1px solid #c7d2fe;flex-shrink:0;}
 .ss-item.has-pdf .ss-pdf-badge{display:block;}
 
-/* 학생 사이드바: 호버 세부 메뉴 (왼쪽 상단으로 펼침) */
-.ss-hover-menu{display:none;position:absolute;right:calc(100% + 6px);bottom:0;
+/* 학생 사이드바: 호버 세부 메뉴 (position:fixed, JS로 위치 계산) */
+.ss-hover-menu{display:none;position:fixed;
   background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);
-  padding:4px;z-index:200;min-width:150px;white-space:nowrap;}
-.ss-item:hover .ss-hover-menu{display:block;}
-.ss-hover-menu::after{content:'';position:absolute;right:-8px;bottom:10px;
-  border:4px solid transparent;border-left-color:#fff;}
-.ss-hover-menu::before{content:'';position:absolute;right:-10px;bottom:9px;
-  border:5px solid transparent;border-left-color:#e5e7eb;}
+  padding:4px;z-index:9999;min-width:160px;white-space:nowrap;}
 .ss-hm-btn{display:flex;align-items:center;gap:6px;width:100%;padding:7px 10px;font-size:11px;
   font-weight:600;color:#374151;background:none;border:none;cursor:pointer;font-family:inherit;
   border-radius:7px;transition:.12s;text-align:left;}
