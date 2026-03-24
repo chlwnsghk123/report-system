@@ -244,8 +244,6 @@ async function saveToExcel(){
   // 학생 데이터 → hwRec 동기화
   G.students.forEach(n=>{
     const td=G.tabData[n];if(!td||!G.selDate)return;
-    if(td.correctInput!==''){G.corrects[n]=G.corrects[n]||{};G.corrects[n][G.selDate]=parseInt(td.correctInput)||0;}
-    else if(G.corrects[n]?.[G.selDate]!=null){delete G.corrects[n][G.selDate];}
     if(td.wrongInput){G.wrong[n]=G.wrong[n]||{};G.wrong[n][G.selDate]=td.wrongInput;}
     else if(G.wrong[n]?.[G.selDate]!=null){delete G.wrong[n][G.selDate];}
     const key=`${n}||${G.selDate}`;

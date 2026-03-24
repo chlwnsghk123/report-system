@@ -98,13 +98,7 @@ function autoFillAll(){
     }
     updateWrongTags($$('inputWrong').value);
   }else{
-    $$('inputCorrect').value='';$$('inputCorrect').classList.remove('auto');
     $$('inputComment').value='';fp('commentBody','inputComment');
-    const ct=G.corrects[G.selStudent]?.[G.selDate];
-    if(ct!==undefined){$$('inputCorrect').value=ct;$$('inputCorrect').classList.add('auto');
-      $$('rCorrect').innerText=ct;$$('rTotal').innerText=G.totalQ;
-      $$('calcResult').textContent=`${ct} / ${G.totalQ}`;
-    }
     $$('inputWrong').value=G.wrong[G.selStudent]?.[G.selDate]||'';
     updateWrongTags($$('inputWrong').value);
     // base 항목: 직전 레슨 과제
