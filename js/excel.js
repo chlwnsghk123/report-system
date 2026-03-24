@@ -7,7 +7,7 @@ async function loadExcel(input){
   try{
     const buf=await file.arrayBuffer();
     parseWB(XLSX.read(buf,{type:'array',cellDates:false,raw:false}));
-    G.excelFileName=file.name;G.tabData={};G.mascotChoices={};
+    G.excelFileName=file.name;G.tabData={};
     await saveAppDataNow();showGroups();
     setBar('ok',`✅ ${file.name}`);
   }catch(e){setBar('err','❌ 파싱 실패: '+e.message);console.error(e);}
@@ -80,7 +80,7 @@ function parseWB(wb){
     }
   }
 
-  G.students=[];G.scores={};G.corrects={};G.wrong={};G.hwRec={};G.rates={};G.memos={};
+  G.students=[];G.scores={};G.corrects={};G.wrong={};G.hwRec={};G.rates={};G.memos={};G.mascotChoices={};
 
   const hasDateSheets=wb.SheetNames.some(n=>/^\d{4}-\d{2}-\d{2}$/.test(n));
 
@@ -234,6 +234,23 @@ function parseWB(wb){
       rec.items=[...baseItems,...carryItems];
     });
   });
+
+  // ─── 설정 시트 파싱 ───
+  const wsCfg=wb.Sheets['설정'];
+  if(wsCfg){
+    const cfgRows=XLSX.utils.sheet_to_json(wsCfg,{header:1,defval:'',raw:false});
+    let section='';
+    cfgRows.forEach(r=>{
+      const col0=String(r[0]||'').trim();
+      if(col0.startsWith('▼')){section=col0;return;}
+      if(section==='▼ 스티커'){
+        const name=col0;
+        const tier=String(r[1]||'').trim();
+        const idx=parseInt(r[2]);
+        if(name&&tier&&!isNaN(idx)){G.mascotChoices[name]={tier,idx};}
+      }
+    });
+  }
 }
 
 // ─── 엑셀 저장 ───
@@ -366,6 +383,20 @@ async function saveToExcel(){
       if(cell){cell.t='s';cell.v=String(cell.v===undefined?'':cell.v);}
     }
     XLSX.utils.book_append_sheet(wb,wsC,'이월과제');
+  }
+
+  // ─── 설정 시트 (스티커 등 잡다한 설정) ───
+  const cfgAoa=[['키','값1','값2']];
+  const mascotEntries=Object.entries(G.mascotChoices);
+  if(mascotEntries.length){
+    cfgAoa.push(['▼ 스티커','','']);
+    mascotEntries.forEach(([name,{tier,idx}])=>{
+      cfgAoa.push([name,tier,String(idx)]);
+    });
+  }
+  if(cfgAoa.length>1){
+    const wsCfg=XLSX.utils.aoa_to_sheet(cfgAoa);
+    XLSX.utils.book_append_sheet(wb,wsCfg,'설정');
   }
 
   const a=document.createElement('a');

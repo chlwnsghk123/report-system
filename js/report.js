@@ -17,18 +17,15 @@ function updateRateFace(){
   const imgs=MASCOT_IMGS[tier];
   if(!imgs||!imgs.length){el.innerHTML='';el.style.display='none';return;}
   el.style.display='';
-  // 사용자가 선택한 마스코트가 있고 같은 티어면 유지, 아니면 첫 로드만 랜덤
+  // 학생별 저장된 마스코트 확인
   let idx;
-  if(G.selectedMascot&&G.selectedMascot.tier===tier&&G.selectedMascot.idx<imgs.length){
-    idx=G.selectedMascot.idx;
-  }else if(G.selectedMascot&&G.selectedMascot.tier!==tier){
-    // 티어 변경 시 랜덤 (아직 사용자가 이 티어에서 선택한 적 없음)
-    idx=Math.floor(Math.random()*imgs.length);
+  const saved=G.mascotChoices[G.selStudent];
+  if(saved&&saved.tier===tier&&saved.idx<imgs.length){
+    idx=saved.idx;
   }else{
-    // 첫 로드: 랜덤
     idx=Math.floor(Math.random()*imgs.length);
-    G.selectedMascot={tier,idx};
   }
+  G.selectedMascot={tier,idx};
   el.dataset.mascotIdx=idx;
   el.dataset.mascotTier=tier;
   const src=imgs[idx];
@@ -78,6 +75,7 @@ function openMascotPicker(e){
     el.innerHTML=`<img src="${imgs[idx]}" alt="mascot" draggable="false">`;
     const tier=el.dataset.mascotTier;
     G.selectedMascot={tier,idx};
+    if(G.selStudent){G.mascotChoices[G.selStudent]={tier,idx};saveAppData();}
     closePicker();
   });
   // ESC 닫기
