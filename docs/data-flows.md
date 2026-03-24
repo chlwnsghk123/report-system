@@ -176,4 +176,5 @@ cycleHwStatus()
 saveTabData()
   → syncHwRecItems()
     → G.hwItems/hwStatus/hwItemTypes → hwRec[key].items 배열 동기화
+    → base 항목에 ref 자동 부여 (`${date}-hw${baseIdx}`) — 이월 추적용
 ```
