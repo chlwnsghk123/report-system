@@ -45,9 +45,9 @@ function stFromExcel(v){
 
 // 내부 한글 → 엑셀 숫자 문자열
 function stToExcel(v){
-  if(v==='완료')return'2';
-  if(v==='부분완료')return'1';
-  if(v==='미완료')return'0';
+  if(v==='완료'||v==='2')return'2';
+  if(v==='부분완료'||v==='1')return'1';
+  if(v==='미완료'||v==='0')return'0';
   return'';
 }
 
@@ -125,7 +125,7 @@ function parseWB(wb){
         const key=`${name}||${date}`;
         const rec={이행률:rate};
         for(let ci=hwStartCol;ci<hwEndCol;ci++){
-          rec[`과제${ci-hwStartCol+1}_상태`]=String(r[ci]||'').trim();
+          rec[`과제${ci-hwStartCol+1}_상태`]=stFromExcel(String(r[ci]||'').trim());
         }
         // 추가과제 열 파싱 → extraHw (이번 주차 추가 과제)
         if(extraStartCol>=0){
@@ -183,8 +183,8 @@ function parseWB(wb){
         const rate=normalizeRate(r[1]);
         const key=`${name}||${d}`;
         G.hwRec[key]={이행률:rate,
-          과제1_상태:String(r[3]||'').trim(),과제2_상태:String(r[5]||'').trim(),
-          과제3_상태:String(r[7]||'').trim(),과제4_상태:String(r[9]||'').trim()};
+          과제1_상태:stFromExcel(String(r[3]||'').trim()),과제2_상태:stFromExcel(String(r[5]||'').trim()),
+          과제3_상태:stFromExcel(String(r[7]||'').trim()),과제4_상태:stFromExcel(String(r[9]||'').trim())};
         if(!isNaN(rate)&&rate!==null){G.rates[name]=G.rates[name]||{};G.rates[name][d]=rate;}
       });
     });
