@@ -8,8 +8,8 @@ function computeCarryover(student,date){
   const rec=G.hwRec[key];
   if(!rec?.items?.length)return[];
   return rec.items
-    .filter(it=>it.status===0||it.status===1)
-    .map(it=>({text:it.text,ref:it.ref||'',fromDate:it.fromDate||prevDate}));
+    .filter(it=>(it.status===0||it.status===1)&&it.ref)
+    .map(it=>({text:it.text,ref:it.ref,fromDate:it.fromDate||prevDate}));
 }
 
 // ─── 이번 주차 과제 + 추가과제 + 미완료 캐리 반영 (리포트카드) ───
