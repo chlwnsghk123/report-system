@@ -440,11 +440,21 @@ function _buildJournalAttendHtml(date){
     }
   });
   if(!present.length&&!late.length&&!absent.length)return'';
+  const pair=(arr,icon,color)=>{
+    let h='';
+    for(let i=0;i<arr.length;i+=2){
+      h+=`<div style="display:flex;gap:8px;">`;
+      h+=`<div style="flex:1;font-size:13px;line-height:1.8;color:${color};"><span style="font-weight:700;">${icon}</span> ${esc(arr[i])}</div>`;
+      if(arr[i+1])h+=`<div style="flex:1;font-size:13px;line-height:1.8;color:${color};"><span style="font-weight:700;">${icon}</span> ${esc(arr[i+1])}</div>`;
+      h+=`</div>`;
+    }
+    return h;
+  };
   let html=`<div style="margin-top:10px;padding-top:10px;border-top:1px solid #f0f0f0;">
     <div style="font-size:12px;font-weight:700;color:#6b7280;margin-bottom:8px;">출결 현황</div>`;
-  if(present.length)html+=present.map(n=>`<div style="font-size:13px;line-height:1.8;color:#16a34a;"><span style="font-weight:700;">출석✓</span> ${esc(n)}</div>`).join('');
-  if(late.length)html+=late.map(n=>`<div style="font-size:13px;line-height:1.8;color:#ca8a04;"><span style="font-weight:700;">지각△</span> ${esc(n)}</div>`).join('');
-  if(absent.length)html+=absent.map(n=>`<div style="font-size:13px;line-height:1.8;color:#dc2626;"><span style="font-weight:700;">결석/</span> ${esc(n)}</div>`).join('');
+  html+=pair(present,'출석✓','#16a34a');
+  html+=pair(late,'지각△','#ca8a04');
+  html+=pair(absent,'결석/','#dc2626');
   html+=`</div>`;
   return html;
 }
@@ -562,13 +572,25 @@ function _buildJournalAttendImageHtml(date){
     else{if(date<=today)absent.push(n);}
   });
   if(!present.length&&!late.length&&!absent.length)return'';
+  const bg=c=>c==='#16a34a'?'#f0fdf4':c==='#ca8a04'?'#fefce8':'#fef2f2';
+  const pairImg=(arr,icon,color)=>{
+    let h='';
+    for(let i=0;i<arr.length;i+=2){
+      h+=`<div style="display:flex;gap:6px;margin-bottom:4px;">`;
+      h+=`<div style="flex:1;padding:6px 14px;background:${bg(color)};border-radius:8px;font-size:14px;color:${color};display:flex;align-items:center;gap:8px;">
+        <span style="font-weight:800;">${icon}</span><span style="color:#333;">${esc(arr[i])}</span></div>`;
+      if(arr[i+1])h+=`<div style="flex:1;padding:6px 14px;background:${bg(color)};border-radius:8px;font-size:14px;color:${color};display:flex;align-items:center;gap:8px;">
+        <span style="font-weight:800;">${icon}</span><span style="color:#333;">${esc(arr[i+1])}</span></div>`;
+      else h+=`<div style="flex:1;"></div>`;
+      h+=`</div>`;
+    }
+    return h;
+  };
   let html=`<div style="margin-top:20px;padding-top:16px;border-top:1.5px solid #e5e7eb;">
     <div style="font-size:13px;font-weight:800;color:#374151;margin-bottom:10px;">📋 출결 현황</div>`;
-  const row=(icon,color,name)=>`<div style="padding:6px 14px;background:${color==='#16a34a'?'#f0fdf4':color==='#ca8a04'?'#fefce8':'#fef2f2'};border-radius:8px;margin-bottom:4px;font-size:14px;color:${color};display:flex;align-items:center;gap:8px;">
-    <span style="font-weight:800;">${icon}</span><span style="color:#333;">${esc(name)}</span></div>`;
-  present.forEach(n=>{html+=row('출석 ✓','#16a34a',n);});
-  late.forEach(n=>{html+=row('지각 △','#ca8a04',n);});
-  absent.forEach(n=>{html+=row('결석 /','#dc2626',n);});
+  html+=pairImg(present,'출석 ✓','#16a34a');
+  html+=pairImg(late,'지각 △','#ca8a04');
+  html+=pairImg(absent,'결석 /','#dc2626');
   html+=`</div>`;
   return html;
 }
