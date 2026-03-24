@@ -18,7 +18,7 @@ const G={
   selDate:'',selStudent:'',
   hwItems:[],hwStatus:[],hwItemTypes:[],hwRateManual:null,extraHw:[],reportEdits:{},
   totalQ:5,
-  showMini:false,showComment:false,
+  showMini:false,showComment:false,colorMode:false,
   tabData:{},
   excelFileName:'학습리포트_데이터.xlsx',
   attachedPdfBytes:null,pdfCanvases:[],pdfPageCount:0,currentSpread:0,

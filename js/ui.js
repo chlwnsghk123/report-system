@@ -75,11 +75,13 @@ function switchView(view){
 
 // ─── 수업설정 전체화면 모달 ───
 function openLessonModal(){
+  G._lessonFocus=-1; // 포커싱 초기화 → 자동 nextDate 포커스
   renderLessonCards();
   renderStudentList();
   _openModal('lessonModalOverlay');
 }
 function closeLessonModal(){
+  G._lessonFocus=-1; // 포커싱 초기화
   _closeModal('lessonModalOverlay');
 }
 
@@ -163,27 +165,37 @@ function renderLessonCards(){
   // 오늘 이후 가장 가까운 날짜 찾기
   const futureDates=G.lessons.filter(l=>l.날짜>=today).map(l=>l.날짜);
   const nextDate=futureDates.length?futureDates[0]:null;
+  // 포커싱 중인 카드 유지 (없으면 nextDate)
+  const focusIdx=G._lessonFocus??-1;
   c.innerHTML=G.lessons.map((l,i)=>{
     let cls='lesson-card';
-    if(l.날짜<today)cls+=' lc-past';
+    const isFocused=focusIdx===i;
+    const isPast=l.날짜<today;
+    if(isPast&&!isFocused)cls+=' lc-past';
+    if(isFocused)cls+=' lc-focus';
     else if(l.날짜===nextDate)cls+=' lc-next';
+    // 값이 있는 과제만 표시
     const hwKeys=getLessonHwKeys(l);
-    const hwHtml=hwKeys.map((k,hi)=>`
-      <div class="lc-hw-row">
-        <input placeholder="과제 ${hi+1}" value="${esc(l[k]||'')}" oninput="updateLessonField(${i},'${k}',this.value)">
-        ${hwKeys.length>1?`<button class="lc-hw-del" onclick="removeLessonHw(${i},${hi})" title="과제 삭제">✕</button>`:''}
-      </div>`).join('');
-    return`<div class="${cls}" data-idx="${i}">
+    const visibleHw=hwKeys.filter(k=>(l[k]||'').trim());
+    const showKeys=visibleHw.length?visibleHw:[hwKeys[0]]; // 최소 1개
+    const hwHtml=showKeys.map((k,hi)=>{
+      const realIdx=hwKeys.indexOf(k);
+      return`<div class="lc-hw-row">
+        <input placeholder="과제 ${realIdx+1}" value="${esc(l[k]||'')}" oninput="updateLessonField(${i},'${k}',this.value)" onfocus="focusLessonCard(${i})">
+        ${showKeys.length>1||visibleHw.length>1?`<button class="lc-hw-del" onclick="removeLessonHw(${i},${realIdx})" title="과제 삭제">✕</button>`:''}
+      </div>`;
+    }).join('');
+    return`<div class="${cls}" data-idx="${i}" onclick="focusLessonCard(${i})">
       <div class="lc-head">
-        <input type="date" class="lc-date-input" value="${l.날짜}" onchange="updateLessonDate(${i},this.value)">
+        <input type="date" class="lc-date-input" value="${l.날짜}" onchange="updateLessonDate(${i},this.value)" onfocus="focusLessonCard(${i})">
         <button class="lc-del" onclick="removeLesson(${i})" title="삭제">🗑</button>
       </div>
       <div class="lc-body">
         <div class="lc-row">
-          <input placeholder="교재명" value="${esc(l.교재)}" oninput="updateLessonField(${i},'교재',this.value)">
-          <input placeholder="단원명" value="${esc(l.단원)}" oninput="updateLessonField(${i},'단원',this.value)">
+          <input placeholder="교재명" value="${esc(l.교재)}" oninput="updateLessonField(${i},'교재',this.value)" onfocus="focusLessonCard(${i})">
+          <input placeholder="단원명" value="${esc(l.단원)}" oninput="updateLessonField(${i},'단원',this.value)" onfocus="focusLessonCard(${i})">
         </div>
-        <textarea placeholder="상세 진도" rows="1" oninput="updateLessonField(${i},'상세진도',this.value)">${esc(l.상세진도)}</textarea>
+        <textarea placeholder="상세 진도" rows="2" oninput="updateLessonField(${i},'상세진도',this.value);_autoGrowTextarea(this)" onfocus="focusLessonCard(${i})">${esc(l.상세진도)}</textarea>
         <div class="lc-hw-label">과제</div>
         <div class="lc-hw">${hwHtml}
           <button class="lc-hw-add" onclick="addLessonHw(${i})">+ 과제 추가</button>
@@ -191,12 +203,33 @@ function renderLessonCards(){
       </div>
     </div>`;
   }).join('');
-  // 가장 가까운 미래 날짜로 스크롤
-  if(nextDate){
+  // 텍스트에어리어 높이 자동 조정
+  c.querySelectorAll('textarea').forEach(_autoGrowTextarea);
+  // 포커싱 카드로 스크롤 (최초 or 포커스 없을 때만)
+  if(focusIdx<0&&nextDate){
     const idx=G.lessons.findIndex(l=>l.날짜===nextDate);
     const card=c.children[idx];
     if(card)setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'center'}),100);
   }
+}
+
+// 상세진도 textarea 자동 높이 조절
+function _autoGrowTextarea(el){
+  if(el instanceof Event)el=el.target;
+  if(!el||el.tagName!=='TEXTAREA')return;
+  el.style.height='auto';
+  el.style.height=Math.max(48,el.scrollHeight)+'px';
+}
+
+// 수업설정 카드 포커싱
+function focusLessonCard(idx){
+  if(G._lessonFocus===idx)return;
+  G._lessonFocus=idx;
+  renderLessonCards();
+  // 포커싱된 카드로 부드럽게 스크롤
+  const c=$$('lessonCards');
+  const card=c?.children[idx];
+  if(card)setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'nearest'}),50);
 }
 
 function updateLessonField(idx,field,value){
@@ -277,7 +310,7 @@ function addLesson(){
     const d=new Date(newDate);d.setDate(d.getDate()+1);
     newDate=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
-  G.lessons.push({id:genLessonId(),날짜:newDate,전체문제수:5,교재:'',단원:'',상세진도:'',과제1:'',과제2:'',과제3:'',과제4:''});
+  G.lessons.push({id:genLessonId(),날짜:newDate,전체문제수:5,교재:'',단원:'',상세진도:'',과제1:''});
   G.lessons.sort((a,b)=>a.날짜.localeCompare(b.날짜));
   renderLessonCards();renderViewTabs();saveAppData();
 }
@@ -467,6 +500,16 @@ function _showModalToast(modalId,msg){
   }
   toast.textContent=msg;toast.classList.add('show');
   setTimeout(()=>toast.classList.remove('show'),1800);
+}
+
+// ─── 컬러/흑백 모드 토글 ───
+function toggleColorMode(){
+  G.colorMode=!G.colorMode;
+  const rc=document.querySelector('.rc');
+  if(rc)rc.classList.toggle('color-mode',G.colorMode);
+  const btn=$$('btnColorMode');
+  if(btn)btn.textContent=G.colorMode?'☀️':'🌙';
+  saveSession();
 }
 
 // ─── 토글 (미니테스트/코멘트) ───

@@ -26,7 +26,7 @@ async function saveAppDataNow(){
 async function saveSession(){
   try{
     await dbSet('session',{selDate:G.selDate,selStudent:G.selStudent,
-      showMini:G.showMini,showComment:G.showComment,currentView:G.currentView});
+      showMini:G.showMini,showComment:G.showComment,colorMode:G.colorMode,currentView:G.currentView});
   }catch(e){console.error('saveSession 실패:',e);}
 }
 
@@ -36,6 +36,7 @@ function restoreSession(s){
   if(s.selStudent&&G.students.includes(s.selStudent))G.selStudent=s.selStudent;
   if(s.showMini&&!G.showMini)toggleSec('mini');
   if(s.showComment&&!G.showComment)toggleSec('comment');
+  if(s.colorMode&&!G.colorMode)toggleColorMode();
   renderStudentList();renderViewTabs();renderTabs();
   if(s.currentView==='date'&&G.selDate)switchView('date');
   else switchView('config');
