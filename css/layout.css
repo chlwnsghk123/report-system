@@ -212,6 +212,10 @@ body{margin:0;padding:0;background-color:#f2f4f6;font-family:'Pretendard',sans-s
 .lesson-card.lc-next{border:2px solid #3182f6;box-shadow:0 0 0 3px rgba(49,130,246,.12);}
 .lesson-card.lc-next .lc-head{background:#eff6ff;border-bottom-color:#dbeafe;}
 .lesson-card.lc-next .lc-date{color:#1d4ed8;}
+.lesson-card.lc-focus{opacity:1!important;border:2px solid #3182f6;box-shadow:0 0 0 3px rgba(49,130,246,.12);}
+.lesson-card.lc-focus .lc-head{background:#eff6ff;border-bottom-color:#dbeafe;}
+.lesson-card.lc-focus .lc-date-input{color:#1d4ed8;}
+.lc-body textarea{resize:none;overflow:hidden;min-height:48px;line-height:1.5;}
 
 /* 과제 동적 추가/삭제 */
 .lc-hw-row{display:flex;gap:6px;align-items:center;}
