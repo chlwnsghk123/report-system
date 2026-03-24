@@ -81,7 +81,8 @@ G = {
   showMini: false, showComment: false,
 
   // 마스코트 선택
-  mascotChoices: {},   // {"학생명_날짜": 이미지인덱스} — 사용자가 선택한 마스코트
+  mascotChoices: {},   // (레거시) DB 호환용, 실사용 안 함
+  selectedMascot: null, // {tier:'high'|'mid'|'low', idx:숫자} — 세션 내 고정 마스코트 (DB/엑셀 미저장)
 
   // 탭 임시 저장
   tabData: {},
