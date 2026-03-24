@@ -287,7 +287,9 @@ function initReportListeners(){
 function setAttend(val){
   if(!G.selStudent||!G.selDate)return;
   G.attend[G.selStudent]=G.attend[G.selStudent]||{};
-  G.attend[G.selStudent][G.selDate]=val;
+  // 같은 버튼 재클릭 → 해제(-1)
+  const cur=G.attend[G.selStudent][G.selDate];
+  G.attend[G.selStudent][G.selDate]=(cur===val)?-1:val;
   updateAttendUI();
   saveAppData();
 }
@@ -299,10 +301,11 @@ function updateAttendUI(){
   }
   wrap.style.display='';
   const val=G.attend[G.selStudent]?.[G.selDate];
-  // 미래 날짜 공란은 결석 아님 → 버튼 선택 안 함, 과거 공란은 결석
+  // -1=해제(특수), 미래 공란은 선택 안 함, 과거 공란은 결석
   const today=todayKST();
   let effective=val;
-  if(val==null||val===undefined){
+  if(val===-1)effective=null; // 해제 상태 → 아무 버튼도 선택 안 함
+  else if(val==null||val===undefined){
     effective=G.selDate<=today?0:null;
   }
   wrap.querySelectorAll('.att-btn').forEach(btn=>{

@@ -657,6 +657,8 @@ function _renderStudentReport(student,startDate,endDate,container){
       if(it.type==='carry'&&it.ref&&it.status>=1)resolvedRefs.add(it.ref);
     });
   });
+  // 완료한 과제 수: 한 번에 완료(2) + 한 번에 부분완료(1) + 이월 통해 부분완료 이상
+  let completedHw=0;
   dates.forEach(d=>{
     const rate=G.rates[student]?.[d];
     if(rate!=null&&!isNaN(rate)){rateSum+=rate;rateCount++;}
@@ -665,16 +667,16 @@ function _renderStudentReport(student,startDate,endDate,container){
     const items=rec?.items||[];
     let baseIdx=0;
     items.forEach(it=>{
-      if(it.type==='carry')return; // 이월과제 제외
+      if(it.type==='carry')return;
       const idx=baseIdx++;
       if(isNone(it.status))return;
       totalHw++;
-      if(it.status===2)doneHw++;
-      else if(it.status===1)partialHw++;
+      if(it.status===2){doneHw++;completedHw++;}
+      else if(it.status===1){partialHw++;completedHw++;}
       else if(it.status===0){
-        // 이월에서 부분완료 이상으로 해결되었으면 미완료가 아님
         const ref=`${d}-${idx}`;
-        if(!resolvedRefs.has(ref))missHw++;
+        if(resolvedRefs.has(ref))completedHw++; // 이월로 해결
+        else missHw++;
       }
     });
   });
@@ -693,8 +695,8 @@ function _renderStudentReport(student,startDate,endDate,container){
         <div style="font-size:20px;font-weight:800;color:#111;">${rateCount}<span style="font-size:11px;color:#999;">/${dates.length}회</span></div>
       </div>
       <div style="flex:1;min-width:100px;background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #e5e7eb;text-align:center;">
-        <div style="font-size:10px;color:#888;margin-bottom:4px;">미완료한 과제 수</div>
-        <div style="font-size:20px;font-weight:800;color:${missHw>0?'#991b1b':'#166534'};">${missHw}<span style="font-size:11px;color:#999;">/${totalHw}개</span></div>
+        <div style="font-size:10px;color:#888;margin-bottom:4px;">완료한 과제 수</div>
+        <div style="font-size:20px;font-weight:800;color:${totalHw?rateColor(Math.round(completedHw/totalHw*100)):'#d1d5db'};">${completedHw}<span style="font-size:11px;color:#999;">/${totalHw}개</span></div>
       </div>
     </div>
     ${totalHw?`<div style="display:flex;gap:12px;margin-top:8px;font-size:11px;">
