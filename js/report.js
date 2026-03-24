@@ -174,7 +174,7 @@ function onRateManual(){
 }
 
 // ─── 과제 순환 버튼 ───
-const hwBtnLabel=s=>({2:'✓ 완료',1:'◑ 부분완료',0:'✗ 미완료'}[s]||'— 없음');
+const hwBtnLabel=s=>({2:'✓ 완료',1:'△ 부분완료',0:'✗ 미완료'}[s]||'— 없음');
 function cycleHwStatus(i){
   const order=[-1,2,1,0];
   const cur=G.hwStatus[i]??-1;
@@ -215,7 +215,7 @@ function updateHwDisplay(){
   const visible=G.hwItems.filter((_,i)=>!isNone(G.hwStatus[i]));
   if(!G.hwItems.length||!visible.length){if(sec)sec.style.display='none';list.innerHTML='';return;}
   if(sec)sec.style.display='';
-  const icons={2:'✓',1:'◑',0:'✗'};
+  const icons={2:'✓',1:'△',0:'✗'};
   const baseHtml=[],carryHtml=[],extraHtml=[];
   G.hwItems.forEach((item,i)=>{
     if(!item.trim()||isNone(G.hwStatus[i]))return;

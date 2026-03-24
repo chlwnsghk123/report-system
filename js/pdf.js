@@ -117,7 +117,7 @@ async function _doSummaryImage(){
     const prevLesson=getPrevL();
     const W=800; // 이미지 폭
     const minCardH=160; // 결석 등 최소 높이
-    const stLabel={2:'✓ 완료',1:'◑ 부분완료',0:'✗ 미완료'};
+    const stLabel={2:'✓ 완료',1:'△ 부분완료',0:'✗ 미완료'};
     const stColor={2:'#166534',1:'#92400e',0:'#991b1b'};
     const stBg={2:'#dcfce7',1:'#fef3c7',0:'#fee2e2'};
 
@@ -598,19 +598,34 @@ function _renderStudentReport(student,startDate,endDate,container){
 
   // 통계 계산
   let rateSum=0,rateCount=0,totalHw=0,doneHw=0,partialHw=0,missHw=0;
+  // 이월에서 해결된 ref 수집 (status >= 1이면 해결)
+  const resolvedRefs=new Set();
+  dates.forEach(d=>{
+    const key=`${student}||${d}`;
+    const rec=G.hwRec[key];
+    (rec?.items||[]).forEach(it=>{
+      if(it.type==='carry'&&it.ref&&it.status>=1)resolvedRefs.add(it.ref);
+    });
+  });
   dates.forEach(d=>{
     const rate=G.rates[student]?.[d];
     if(rate!=null&&!isNaN(rate)){rateSum+=rate;rateCount++;}
     const key=`${student}||${d}`;
     const rec=G.hwRec[key];
     const items=rec?.items||[];
+    let baseIdx=0;
     items.forEach(it=>{
       if(it.type==='carry')return; // 이월과제 제외
+      const idx=baseIdx++;
       if(isNone(it.status))return;
       totalHw++;
       if(it.status===2)doneHw++;
       else if(it.status===1)partialHw++;
-      else if(it.status===0)missHw++;
+      else if(it.status===0){
+        // 이월에서 부분완료 이상으로 해결되었으면 미완료가 아님
+        const ref=`${d}-${idx}`;
+        if(!resolvedRefs.has(ref))missHw++;
+      }
     });
   });
   const avgRate=rateCount>0?Math.round(rateSum/rateCount):null;
@@ -628,13 +643,13 @@ function _renderStudentReport(student,startDate,endDate,container){
         <div style="font-size:20px;font-weight:800;color:#111;">${rateCount}<span style="font-size:11px;color:#999;">/${dates.length}회</span></div>
       </div>
       <div style="flex:1;min-width:100px;background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #e5e7eb;text-align:center;">
-        <div style="font-size:10px;color:#888;margin-bottom:4px;">과제 완료율</div>
-        <div style="font-size:20px;font-weight:800;color:${totalHw?rateColor(Math.round(doneHw/totalHw*100)):'#d1d5db'};">${totalHw?Math.round(doneHw/totalHw*100)+'%':'-'}</div>
+        <div style="font-size:10px;color:#888;margin-bottom:4px;">미완료한 과제 수</div>
+        <div style="font-size:20px;font-weight:800;color:${missHw>0?'#991b1b':'#166534'};">${missHw}<span style="font-size:11px;color:#999;">/${totalHw}개</span></div>
       </div>
     </div>
-    ${totalHw?`<div style="display:flex;gap:6px;margin-top:8px;font-size:11px;">
+    ${totalHw?`<div style="display:flex;gap:12px;margin-top:8px;font-size:11px;">
       <span style="color:#166534;">✓ 완료 ${doneHw}</span>
-      <span style="color:#92400e;">◑ 부분 ${partialHw}</span>
+      <span style="color:#92400e;">△ 부분완료 ${partialHw}</span>
       <span style="color:#991b1b;">✗ 미완료 ${missHw}</span>
     </div>`:''}
   </div>`;
