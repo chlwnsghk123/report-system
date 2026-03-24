@@ -38,19 +38,17 @@ function restoreSession(s){
   if(s.showMini&&!G.showMini)toggleSec('mini');
   if(s.showComment&&!G.showComment)toggleSec('comment');
   if(s.colorMode&&!G.colorMode)toggleColorMode();
-  renderStudentList();renderViewTabs();renderTabs();
+  renderStudentList();renderTabs();
   if(s.currentView==='date'&&G.selDate)switchView('date');
   else switchView('config');
 }
 
 // ─── 데이터 로드 후 UI 표시 ───
 function showGroups(){
-  $$('viewTabs').style.display='';
   $$('btnSave').style.display='';
   $$('btnSave').disabled=false;
   const pdfBtn=$$('btnPdf');if(pdfBtn)pdfBtn.style.display='';
   renderStudentList();
-  renderViewTabs();
   autoSelectDate();
 }
 
@@ -61,10 +59,7 @@ function autoSelectDate(){
   let best=G.lessons.find(l=>l.날짜>=today);
   if(!best)best=G.lessons[G.lessons.length-1];
   G.selDate=best.날짜;
-  const idx=G.lessons.indexOf(best);
-  G.dateTabOffset=Math.max(0,idx-1);
   if(!G.selStudent&&G.students.length)G.selStudent=G.students[0];
-  renderViewTabs();
   switchView('date');
 }
 

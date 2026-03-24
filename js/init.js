@@ -61,12 +61,38 @@ document.addEventListener('keydown',function(e){
   }
 });
 
+// ─── 패널 리사이즈 ───
+function initPanelResize(){
+  const handle=$$('panelResize'),panel=document.querySelector('.panel');
+  if(!handle||!panel)return;
+  let startX,startW;
+  handle.addEventListener('mousedown',e=>{
+    e.preventDefault();startX=e.clientX;startW=panel.offsetWidth;
+    handle.classList.add('dragging');
+    document.body.style.cursor='col-resize';document.body.style.userSelect='none';
+    const onMove=ev=>{
+      const w=Math.max(280,Math.min(700,startW+(ev.clientX-startX)));
+      panel.style.width=w+'px';
+    };
+    const onUp=()=>{
+      handle.classList.remove('dragging');
+      document.body.style.cursor='';document.body.style.userSelect='';
+      document.removeEventListener('mousemove',onMove);
+      document.removeEventListener('mouseup',onUp);
+      setTimeout(updateScale,50);
+    };
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('mouseup',onUp);
+  });
+}
+
 // ─── 앱 진입점 ───
 window.onload=async()=>{
   db=await openDB();
   updateScale();window.addEventListener('resize',updateScale);
   initCE();initReportListeners();
   loadMascotImages();
+  initPanelResize();
   // PDF 데이터 복원
   await restorePdfData();
   // 항상 새로 시작 — 이전 세션 자동 복원 없음

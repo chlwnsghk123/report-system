@@ -33,91 +33,98 @@
 <!-- ════ 패널 (A 영역) ════ -->
 <div class="panel">
   <div class="panel-head">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-      <span style="font-size:18px;">📝</span>
-      <h2 style="margin:0;font-size:15px;font-weight:800;color:#111;">학습 리포트</h2>
+    <div class="panel-brand">
+      <div class="panel-brand-left">
+        <span class="panel-logo">📝</span>
+        <h2 class="panel-title">학습 리포트</h2>
+      </div>
+      <span id="rLastSaved" class="panel-saved"></span>
     </div>
     <div id="sbar" class="sbar idle" onclick="triggerLoad()">📂 엑셀 파일 불러오기</div>
     <input type="file" id="excelInput" accept=".xlsx,.xls" style="display:none" onchange="loadExcel(this)">
   </div>
 
-  <!-- 뷰 탭: ⚙ 수업설정 + 날짜 탭 -->
-  <div class="view-tabs" id="viewTabs" style="display:none;">
-    <div class="vt-item active" data-view="config" onclick="switchView('config')">⚙ 수업설정</div>
-    <div class="vt-sep"></div>
-    <div class="vt-date-nav">
-      <button class="vt-arrow" onclick="shiftDate(-1)">◀</button>
-      <div class="vt-dates" id="vtDates"></div>
-      <button class="vt-arrow" onclick="shiftDate(1)">▶</button>
-    </div>
-  </div>
-
-  <!-- 학생 탭 (레거시, 사이드바로 대체됨) -->
+  <!-- 뷰 탭 (숨김) -->
+  <div class="view-tabs" id="viewTabs" style="display:none!important;"></div>
   <div class="tab-bar" id="tabBar" style="display:none!important;"></div>
 
   <div class="panel-body">
-    <!-- ===== 날짜별 학생기록 뷰 ===== -->
     <div id="viewDate" style="display:none;">
-      <!-- 수업 요약 (읽기전용) -->
+      <!-- 수업 요약 카드 -->
       <div id="dateSummary" class="date-summary"></div>
 
-      <div class="sdiv">과제 &amp; 진도</div>
-      <div class="cg" id="gPrevHw">
-        <label>저번 주차 과제 <span class="ab">자동</span></label>
-        <div id="hwEditor" style="display:flex;flex-direction:column;gap:4px;"></div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
-          <span style="font-size:13px;font-weight:700;color:#4e5968;">이행률</span>
-          <button class="ab" style="cursor:pointer;border:none;font-family:inherit;" onclick="autoCalcRate()" title="과제 상태에서 이행률을 자동 계산합니다">⚡ 자동계산</button>
-          <input type="number" id="inputRate" min="0" max="100" style="width:100px;text-align:center;" oninput="onRateManual()">
-          <span style="font-size:13px;font-weight:600;color:#9ca3af;">%</span>
+      <!-- 과제 섹션 -->
+      <div class="panel-section">
+        <div class="panel-section-head">
+          <span class="panel-section-icon">📋</span>
+          <span class="panel-section-title">과제 &amp; 이행률</span>
         </div>
-      </div>
-      <div class="cg" id="gCurHw">
-        <label>이번 주차 과제 <span class="ab">자동</span> <span style="font-size:10px;color:#9ca3af;">(학생별 추가 가능)</span></label>
-        <div id="curHwList" style="display:flex;flex-direction:column;gap:3px;overflow:hidden;"></div>
-        <div id="extraHwEditor" style="display:flex;flex-direction:column;gap:3px;"></div>
-        <div class="hw-add-extra">
-          <input type="text" id="extraHwInput" placeholder="추가 과제 입력" onkeydown="if(event.key==='Enter')addExtraHw()">
-          <button onclick="addExtraHw()">+ 추가</button>
+        <div class="panel-card">
+          <div class="cg" id="gPrevHw">
+            <label>저번 주차 과제 <span class="ab">자동</span></label>
+            <div id="hwEditor" style="display:flex;flex-direction:column;gap:4px;"></div>
+            <div class="rate-input-row">
+              <span class="rate-label">이행률</span>
+              <button class="ab rate-auto-btn" onclick="autoCalcRate()" title="과제 상태에서 이행률을 자동 계산합니다">⚡ 자동계산</button>
+              <input type="number" id="inputRate" class="rate-input" min="0" max="100" oninput="onRateManual()">
+              <span class="rate-unit">%</span>
+            </div>
+          </div>
         </div>
-      </div>
-
-      <div class="sdiv">선택 항목</div>
-
-      <!-- 미니테스트 토글 -->
-      <div class="sw-row" id="toggleMini" onclick="toggleSec('mini')">
-        <div class="sw-track"><div class="sw-thumb"></div></div>
-        <div style="flex:1;">
-          <div class="sw-label">📝 미니 테스트</div>
-          <div class="sw-desc">리포트에 테스트 결과 포함</div>
-        </div>
-      </div>
-      <div id="gMini" style="display:none;flex-direction:column;gap:8px;">
-        <div class="cg">
-          <label>오답 번호 <span style="font-size:10px;font-weight:500;color:#9ca3af;">(쉼표 구분, 예: 1번, 3번)</span></label>
-          <input type="text" id="inputWrong" placeholder="1번, 3번" oninput="updateWrongTags(this.value)">
+        <div class="panel-card">
+          <div class="cg" id="gCurHw">
+            <label>이번 주차 과제 <span class="ab">자동</span> <span class="label-hint">(학생별 추가 가능)</span></label>
+            <div id="curHwList" style="display:flex;flex-direction:column;gap:3px;overflow:hidden;"></div>
+            <div id="extraHwEditor" style="display:flex;flex-direction:column;gap:3px;"></div>
+            <div class="hw-add-extra">
+              <input type="text" id="extraHwInput" placeholder="추가 과제 입력" onkeydown="if(event.key==='Enter')addExtraHw()">
+              <button onclick="addExtraHw()">+ 추가</button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- 코멘트 (임시 숨김) -->
-      <div class="sw-row" id="toggleComment" onclick="toggleSec('comment')" style="display:none;">
-        <div class="sw-track"><div class="sw-thumb"></div></div>
-        <div style="flex:1;">
-          <div class="sw-label">💬 코멘트</div>
-          <div class="sw-desc">선생님 한마디 포함</div>
+      <!-- 선택 항목 섹션 -->
+      <div class="panel-section">
+        <div class="panel-section-head">
+          <span class="panel-section-icon">⚙</span>
+          <span class="panel-section-title">선택 항목</span>
         </div>
+        <div class="sw-row" id="toggleMini" onclick="toggleSec('mini')">
+          <div class="sw-track"><div class="sw-thumb"></div></div>
+          <div style="flex:1;">
+            <div class="sw-label">📝 미니 테스트</div>
+            <div class="sw-desc">리포트에 테스트 결과 포함</div>
+          </div>
+        </div>
+        <div id="gMini" style="display:none;flex-direction:column;gap:8px;">
+          <div class="panel-card">
+            <div class="cg">
+              <label>오답 번호 <span class="label-hint">(쉼표 구분)</span></label>
+              <input type="text" id="inputWrong" placeholder="오답 번호 입력" oninput="updateWrongTags(this.value)">
+            </div>
+          </div>
+        </div>
+
+        <!-- 코멘트 (임시 숨김) -->
+        <div class="sw-row" id="toggleComment" onclick="toggleSec('comment')" style="display:none;">
+          <div class="sw-track"><div class="sw-thumb"></div></div>
+          <div style="flex:1;">
+            <div class="sw-label">💬 코멘트</div>
+            <div class="sw-desc">선생님 한마디 포함</div>
+          </div>
+        </div>
+        <div class="cg" id="gComment" style="display:none;">
+          <div style="font-size:11px;color:#9ca3af;padding:2px 0;">리포트에서 직접 편집하세요</div>
+        </div>
+        <input type="hidden" id="inputTeacher">
+        <input type="hidden" id="inputComment">
+        <button class="btn-s" id="btnMemo" onclick="openMemo()" style="display:none;">📋 비고 작성하기</button>
       </div>
-      <div class="cg" id="gComment" style="display:none;">
-        <div style="font-size:11px;color:#9ca3af;padding:2px 0;">리포트에서 직접 편집하세요</div>
-      </div>
-      <input type="hidden" id="inputTeacher">
-      <input type="hidden" id="inputComment">
-      <!-- 비고 (임시 숨김) -->
-      <button class="btn-s" id="btnMemo" onclick="openMemo()" style="display:none;">📋 비고 작성하기</button>
     </div>
   </div>
 
-  <!-- 리포트 카드 동기화용 hidden inputs -->
+  <!-- hidden inputs -->
   <input type="hidden" id="inCurBook">
   <input type="hidden" id="inCurChap">
   <input type="hidden" id="inCurDetail">
@@ -130,13 +137,15 @@
   <div id="calcResult" style="display:none;"></div>
 </div>
 
+<!-- 패널 리사이즈 핸들 -->
+<div class="panel-resize" id="panelResize"></div>
+
 <!-- ════ 미리보기 (B 영역) ════ -->
 <div class="preview" id="previewArea">
   <div id="unsavedBanner" class="unsaved-banner" style="display:none;">⚠ 저장되지 않은 변경사항이 있습니다</div>
   <!-- 상단 메뉴 바 -->
   <div class="toolbar">
     <div style="display:flex;flex-direction:column;gap:4px;">
-      <div id="rLastSaved" class="tb-lastsaved"></div>
       <div id="attendToggle" class="attend-toggle" style="display:none;">
         <button class="att-btn att-present" data-att="2" onclick="setAttend(2)">출석</button>
         <button class="att-btn att-late" data-att="1" onclick="setAttend(1)">지각</button>
@@ -156,13 +165,15 @@
           <div class="tb-menu-sep"></div>
           <button onclick="dlSummaryPdf();closeToolbarMenus()">📋 전체 과제 요약 이미지</button>
           <div class="tb-menu-sep"></div>
-          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.49)</button>
+          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.50)</button>
         </div>
       </div>
       <button class="tb-btn" disabled title="준비 중">🖨 프린트</button>
       <div class="tb-dropdown" id="tbSettings">
         <button class="tb-btn" onclick="toggleToolbarMenu('tbSettings')">⚙ 설정</button>
         <div class="tb-menu">
+          <button onclick="openLessonModal();closeToolbarMenus()">📋 수업 진도 설정</button>
+          <div class="tb-menu-sep"></div>
           <div style="padding:8px 14px 6px;font-size:11px;font-weight:700;color:#8a8f9e;">리포트 테마</div>
           <button id="btnColorMode" onclick="toggleColorMode();closeToolbarMenus()">🌙 흑백 모드</button>
         </div>
@@ -172,6 +183,13 @@
   <div class="preview-body">
     <!-- 메인 콘텐츠 -->
     <div class="preview-content" id="previewContent">
+      <!-- 상단 날짜 네비게이션 -->
+      <div class="date-nav-bar" id="dateNavBar" style="display:none;">
+        <button class="dn-arrow" onclick="navDatePrev()">‹</button>
+        <div class="dn-label" id="dnLabel" onclick="toggleDateDropdown()"></div>
+        <button class="dn-arrow" onclick="navDateNext()">›</button>
+        <div class="dn-dropdown" id="dnDropdown"></div>
+      </div>
       <div class="page-nav" id="pageNav" style="display:none;">
         <button id="btnPrev" onclick="prevSpread()" disabled>‹</button>
         <span class="pinfo" id="pageInfo">1 / 1</span>
@@ -270,6 +288,7 @@
 
           <canvas id="leftPdfCanvas" style="display:none;box-shadow:0 4px 20px rgba(0,0,0,.1);"></canvas>
           <div class="pdf-lbl" id="leftLabel"></div>
+          <button class="pdf-add-inline" id="pdfAddInline" onclick="inlinePdfAttach()" title="PDF 첨부" style="display:none;">+</button>
         </div>
 
         <div class="page-slot" id="rightSlot" style="display:none;">
@@ -277,8 +296,10 @@
           <div class="pdf-lbl" id="rightLabel"></div>
         </div>
       </div>
-      <!-- 리포트 옆 PDF 첨부 버튼 -->
-      <button class="pdf-add-inline" id="pdfAddInline" onclick="inlinePdfAttach()" title="PDF 첨부" style="display:none;">+</button>
+    </div>
+    <!-- 날짜 사이드바 (학생 사이드바 왼쪽) -->
+    <div class="date-sidebar" id="dateSidebar" style="display:none;">
+      <div class="ds-list" id="dsList"></div>
     </div>
     <!-- 학생 사이드바 (맨 우측) -->
     <div class="student-sidebar" id="studentSidebar" style="display:none;">
