@@ -49,6 +49,14 @@
 .rate-unit{font-size:24px;font-weight:500;color:#777;margin-bottom:8px;margin-left:4px;}
 .rate-mascot{position:absolute;right:15px;bottom:calc(100% - 17.7px);width:120px;height:120px;z-index:2;cursor:pointer;}
 .rate-mascot img{width:100%;height:100%;object-fit:contain;pointer-events:none;}
+/* 마스코트 선택 팝업 */
+.mascot-picker{position:absolute;right:0;bottom:calc(100% + 5px);z-index:20;background:#fff;border:1px solid #ddd;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding:10px;width:260px;}
+.mascot-picker-title{font-size:12px;font-weight:600;color:#555;margin-bottom:8px;text-align:center;}
+.mascot-picker-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+.mascot-pick-item{width:100%;aspect-ratio:1;border:2px solid transparent;border-radius:8px;cursor:pointer;padding:3px;background:#fafafa;transition:border-color .15s,transform .15s;}
+.mascot-pick-item:hover{border-color:#aaa;transform:scale(1.08);}
+.mascot-pick-item.selected{border-color:#4f8cff;background:#e8f0ff;}
+.mascot-pick-item img{width:100%;height:100%;object-fit:contain;pointer-events:none;}
 .rate-chart{width:100%;height:150px;position:relative;background-color:#fafafa;border-radius:4px;
   padding:30px 0 10px 0;border:1px solid #ddd;display:flex;flex-direction:column;justify-content:space-between;}
 .chart-inner{flex:1;padding:0;height:90px;}
