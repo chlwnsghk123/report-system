@@ -677,13 +677,17 @@ function _renderStudentReport(student,startDate,endDate,container){
 
   // 통계 계산
   let rateSum=0,rateCount=0,totalHw=0,doneHw=0,partialHw=0,missHw=0;
-  // 이월에서 해결된 ref 수집 (status >= 1이면 해결)
-  const resolvedRefs=new Set();
+  // 이월에서 해결된 ref → 최종 상태 매핑 수집
+  const resolvedMap=new Map();
   dates.forEach(d=>{
     const key=`${student}||${d}`;
     const rec=G.hwRec[key];
     (rec?.items||[]).forEach(it=>{
-      if(it.type==='carry'&&it.ref&&it.status>=1)resolvedRefs.add(it.ref);
+      if(it.type==='carry'&&it.ref&&!isNone(it.status)){
+        const prev=resolvedMap.get(it.ref);
+        // 가장 높은(최종) 상태를 유지
+        if(prev==null||it.status>prev)resolvedMap.set(it.ref,it.status);
+      }
     });
   });
   // 완료한 과제 수: 한 번에 완료(2) + 한 번에 부분완료(1) + 이월 통해 부분완료 이상
@@ -704,7 +708,9 @@ function _renderStudentReport(student,startDate,endDate,container){
       else if(it.status===1){partialHw++;completedHw++;}
       else if(it.status===0){
         const ref=`${d}-${idx}`;
-        if(resolvedRefs.has(ref))completedHw++; // 이월로 해결
+        const resolved=resolvedMap.get(ref);
+        if(resolved===2){doneHw++;completedHw++;} // 이월 통해 완료
+        else if(resolved===1){partialHw++;completedHw++;} // 이월 통해 부분완료
         else missHw++;
       }
     });

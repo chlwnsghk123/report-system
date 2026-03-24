@@ -336,8 +336,7 @@ function renderDateSummary(){
       ${cur.교재?`<span class="ds-chip">📚 ${esc(cur.교재)}</span>`:''}
       ${cur.단원?`<span class="ds-chip">📖 ${esc(cur.단원)}</span>`:''}
     </div>
-    ${cur.상세진도?`<div class="ds-detail">${esc(cur.상세진도)}</div>`:''}
-    ${hwT.length?`<div class="ds-hw">📝 과제: ${hwT.map(t=>esc(t)).join(', ')}</div>`:''}
+    ${cur.상세진도?`<div class="ds-detail">${esc(cur.상세진도).replace(/\\n|\n/g,'<br>')}</div>`:''}
   `;
 }
 
