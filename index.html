@@ -144,11 +144,17 @@
           <div class="tb-menu-sep"></div>
           <button onclick="dlSummaryPdf();closeToolbarMenus()">📋 전체 과제 요약 이미지</button>
           <div class="tb-menu-sep"></div>
-          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.12)</button>
+          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.17)</button>
         </div>
       </div>
       <button class="tb-btn" disabled title="준비 중">🖨 프린트</button>
-      <button class="tb-btn" id="btnColorMode" onclick="toggleColorMode()" title="컬러/흑백 전환">🌙</button>
+      <div class="tb-dropdown" id="tbSettings">
+        <button class="tb-btn" onclick="toggleToolbarMenu('tbSettings')">⚙ 설정</button>
+        <div class="tb-menu">
+          <div style="padding:8px 14px 6px;font-size:11px;font-weight:700;color:#8a8f9e;">리포트 테마</div>
+          <button id="btnColorMode" onclick="toggleColorMode();closeToolbarMenus()">🌙 흑백 모드</button>
+        </div>
+      </div>
     </div>
   </div>
   <div class="page-nav" id="pageNav" style="display:none;">

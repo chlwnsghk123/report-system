@@ -508,7 +508,7 @@ function toggleColorMode(){
   const rc=document.querySelector('.rc');
   if(rc)rc.classList.toggle('color-mode',G.colorMode);
   const btn=$$('btnColorMode');
-  if(btn)btn.textContent=G.colorMode?'☀️':'🌙';
+  if(btn)btn.textContent=G.colorMode?'☀️ 컬러 모드':'🌙 흑백 모드';
   saveSession();
 }
 
