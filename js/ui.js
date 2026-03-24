@@ -119,10 +119,12 @@ function selectDate(date){
       }
       if(td.rateManual!=null){rec.이행률=td.rateManual;G.rates[name]=G.rates[name]||{};G.rates[name][G.selDate]=td.rateManual;}
       else if(G.rates[name]?.[G.selDate]!=null){rec.이행률=G.rates[name][G.selDate];}
+      else{rec.이행률=null;}
       // 오답·맞힌수 동기화 (날짜 전환 시 유실 방지)
       if(td.wrongInput){G.wrong[name]=G.wrong[name]||{};G.wrong[name][G.selDate]=td.wrongInput;}
       else if(G.wrong[name]?.[G.selDate]){delete G.wrong[name][G.selDate];}
       if(td.correctInput!==''){G.corrects[name]=G.corrects[name]||{};G.corrects[name][G.selDate]=parseInt(td.correctInput)||0;}
+      else if(G.corrects[name]?.[G.selDate]!=null){delete G.corrects[name][G.selDate];}
       G.hwRec[key]=rec;
     }
     saveAppData();
@@ -323,9 +325,10 @@ function syncHwRecItems(student,date){
   if(!student||!date)return;
   const key=`${student}||${date}`;
   const rec=G.hwRec[key]||{이행률:null};
-  // 이행률 동기화: 수동입력 우선, 없으면 G.rates에서 가져옴
+  // 이행률 동기화: 수동입력 우선, 없으면 G.rates, 둘 다 없으면 null(결석)
   if(G.hwRateManual!=null) rec.이행률=G.hwRateManual;
   else if(G.rates[student]?.[date]!=null) rec.이행률=G.rates[student][date];
+  else rec.이행률=null;
   rec.items=G.hwItems.map((text,i)=>({
     text,
     status:G.hwStatus[i]||'',
