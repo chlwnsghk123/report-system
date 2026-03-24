@@ -7,7 +7,7 @@ async function loadExcel(input){
   try{
     const buf=await file.arrayBuffer();
     parseWB(XLSX.read(buf,{type:'array',cellDates:false,raw:false}));
-    G.excelFileName=file.name;G.tabData={};
+    G.excelFileName=file.name;G.tabData={};G.mascotChoices={};
     await saveAppDataNow();showGroups();
     setBar('ok',`✅ ${file.name}`);
   }catch(e){setBar('err','❌ 파싱 실패: '+e.message);console.error(e);}

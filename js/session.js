@@ -5,7 +5,7 @@ function saveAppData(){
   _saveTimer=setTimeout(async()=>{
     try{
       await dbSet('appData',{lessons:G.lessons,students:G.students,rates:G.rates,
-        scores:G.scores,corrects:G.corrects,wrong:G.wrong,hwRec:G.hwRec,memos:G.memos,tabData:G.tabData,fileName:G.excelFileName});
+        scores:G.scores,corrects:G.corrects,wrong:G.wrong,hwRec:G.hwRec,memos:G.memos,tabData:G.tabData,fileName:G.excelFileName,mascotChoices:G.mascotChoices});
     }catch(e){
       console.error('saveAppData 실패:',e);
       setBar('err','❌ 데이터 저장 실패');
@@ -17,7 +17,7 @@ async function saveAppDataNow(){
   if(_saveTimer){clearTimeout(_saveTimer);_saveTimer=null;}
   try{
     await dbSet('appData',{lessons:G.lessons,students:G.students,rates:G.rates,
-      scores:G.scores,corrects:G.corrects,wrong:G.wrong,hwRec:G.hwRec,memos:G.memos,tabData:G.tabData,fileName:G.excelFileName});
+      scores:G.scores,corrects:G.corrects,wrong:G.wrong,hwRec:G.hwRec,memos:G.memos,tabData:G.tabData,fileName:G.excelFileName,mascotChoices:G.mascotChoices});
   }catch(e){
     console.error('saveAppData 실패:',e);
     setBar('err','❌ 데이터 저장 실패');
