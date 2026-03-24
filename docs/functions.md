@@ -105,7 +105,7 @@
 |---|---|
 | `MASCOT_IMGS` | 티어별(high/mid/low) 마스코트 이미지 경로 배열 |
 | `registerMascots(tier,files)` | 마스코트 이미지 등록 (tier: high/mid/low) |
-| `updateRateFace()` | 이행률 기반 마스코트 이미지 표시 (75↑high, 30↑mid, 30↓low), 클릭 이벤트 등록 |
+| `updateRateFace()` | 이행률 기반 마스코트 이미지 표시 (75↑high, 30↑mid, 30↓low), 사용자 선택 시 세션 내 고정, 첫 로드만 랜덤 |
 | `openMascotPicker()` | 마스코트 클릭 시 선택 팝업 열기 (같은 티어 이미지 그리드 표시) |
 | `rebuildGraph()` | SVG 이행률 꺾은선 그래프 재빌드 |
 | `renderHwEditor()` | 과제 에디터 UI 렌더링 (base/carry/extra 통합) |
