@@ -38,7 +38,10 @@
         <span class="panel-logo">📝</span>
         <h2 class="panel-title">학습 리포트</h2>
       </div>
-      <span id="rLastSaved" class="panel-saved"></span>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+        <span id="rLastSaved" class="panel-saved"></span>
+        <span id="unsavedInline" class="unsaved-inline" style="display:none;">⚠ 미저장</span>
+      </div>
     </div>
     <div id="sbar" class="sbar idle" onclick="triggerLoad()">📂 엑셀 파일 불러오기</div>
     <input type="file" id="excelInput" accept=".xlsx,.xls" style="display:none" onchange="loadExcel(this)">
@@ -134,16 +137,9 @@
 
 <!-- ════ 미리보기 (B 영역) ════ -->
 <div class="preview" id="previewArea">
-  <div id="unsavedBanner" class="unsaved-banner" style="display:none;">⚠ 저장되지 않은 변경사항이 있습니다</div>
   <!-- 상단 메뉴 바 -->
   <div class="toolbar">
-    <div style="display:flex;flex-direction:column;gap:4px;">
-      <div id="attendToggle" class="attend-toggle" style="display:none;">
-        <button class="att-btn att-present" data-att="2" onclick="setAttend(2)">출석</button>
-        <button class="att-btn att-late" data-att="1" onclick="setAttend(1)">지각</button>
-        <button class="att-btn att-absent" data-att="0" onclick="setAttend(0)">결석</button>
-      </div>
-    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;"></div>
     <div class="tb-group">
       <button class="tb-btn" id="btnPdf" onclick="dlPdf()" style="display:none;">📄 PDF로 내보내기</button>
       <button class="tb-btn tb-save" id="btnSave" onclick="saveToExcel()" style="display:none" disabled>💾 저장</button>
@@ -157,7 +153,7 @@
           <div class="tb-menu-sep"></div>
           <button onclick="dlSummaryPdf();closeToolbarMenus()">📋 전체 과제 요약 이미지</button>
           <div class="tb-menu-sep"></div>
-          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.51)</button>
+          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.52)</button>
         </div>
       </div>
       <button class="tb-btn" disabled title="준비 중">🖨 프린트</button>
@@ -175,7 +171,20 @@
   <div class="preview-body">
     <!-- 메인 콘텐츠 -->
     <div class="preview-content" id="previewContent">
-      <!-- 상단 날짜 네비게이션 (삭제됨, 세로 사이드바로 대체) -->
+      <!-- 상단 날짜 네비게이션 -->
+      <div class="date-nav-bar" id="dateNavBar" style="display:none;">
+        <button class="dn-arrow" onclick="navDatePrev()">‹</button>
+        <div class="dn-label" id="dnLabel" onclick="toggleDateDropdown()"></div>
+        <button class="dn-arrow" onclick="navDateNext()">›</button>
+        <div class="dn-dropdown" id="dnDropdown"></div>
+      </div>
+      <div class="attend-bar" id="attendBar" style="display:none;">
+        <div id="attendToggle" class="attend-toggle">
+          <button class="att-btn att-present" data-att="2" onclick="setAttend(2)">출석</button>
+          <button class="att-btn att-late" data-att="1" onclick="setAttend(1)">지각</button>
+          <button class="att-btn att-absent" data-att="0" onclick="setAttend(0)">결석</button>
+        </div>
+      </div>
       <div class="page-nav" id="pageNav" style="display:none;">
         <button id="btnPrev" onclick="prevSpread()" disabled>‹</button>
         <span class="pinfo" id="pageInfo">1 / 1</span>
@@ -289,14 +298,13 @@
         <button onclick="zoomReport(0.05)" title="확대">+</button>
         <button onclick="zoomReport(0)" title="자동 맞춤" style="font-size:10px;width:auto;padding:0 6px;">맞춤</button>
       </div>
-      <!-- 학생 전환 화살표 -->
-      <button class="stu-nav stu-nav-prev" id="stuNavPrev" onclick="navStudentPrev()" style="display:none;">‹</button>
-      <button class="stu-nav stu-nav-next" id="stuNavNext" onclick="navStudentNext()" style="display:none;">›</button>
+      <!-- 학생 전환 화살표 (우측 상하) -->
+      <div class="stu-nav-group" id="stuNavGroup" style="display:none;">
+        <button class="stu-nav-v stu-nav-up" id="stuNavPrev" onclick="navStudentPrev()">‹</button>
+        <button class="stu-nav-v stu-nav-down" id="stuNavNext" onclick="navStudentNext()">›</button>
+      </div>
     </div>
-    <!-- 날짜 사이드바 (학생 사이드바 왼쪽) -->
-    <div class="date-sidebar" id="dateSidebar" style="display:none;">
-      <div class="ds-list" id="dsList"></div>
-    </div>
+    <!-- 날짜 사이드바 (삭제됨, 상단 네비로 대체) -->
     <!-- 학생 사이드바 (맨 우측) -->
     <div class="student-sidebar" id="studentSidebar" style="display:none;">
       <div class="ss-header">학생</div>

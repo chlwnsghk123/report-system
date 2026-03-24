@@ -303,6 +303,9 @@ body.modal-open .preview{overflow:hidden!important;}
   opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:10000;white-space:nowrap;}
 .modal-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
+/* ═══ 출결 바 (날짜 네비 아래) ═══ */
+.attend-bar{display:flex;align-items:center;padding:6px 16px;background:#f0f2f5;border-bottom:1px solid #e5e8eb;flex-shrink:0;}
+
 /* ═══ 출결 세그먼트 컨트롤 ═══ */
 .attend-toggle{display:inline-flex;background:#e5e7eb;border-radius:10px;padding:3px;gap:0;}
 .att-btn{border:none;padding:7px 18px;font-size:13px;font-weight:700;border-radius:8px;cursor:pointer;font-family:inherit;background:transparent;color:#6b7280;transition:all .15s;min-width:56px;text-align:center;}
@@ -313,10 +316,12 @@ body.modal-open .preview{overflow:hidden!important;}
 .att-absent.active{background:#dc2626;}
 .att-btn:hover:not(.active){background:#d1d5db;}
 
-/* ═══ 미저장 배너 ═══ */
-.unsaved-banner{position:sticky;top:0;z-index:50;text-align:center;padding:8px 16px;
-  background:#fef3c7;color:#92400e;font-size:13px;font-weight:700;
-  border-bottom:1px solid #fbbf24;font-family:inherit;}
+/* ═══ 미저장 배너 (구, 숨김 처리) ═══ */
+.unsaved-banner{display:none!important;}
+/* 미저장 인라인 표시 (패널 헤드) */
+.unsaved-inline{font-size:9px;font-weight:700;color:#d97706;background:#fef3c7;border:1px solid #fcd34d;
+  padding:1px 6px;border-radius:6px;white-space:nowrap;animation:unsavedBlink 2s ease-in-out infinite;}
+@keyframes unsavedBlink{0%,100%{opacity:1}50%{opacity:.5}}
 
 /* ═══ 프리뷰 본문 (사이드바 + 콘텐츠) ═══ */
 .preview-body{display:flex;flex:1;overflow:hidden;min-height:0;}
@@ -383,7 +388,7 @@ body.modal-open .preview{overflow:hidden!important;}
 .ss-hm-sep{height:1px;background:#e5e7eb;margin:3px 6px;}
 
 /* ═══ 리포트 옆 인라인 + 버튼 ═══ */
-.pdf-add-inline{position:absolute;top:50%;left:calc(100% + 12px);transform:translateY(-50%);
+.pdf-add-inline{position:absolute;top:50%;left:calc(100% + 4px);transform:translateY(-50%);
   width:36px;height:36px;border-radius:10px;border:2px dashed #c7d2fe;
   background:#f8f9ff;color:#6366f1;font-size:20px;font-weight:400;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
@@ -445,19 +450,23 @@ body.modal-open .preview{overflow:hidden!important;}
 .zoom-ctrl button:hover{background:#f3f4f6;border-color:#d1d5db;}
 .zoom-ctrl span{font-size:11px;font-weight:600;color:#6b7280;min-width:36px;text-align:center;}
 
-/* ═══ 학생 전환 화살표 (리포트 양쪽) ═══ */
-.stu-nav{position:absolute;top:50%;transform:translateY(-50%);width:36px;height:64px;
-  border:none;border-radius:8px;background:rgba(0,0,0,.04);color:rgba(0,0,0,.2);
-  font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  transition:all .2s;z-index:25;}
-.stu-nav:hover{background:rgba(0,0,0,.08);color:rgba(0,0,0,.45);}
-.stu-nav:disabled{opacity:0;cursor:default;pointer-events:none;}
-.stu-nav-prev{left:8px;}
-.stu-nav-next{right:8px;}
+/* ═══ 학생 전환 화살표 (우측 상하) ═══ */
+.stu-nav-group{position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  display:flex;flex-direction:column;gap:6px;z-index:25;}
+.stu-nav-v{width:32px;height:40px;border:none;border-radius:8px;
+  background:rgba(0,0,0,.04);color:rgba(0,0,0,.2);font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.stu-nav-v:hover{background:rgba(0,0,0,.08);color:rgba(0,0,0,.45);}
+.stu-nav-v:disabled{opacity:0;cursor:default;pointer-events:none;}
+.stu-nav-up{transform:rotate(90deg);}
+.stu-nav-down{transform:rotate(90deg);}
 
-/* ═══ 리포트카드 전환 애니메이션 ═══ */
-@keyframes rcSlideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
-.rc.rc-transition{animation:rcSlideIn .25s ease-out;}
+/* ═══ 리포트카드 전환 애니메이션 (상하 슬라이드) ═══ */
+@keyframes rcSlideDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+.rc.rc-transition{animation:rcSlideDown .25s ease-out;}
+/* 날짜 전환 페이드 */
+@keyframes rcFadeIn{from{opacity:0}to{opacity:1}}
+.rc.rc-fade{animation:rcFadeIn .3s ease-out;}
 
 /* ═══ 반응형 ═══ */
 @media screen and (max-width:1024px){

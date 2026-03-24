@@ -99,9 +99,9 @@ function toggleStudentSec(){
 // ─── 미저장 상태 배너 ───
 function markUnsaved(){
   G.unsaved=true;
-  const el=$$('unsavedBanner');if(el)el.style.display='';
+  const el=$$('unsavedInline');if(el)el.style.display='';
 }
 function markSaved(){
   G.unsaved=false;
-  const el=$$('unsavedBanner');if(el)el.style.display='none';
+  const el=$$('unsavedInline');if(el)el.style.display='none';
 }
