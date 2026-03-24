@@ -249,6 +249,7 @@ async function saveToExcel(){
     const key=`${n}||${G.selDate}`;
     const ex=G.hwRec[key]||{이행률:null};
     if(td.rateManual!=null){ex.이행률=td.rateManual;G.rates[n]=G.rates[n]||{};G.rates[n][G.selDate]=td.rateManual;}
+    else if(G.rates[n]?.[G.selDate]!=null){ex.이행률=G.rates[n][G.selDate];}
     // items 배열 동기화
     const hs=td.hwStatus||[];
     const items=td.hwItems||[];
@@ -300,7 +301,7 @@ async function saveToExcel(){
         const correct=G.corrects[n]?.[date];
         const scoreStr=correct!==undefined?`${correct}/${total}`:'';
         const key=`${n}||${date}`,rec=G.hwRec[key];
-        const rate=rec?.이행률;
+        const rate=rec?.이행률!=null?rec.이행률:G.rates[n]?.[date]??null;
         const hwVals=Array.from({length:hwCount},(_,i)=>
           stToExcel(rec?.[`과제${i+1}_상태`]||''));
         // 추가과제: "내용|상태숫자" 형식

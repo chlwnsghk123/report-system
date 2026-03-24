@@ -118,6 +118,7 @@ function selectDate(date){
         items.forEach((_,i)=>{if(!types[i]||types[i].type==='base')rec[`과제${i+1}_상태`]=hs[i]||'';});
       }
       if(td.rateManual!=null){rec.이행률=td.rateManual;G.rates[name]=G.rates[name]||{};G.rates[name][G.selDate]=td.rateManual;}
+      else if(G.rates[name]?.[G.selDate]!=null){rec.이행률=G.rates[name][G.selDate];}
       G.hwRec[key]=rec;
     }
     saveAppData();
