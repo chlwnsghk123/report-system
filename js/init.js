@@ -67,5 +67,7 @@ window.onload=async()=>{
   updateScale();window.addEventListener('resize',updateScale);
   initCE();initReportListeners();
   loadMascotImages();
+  // PDF 데이터 복원
+  await restorePdfData();
   // 항상 새로 시작 — 이전 세션 자동 복원 없음
 };

@@ -52,8 +52,8 @@
     </div>
   </div>
 
-  <!-- 학생 탭 (날짜 뷰에서만) -->
-  <div class="tab-bar" id="tabBar" style="display:none;"></div>
+  <!-- 학생 탭 (레거시, 사이드바로 대체됨) -->
+  <div class="tab-bar" id="tabBar" style="display:none!important;"></div>
 
   <div class="panel-body">
     <!-- ===== 날짜별 학생기록 뷰 ===== -->
@@ -97,10 +97,6 @@
           <label>오답 번호 <span style="font-size:10px;font-weight:500;color:#9ca3af;">(쉼표 구분, 예: 1번, 3번)</span></label>
           <input type="text" id="inputWrong" placeholder="1번, 3번" oninput="updateWrongTags(this.value)">
         </div>
-        <input type="file" id="pdfInput" accept=".pdf" style="display:none;" onchange="loadAttachPdf(this)">
-        <button class="btn-s" id="btnAttach" onclick="document.getElementById('pdfInput').click()">
-          <span>📎</span><span id="attachLabel">시험자료 첨부</span>
-        </button>
       </div>
 
       <!-- 코멘트 토글 -->
@@ -160,7 +156,7 @@
           <div class="tb-menu-sep"></div>
           <button onclick="dlSummaryPdf();closeToolbarMenus()">📋 전체 과제 요약 이미지</button>
           <div class="tb-menu-sep"></div>
-          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.42)</button>
+          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.43)</button>
         </div>
       </div>
       <button class="tb-btn" disabled title="준비 중">🖨 프린트</button>
@@ -173,111 +169,125 @@
       </div>
     </div>
   </div>
-  <div class="page-nav" id="pageNav" style="display:none;">
-    <button id="btnPrev" onclick="prevSpread()" disabled>‹</button>
-    <span class="pinfo" id="pageInfo">1 / 1</span>
-    <button id="btnNext" onclick="nextSpread()" disabled>›</button>
-  </div>
-  <div class="spread-row" id="spreadRow">
-    <div class="page-slot" id="leftSlot">
-
-      <!-- 리포트 카드 -->
-      <div class="rc" id="reportCard">
-        <div class="rc-header">
-          <div class="rc-sname">
-            <span id="rName" class="eh" contenteditable="true" style="display:inline;"></span><span class="suf" style="font-size: inherit; font-weight: inherit; color: inherit; margin-left: 8px;">학생</span>
-          </div>
-          <div class="rc-meta">
-            <div class="rc-date" id="rDate"></div>
-          </div>
-        </div>
-
-        <!-- ① 이행률 -->
-        <div class="sec" id="secRate">
-          <div class="sec-title green"><span class="sec-icon">·</span> 숙제 이행률</div>
-          <div class="rate-wrap">
-            <div class="rate-num"><span id="rRate" class="eh" contenteditable="true">—</span></div>
-            <div class="rate-unit">%</div>
-          </div>
-          <div class="rate-chart">
-            <div class="rate-mascot" id="rateMascot"></div>
-            <div class="chart-inner"><svg class="lc" id="svgChart" viewBox="0 0 660 100" preserveAspectRatio="none"></svg></div>
-            <div class="chart-labels" id="gLabels"></div>
-          </div>
-        </div>
-
-        <!-- ② 저번 주차 과제 -->
-        <div class="sec" id="secPrevHw">
-          <div class="sec-title">
-            <span class="sec-icon">✎</span> 저번 주차 과제
-            <span id="rPrevHwDate" class="prev-hw-date"></span>
-          </div>
-          <div class="hw-list" id="rHwList"></div>
-        </div>
-
-        <!-- ③ 진도 -->
-        <div class="sec">
-          <div class="sec-title"><span class="sec-icon">📖</span> 수업 진도</div>
-          <div class="prog-row">
-            <div class="prog-card current">
-              <div class="prog-label">현재 진도 <span id="rCurDt" style="text-transform:none;font-weight:500;"></span></div>
-              <div>
-                <span class="prog-book eh" id="rCurBook" contenteditable="true" data-panel="inCurBook"></span>
-                <span class="prog-chap eh" id="rCurChap" contenteditable="true" data-panel="inCurChap"></span>
-              </div>
-              <div class="prog-detail eh" id="rCurDetail" contenteditable="true" data-panel="inCurDetail"></div>
-            </div>
-            <div class="prog-card prev">
-              <div class="prog-label">이전 진도 <span id="rPrevDt" style="text-transform:none;font-weight:500;"></span></div>
-              <div>
-                <span class="prog-book eh" id="rPrevBook" contenteditable="true" data-panel="inPrevBook"></span>
-                <span class="prog-chap eh" id="rPrevChap" contenteditable="true" data-panel="inPrevChap"></span>
-              </div>
-              <div class="prog-detail eh" id="rPrevDetail" contenteditable="true" data-panel="inPrevDetail"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ④ 이번 과제 -->
-        <div class="sec">
-          <div class="sec-title">
-            <span class="sec-icon">✐</span> 이번 주차 과제
-            <span id="rNextHwDate" class="prev-hw-date"></span>
-          </div>
-          <div class="next-hw-list" id="rNoticeList"></div>
-        </div>
-
-        <!-- ⑤ 미니테스트 (선택) -->
-        <div class="sec" id="secMini" style="display:none;">
-          <div class="sec-title green"><span class="sec-icon">✏</span> 미니 테스트</div>
-          <div class="mini-wrong-row">
-            <div class="mini-wrong-lbl">✗ 오답 번호</div>
-            <div class="mini-tags" id="rWrongTags"></div>
-          </div>
-          <span id="rCorrect" style="display:none;"></span>
-          <span id="rTotal" style="display:none;"></span>
-        </div>
-
-        <!-- ⑥ 코멘트 (선택) -->
-        <div class="sec" id="secComment" style="display:none;">
-          <div class="sec-title"><span class="sec-icon">·</span> 코멘트</div>
-          <div class="comment-wrap">
-            <div class="comment-text eh" id="commentBody" contenteditable="true" data-panel="inputComment"></div>
-            <div class="teacher-sign eh" id="commentSign" contenteditable="true"></div>
-          </div>
-        </div>
-
-      </div><!-- /rc -->
-
-      <canvas id="leftPdfCanvas" style="display:none;box-shadow:0 4px 20px rgba(0,0,0,.1);"></canvas>
-      <div class="pdf-lbl" id="leftLabel"></div>
+  <div class="preview-body">
+    <!-- 학생 사이드바 (우측) -->
+    <div class="student-sidebar" id="studentSidebar" style="display:none;">
+      <div class="ss-header">학생 목록</div>
+      <div class="ss-list" id="ssList"></div>
     </div>
+    <!-- 메인 콘텐츠 -->
+    <div class="preview-content" id="previewContent">
+      <div class="page-nav" id="pageNav" style="display:none;">
+        <button id="btnPrev" onclick="prevSpread()" disabled>‹</button>
+        <span class="pinfo" id="pageInfo">1 / 1</span>
+        <button id="btnNext" onclick="nextSpread()" disabled>›</button>
+      </div>
+      <div class="spread-row" id="spreadRow">
+        <div class="page-slot" id="leftSlot">
 
-    <div class="page-slot" id="rightSlot" style="display:none;">
-      <canvas id="rightPdfCanvas" style="box-shadow:0 4px 20px rgba(0,0,0,.1);"></canvas>
-      <div class="pdf-lbl" id="rightLabel"></div>
+          <!-- 리포트 카드 -->
+          <div class="rc" id="reportCard">
+            <div class="rc-header">
+              <div class="rc-sname">
+                <span id="rName" class="eh" contenteditable="true" style="display:inline;"></span><span class="suf" style="font-size: inherit; font-weight: inherit; color: inherit; margin-left: 8px;">학생</span>
+              </div>
+              <div class="rc-meta">
+                <div class="rc-date" id="rDate"></div>
+              </div>
+            </div>
+
+            <!-- ① 이행률 -->
+            <div class="sec" id="secRate">
+              <div class="sec-title green"><span class="sec-icon">·</span> 숙제 이행률</div>
+              <div class="rate-wrap">
+                <div class="rate-num"><span id="rRate" class="eh" contenteditable="true">—</span></div>
+                <div class="rate-unit">%</div>
+              </div>
+              <div class="rate-chart">
+                <div class="rate-mascot" id="rateMascot"></div>
+                <div class="chart-inner"><svg class="lc" id="svgChart" viewBox="0 0 660 100" preserveAspectRatio="none"></svg></div>
+                <div class="chart-labels" id="gLabels"></div>
+              </div>
+            </div>
+
+            <!-- ② 저번 주차 과제 -->
+            <div class="sec" id="secPrevHw">
+              <div class="sec-title">
+                <span class="sec-icon">✎</span> 저번 주차 과제
+                <span id="rPrevHwDate" class="prev-hw-date"></span>
+              </div>
+              <div class="hw-list" id="rHwList"></div>
+            </div>
+
+            <!-- ③ 진도 -->
+            <div class="sec">
+              <div class="sec-title"><span class="sec-icon">📖</span> 수업 진도</div>
+              <div class="prog-row">
+                <div class="prog-card current">
+                  <div class="prog-label">현재 진도 <span id="rCurDt" style="text-transform:none;font-weight:500;"></span></div>
+                  <div>
+                    <span class="prog-book eh" id="rCurBook" contenteditable="true" data-panel="inCurBook"></span>
+                    <span class="prog-chap eh" id="rCurChap" contenteditable="true" data-panel="inCurChap"></span>
+                  </div>
+                  <div class="prog-detail eh" id="rCurDetail" contenteditable="true" data-panel="inCurDetail"></div>
+                </div>
+                <div class="prog-card prev">
+                  <div class="prog-label">이전 진도 <span id="rPrevDt" style="text-transform:none;font-weight:500;"></span></div>
+                  <div>
+                    <span class="prog-book eh" id="rPrevBook" contenteditable="true" data-panel="inPrevBook"></span>
+                    <span class="prog-chap eh" id="rPrevChap" contenteditable="true" data-panel="inPrevChap"></span>
+                  </div>
+                  <div class="prog-detail eh" id="rPrevDetail" contenteditable="true" data-panel="inPrevDetail"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ④ 이번 과제 -->
+            <div class="sec">
+              <div class="sec-title">
+                <span class="sec-icon">✐</span> 이번 주차 과제
+                <span id="rNextHwDate" class="prev-hw-date"></span>
+              </div>
+              <div class="next-hw-list" id="rNoticeList"></div>
+            </div>
+
+            <!-- ⑤ 미니테스트 (선택) -->
+            <div class="sec" id="secMini" style="display:none;">
+              <div class="sec-title green"><span class="sec-icon">✏</span> 미니 테스트</div>
+              <div class="mini-wrong-row">
+                <div class="mini-wrong-lbl">✗ 오답 번호</div>
+                <div class="mini-tags" id="rWrongTags"></div>
+              </div>
+              <span id="rCorrect" style="display:none;"></span>
+              <span id="rTotal" style="display:none;"></span>
+            </div>
+
+            <!-- ⑥ 코멘트 (선택) -->
+            <div class="sec" id="secComment" style="display:none;">
+              <div class="sec-title"><span class="sec-icon">·</span> 코멘트</div>
+              <div class="comment-wrap">
+                <div class="comment-text eh" id="commentBody" contenteditable="true" data-panel="inputComment"></div>
+                <div class="teacher-sign eh" id="commentSign" contenteditable="true"></div>
+              </div>
+            </div>
+
+          </div><!-- /rc -->
+
+          <canvas id="leftPdfCanvas" style="display:none;box-shadow:0 4px 20px rgba(0,0,0,.1);"></canvas>
+          <div class="pdf-lbl" id="leftLabel"></div>
+        </div>
+
+        <div class="page-slot" id="rightSlot" style="display:none;">
+          <canvas id="rightPdfCanvas" style="box-shadow:0 4px 20px rgba(0,0,0,.1);"></canvas>
+          <div class="pdf-lbl" id="rightLabel"></div>
+        </div>
+      </div>
+      <!-- PDF 첨부 FAB 버튼 -->
+      <button class="pdf-fab" id="pdfFab" onclick="showPdfAttachMenu(event)" title="PDF 첨부" style="display:none;">+</button>
     </div>
   </div>
+  <!-- PDF 파일 입력 (숨김) -->
+  <input type="file" id="pdfInput" accept=".pdf" style="display:none;" onchange="handlePdfInput(this)">
 </div>
 
 <!-- ════ 수업설정 전체화면 모달 ════ -->

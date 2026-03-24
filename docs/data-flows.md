@@ -130,15 +130,26 @@ rebuildGraph()
   → SVG polyline + circle + text
 ```
 
-## 7. PDF 생성
+## 7. PDF 생성 (학생별 첨부)
 
 ```
+PDF 첨부 흐름:
+  showPdfAttachMenu() → "이 학생" / "모든 학생" 선택
+  → handlePdfInput() → _processPdfFile(file)
+    → 첫 페이지만 추출 (pdfjsLib로 렌더, 상5%·하6% 크롭)
+    → PNG bytes로 저장 (용량 최적화)
+    → G.studentPdfs[학생명].push({bytes, name, canvases, pageCount:1, isPng:true})
+  → _savePdfData() → IndexedDB 'studentPdfs' 키에 저장
+
+  복원: restorePdfData() → PNG → Image → canvas 재생성
+
+  학생 전환 시: _syncGlobalPdf() → G.pdfCanvases/pdfPageCount을 현재 학생 기준 갱신
+
 dlPdf()
   → html2canvas(#reportCard, scale:2) → reportCanvas
-  → allPages = [reportCanvas, ...G.pdfCanvases]
+  → allPages = [reportCanvas, ...G.pdfCanvases] (현재 학생 PDF)
   → pdf-lib: A4 가로 (841.89×595.28pt), 마진20, 갭12
   → 2개씩 spread 페이지
-  첨부 PDF 전처리: 상단 5% + 하단 6% 크롭
   → Blob → <a> 클릭 다운로드
   파일명: {학생명}_{날짜}_리포트.pdf
 ```

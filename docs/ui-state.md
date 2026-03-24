@@ -12,7 +12,7 @@ body (flex, 100vh)
 │  ├─ #viewTabs         뷰 탭 바 (로드 후 표시)
 │  │  ├─ .vt-item[config]  ⚙ 수업설정 탭
 │  │  └─ .vt-date-nav      날짜 탭 영역 (◀ 날짜들 ▶)
-│  ├─ #tabBar           학생 탭바 (날짜 뷰에서만 표시)
+│  ├─ #tabBar           학생 탭바 (레거시, 사이드바로 대체)
 │  └─ .panel-body
 │     ├─ #viewConfig    수업설정 뷰
 │     │  ├─ 학생 관리 (접기/펼치기)
@@ -34,19 +34,19 @@ body (flex, 100vh)
 │        └─ #btnPdf          PDF 저장 버튼
 │  (hidden inputs: inCurBook, inCurChap, inCurDetail, inPrevBook/Chap/Detail, inputNotice, inputCorrect/Total, calcResult)
 └─ .preview (우, flex:1)
-   ├─ #pageNav          페이지 네비 (‹ · 페이지 정보 · ›)
-   └─ #spreadRow
-      ├─ #leftSlot
-      │  ├─ #reportCard     A4 캡처 대상
-      │  │  ├─ .rc-header   학생명 (#rName) · 날짜 (#rDate)
-      │  │  ├─ #secRate     ① 이행률 + SVG 꺾은선 그래프 + 마스코트
-      │  │  ├─ #secPrevHw   ② 저번 주차 과제 목록
-      │  │  ├─ (수업 진도)  ③ 현재/이전 진도
-      │  │  ├─ (이번 과제)  ④ 이번 주차 과제 목록
-      │  │  ├─ #secMini     ⑤ 미니 테스트 (선택)
-      │  │  └─ #secComment  ⑥ 코멘트 (선택)
-      │  └─ #leftPdfCanvas  PDF 페이지 캔버스
-      └─ #rightSlot > #rightPdfCanvas
+   ├─ .toolbar           상단 도구 모음
+   └─ .preview-body (flex row)
+      ├─ #studentSidebar  학생 사이드바 (200px, 우측)
+      │  ├─ .ss-header    "학생 목록" 제목
+      │  └─ #ssList       .ss-item × N (이름 + PDF 뱃지 + 첨부 버튼 + 호버 툴팁)
+      └─ .preview-content (flex:1)
+         ├─ #pageNav      페이지 네비 (‹ · 페이지 정보 · › + PDF 삭제 버튼)
+         ├─ #spreadRow
+         │  ├─ #leftSlot
+         │  │  ├─ #reportCard  A4 캡처 대상
+         │  │  └─ #leftPdfCanvas
+         │  └─ #rightSlot > #rightPdfCanvas
+         └─ #pdfFab       PDF 첨부 FAB 버튼 (+)
 ```
 
 ## 전역 상태 객체 G
@@ -100,6 +100,7 @@ G = {
   excelFileName: '학습리포트_데이터.xlsx',
   attachedPdfBytes: null,
   pdfCanvases: [], pdfPageCount: 0, currentSpread: 0,
+  studentPdfs: {},  // {학생명: [{bytes, name, canvases, pageCount, isPng}, ...]} — 학생별 PDF 첨부
   pendingPropagations: [],  // 이월 전파 보류 큐 [{student,date,ref,status}]
 }
 ```
@@ -115,5 +116,5 @@ G = {
 
 ## IndexedDB
 - DB: `reportApp4`, Store: `data`
-- 키: `'appData'`(lessons/students/rates/scores/corrects/wrong/hwRec/memos/attend/tabData/fileName/mascotChoices), `'session'`(selDate·selStudent·showMini·showComment·currentView)
+- 키: `'appData'`(lessons/students/rates/scores/corrects/wrong/hwRec/memos/attend/tabData/fileName/mascotChoices), `'session'`(selDate·selStudent·showMini·showComment·currentView), `'studentPdfs'`(학생별 PDF bytes/name/pageCount/isPng)
 - 참고: IndexedDB에 저장되는 키는 `fileName` (G.excelFileName 값을 저장)
