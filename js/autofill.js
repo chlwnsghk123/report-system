@@ -1,34 +1,15 @@
 // ─── 캐리오버 계산 ───
-// 직전 날짜의 hwRec에서 미완료/부분완료 항목을 수집
+// 직전 날짜의 hwRec.items에서 미완료(0)/부분완료(1) 항목을 수집
 function computeCarryover(student,date){
   const curIdx=G.lessons.findIndex(l=>l.날짜===date);
   if(curIdx<=0)return[];
   const prevDate=G.lessons[curIdx-1].날짜;
   const key=`${student}||${prevDate}`;
   const rec=G.hwRec[key];
-  if(!rec)return[];
-  // 신규 형식: items 배열이 있으면 사용
-  if(rec.items&&rec.items.length){
-    return rec.items
-      .filter(it=>it.status==='미완료'||it.status==='부분완료')
-      .map(it=>({
-        text:it.text,
-        fromDate:it.fromDate||prevDate
-      }));
-  }
-  // 레거시 형식: 과제N_상태로 재구성
-  if(curIdx<2)return[];
-  const ppLesson=G.lessons[curIdx-2];
-  const ppHwKeys=getLessonHwKeys(ppLesson);
-  const result=[];
-  ppHwKeys.forEach((k,i)=>{
-    const text=ppLesson[k];if(!text)return;
-    const status=stFromExcel(rec[`과제${i+1}_상태`]||'');
-    if(status==='미완료'||status==='부분완료'){
-      result.push({text,fromDate:ppLesson.날짜});
-    }
-  });
-  return result;
+  if(!rec?.items?.length)return[];
+  return rec.items
+    .filter(it=>it.status===0||it.status===1)
+    .map(it=>({text:it.text,fromDate:it.fromDate||prevDate}));
 }
 
 // ─── 이번 주차 과제 + 추가과제 + 미완료 캐리 반영 (리포트카드) ───
@@ -42,7 +23,7 @@ function updateNoticeWithCarry(){
   const unfinished=[];
   G.hwItems.forEach((text,i)=>{
     const st=G.hwStatus[i];
-    if(st==='미완료'||st==='부분완료')unfinished.push(text);
+    if(st===0||st===1)unfinished.push(text);
   });
   const list=$$('rNoticeList');
   const baseHtml=baseHw.map(t=>`<div class="next-hw-li">${esc(t)}</div>`).join('');
@@ -106,12 +87,12 @@ function autoFillCommon(){
   renderDateSummary();
 }
 
-// 엑셀 기호/숫자 → UI 한글 상태 변환
+// 엑셀 기호/숫자 → 내부 숫자 상태 변환 (excel.js의 stFromExcel과 동일)
 function stFromExcel(v){
-  if(v==='○'||v==='2')return'완료';
-  if(v==='△'||v==='1')return'부분완료';
-  if(v==='X'||v==='x'||v==='✗'||v==='×'||v==='✕'||v==='0')return'미완료';
-  return v;
+  if(v===2||v==='○'||v==='2'||v==='완료')return 2;
+  if(v===1||v==='△'||v==='1'||v==='부분완료')return 1;
+  if(v===0||v==='X'||v==='x'||v==='✗'||v==='×'||v==='✕'||v==='0'||v==='미완료')return 0;
+  return -1;
 }
 
 // ─── 이전 날짜의 extraHw를 base 항목으로 가져오기 ───
@@ -163,28 +144,24 @@ function autoFillAll(){
     if(hwR&&hwR.items&&hwR.items.length){
       const savedBase=hwR.items.filter(it=>it.type==='base');
       const savedCarry=hwR.items.filter(it=>it.type==='carry');
-      let baseIdx=0,carryIdx=0;
+      let baseIdx=0;
       G.hwStatus=G.hwItems.map((_,i)=>{
         const typ=G.hwItemTypes[i];
         if(typ.type==='base'){
           const saved=savedBase[baseIdx];
-          // items에 상태가 없으면 레거시 과제N_상태 필드 폴백
-          const st=saved?.status||stFromExcel(hwR[`과제${baseIdx+1}_상태`]||'');
+          const st=saved?.status??stFromExcel(hwR[`과제${baseIdx+1}_상태`]??'');
           baseIdx++;
           return st;
         }else if(typ.type==='carry'){
-          const match=savedCarry.find(it=>it.fromDate===typ.fromDate&&it.text===G.hwItems[i]);
-          if(match)carryIdx++;
-          return match?match.status:'';
+          // fromDate 기반 매칭 (같은 날짜 과제가 여럿이면 text도 비교)
+          const sameDate=savedCarry.filter(it=>it.fromDate===typ.fromDate);
+          const match=sameDate.length===1?sameDate[0]:sameDate.find(it=>it.text===G.hwItems[i]);
+          return match?.status??-1;
         }
-        return'';
+        return -1;
       });
     }else{
-      // 레거시: base items만 과제N_상태 사용
-      G.hwStatus=G.hwItems.map((_,i)=>{
-        if(i<baseItems.length&&hwR)return stFromExcel(hwR[`과제${i+1}_상태`]||'');
-        return'';
-      });
+      G.hwStatus=G.hwItems.map(()=>-1);
     }
     // 이번 날짜의 학생별 추가 과제 로드
     G.extraHw=(hwR?.extraHw||[]).map(it=>({...it}));

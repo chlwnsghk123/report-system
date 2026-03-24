@@ -117,9 +117,9 @@ async function _doSummaryImage(){
     const prevLesson=getPrevL();
     const W=800; // 이미지 폭
     const minCardH=160; // 결석 등 최소 높이
-    const stLabel={'완료':'✓ 완료','부분완료':'◑ 부분완료','미완료':'✗ 미완료'};
-    const stColor={'완료':'#166534','부분완료':'#92400e','미완료':'#991b1b'};
-    const stBg={'완료':'#dcfce7','부분완료':'#fef3c7','미완료':'#fee2e2'};
+    const stLabel={2:'✓ 완료',1:'◑ 부분완료',0:'✗ 미완료'};
+    const stColor={2:'#166534',1:'#92400e',0:'#991b1b'};
+    const stBg={2:'#dcfce7',1:'#fef3c7',0:'#fee2e2'};
 
     // 학생별 카드 HTML 생성
     const cardHtmls=G.students.map(name=>{
@@ -140,7 +140,7 @@ async function _doSummaryImage(){
       if(!hasRate){
         html+=`<div style="padding:8px 0;"><span style="font-size:18px;font-weight:800;color:#dc2626;">결석</span></div>`;
       }else{
-        const visible=items.filter(it=>it.status&&stLabel[it.status]);
+        const visible=items.filter(it=>it.status!==-1&&it.status!==''&&stLabel[it.status]);
         if(visible.length){
           let idx=0;
           html+=visible.map(it=>{
