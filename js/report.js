@@ -125,10 +125,11 @@ function renderHwEditor(){
     const fromDate=G.hwItemTypes[i]?.fromDate||'';
     if(i===firstCarryIdx) html+='<div class="hw-carry-divider">이월 과제</div>';
     const isCarry=typ==='carry';
-    html+=`<div class="hw-item${isCarry?' hw-carry':''}">
+    const stCls=isNone(st)?'':'st'+st;
+    html+=`<div class="hw-item${isCarry?' hw-carry':''} ${stCls}" onclick="cycleHwStatus(${i})">
       ${isCarry?`<span class="hw-carry-badge" title="${fromDate?fmtKo(fromDate):''}">(전)</span>`:''}
-      <input type="text" value="${esc(item)}" readonly style="cursor:default;opacity:.8;">
-      <button class="hw-btn s${st}" onclick="cycleHwStatus(${i})">${hwBtnLabel(st)}</button>
+      <input type="text" value="${esc(item)}" readonly style="cursor:pointer;opacity:.8;" tabindex="-1">
+      <span class="hw-btn s${st}">${hwBtnLabel(st)}</span>
     </div>`;
   });
   c.innerHTML=html;
@@ -179,8 +180,13 @@ function cycleHwStatus(i){
   const cur=G.hwStatus[i]??-1;
   const next=order[(order.indexOf(cur)+1)%order.length];
   G.hwStatus[i]=next;
-  const btns=document.querySelectorAll('.hw-btn');
-  if(btns[i]){btns[i].className='hw-btn s'+next;btns[i].textContent=hwBtnLabel(next);}
+  // 박스 전체 + 버튼 갱신
+  const items=$$('hwEditor').querySelectorAll('.hw-item');
+  if(items[i]){
+    items[i].className=items[i].className.replace(/\bst-?\d?\b/g,'').trim()+(isNone(next)?'':' st'+next);
+    const btn=items[i].querySelector('.hw-btn');
+    if(btn){btn.className='hw-btn s'+next;btn.textContent=hwBtnLabel(next);}
+  }
   // 좌패널에서 변경 → 리포트 override 제거
   delete G.reportEdits.rHwList;
   delete G.reportEdits.rNoticeList;

@@ -28,24 +28,32 @@
 .rc.color-mode .cd.active{fill:#dc2626;}
 .rc.color-mode .clbl{fill:#dc2626;}
 .rc.color-mode .clbl.past{fill:#fca5a5;}
-/* 진도: 녹색 계열 */
-.rc.color-mode .prog-card.current{border-left-color:#15803d;background:#f8fdf8;}
+/* 진도: 배경 흰색, 포인트 녹색 */
+.rc.color-mode .prog-card{background:#fff;}
+.rc.color-mode .prog-card.current{border-left-color:#15803d;background:#fff;}
 .rc.color-mode .prog-card.current .prog-label{color:#15803d;}
 .rc.color-mode .prog-card.prev{border-left-color:#d1d5db;}
 .rc.color-mode .prog-book{background:#dcfce7;color:#15803d;}
-/* 저번 과제: 파란 계열 */
-.rc.color-mode .hw-li{background:#f0f7ff;}
-.rc.color-mode .hw-li .hw-icon{background:#dbeafe;color:#1d4ed8;}
-.rc.color-mode .hw-chip{background:#dbeafe;color:#1d4ed8;}
+/* 저번 과제: 배경 흰색, 상태 색만 확실히 */
+.rc.color-mode .hw-li{background:#fff;}
+.rc.color-mode .hw-li.s2{background:#fff;border-left:3px solid #22c55e;}
+.rc.color-mode .hw-li.s2 .hw-icon{background:#dcfce7;color:#15803d;}
+.rc.color-mode .hw-li.s2 .hw-chip{background:#dcfce7;color:#15803d;}
+.rc.color-mode .hw-li.s1{background:#fff;border-left:3px solid #f59e0b;}
+.rc.color-mode .hw-li.s1 .hw-icon{background:#fef3c7;color:#92400e;}
+.rc.color-mode .hw-li.s1 .hw-chip{background:#fef3c7;color:#92400e;}
+.rc.color-mode .hw-li.s0{background:#fff;border-left:3px solid #ef4444;}
+.rc.color-mode .hw-li.s0 .hw-icon{background:#fee2e2;color:#dc2626;}
+.rc.color-mode .hw-li.s0 .hw-chip{background:#fee2e2;color:#dc2626;}
 .rc.color-mode .hw-carry-mark{color:#9333ea;}
-/* 다음 과제: 연한 녹색 */
-.rc.color-mode .next-hw-li{background:#f0fdf4;}
+/* 이번 과제: 배경 흰색 */
+.rc.color-mode .next-hw-li{background:#fff;}
 .rc.color-mode .next-hw-li .carry-tag{color:#9333ea;}
-/* 미니테스트: 빨간 계열 */
-.rc.color-mode .mini-wrong-row{background:#fff5f5;border-color:#fca5a5;}
+/* 미니테스트: 배경 흰색 */
+.rc.color-mode .mini-wrong-row{background:#fff;border-color:#e2e8f0;}
 .rc.color-mode .wtag{border-color:#fca5a5;color:#dc2626;background:#fff;}
-/* 코멘트: 따뜻한 계열 */
-.rc.color-mode .comment-wrap{background:#fef3c7;border:1px solid #fcd34d;}
+/* 코멘트: 배경 흰색 */
+.rc.color-mode .comment-wrap{background:#fff;border:1px solid #e2e8f0;}
 .rc.color-mode .comment-text{color:#333;}
 .rc.color-mode .teacher-sign{color:#92400e;}
 .rc{
