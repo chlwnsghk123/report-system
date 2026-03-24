@@ -195,6 +195,9 @@ function cycleHwStatus(i){
   updateHwDisplay();updateHwBadge();rebuildGraph();
   updateNoticeWithCarry();
   syncHwRecItems(G.selStudent,G.selDate);
+  // 이월 전파: 미래 날짜에 이월 레코드 생성/삭제
+  const ref=G.hwItemRefs[i]?.ref;
+  if(ref)propagateCarryover(G.selStudent,G.selDate,ref,next);
   saveAppData();saveSession();
 }
 

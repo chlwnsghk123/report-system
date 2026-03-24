@@ -170,6 +170,9 @@ cycleHwStatus()
   → updateNoticeWithCarry()
     → 이번 주차 과제 = 현재 레슨 hw + 현재 미완료 이월 항목
     → 리포트카드 #rNoticeList 갱신
+  → propagateCarryover(student, date, ref, newStatus)
+    → status 0/1: 다음 날짜 hwRec에 이월 레코드 추가 (없으면 생성, status -1)
+    → status 2/-1: 이후 모든 날짜에서 해당 ref 이월 레코드 삭제 (체인 종료)
 
 saveTabData()
   → syncHwRecItems()
