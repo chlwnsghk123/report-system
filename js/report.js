@@ -35,22 +35,45 @@ function updateRateFace(){
   if(!el._mascotClick){
     el._mascotClick=true;
     el.title='클릭하여 캐릭터 변경';
-    el.addEventListener('click',cycleMascot);
+    el.addEventListener('click',openMascotPicker);
   }
 }
 
-/* 마스코트 클릭 시 같은 티어 내 다음 이미지로 순환 */
-function cycleMascot(){
+/* 마스코트 선택 팝업 열기 */
+function openMascotPicker(e){
+  e.stopPropagation();
+  // 이미 열려 있으면 닫기
+  const exist=document.querySelector('.mascot-picker');
+  if(exist){exist.remove();return;}
   const el=$$('rateMascot');if(!el)return;
   const tier=el.dataset.mascotTier;
-  const imgs=MASCOT_IMGS[tier];if(!imgs||imgs.length<=1)return;
-  let idx=(+el.dataset.mascotIdx+1)%imgs.length;
-  el.dataset.mascotIdx=idx;
-  el.innerHTML=`<img src="${imgs[idx]}" alt="mascot" draggable="false">`;
-  // 선택 저장
-  if(!G.mascotChoices)G.mascotChoices={};
-  G.mascotChoices[G.selStudent+'_'+G.selDate]=idx;
-  saveAppData();
+  const imgs=MASCOT_IMGS[tier];if(!imgs||!imgs.length)return;
+  const curIdx=+el.dataset.mascotIdx;
+  // 팝업 생성
+  const picker=document.createElement('div');
+  picker.className='mascot-picker';
+  picker.innerHTML=`<div class="mascot-picker-title">캐릭터 선택</div><div class="mascot-picker-grid">`
+    +imgs.map((src,i)=>`<div class="mascot-pick-item${i===curIdx?' selected':''}" data-idx="${i}"><img src="${src}" draggable="false"></div>`).join('')
+    +`</div>`;
+  // 위치: rateMascot 기준
+  el.parentElement.appendChild(picker);
+  // 선택 이벤트
+  picker.addEventListener('click',function(ev){
+    const item=ev.target.closest('.mascot-pick-item');if(!item)return;
+    const idx=+item.dataset.idx;
+    el.dataset.mascotIdx=idx;
+    el.innerHTML=`<img src="${imgs[idx]}" alt="mascot" draggable="false">`;
+    if(!G.mascotChoices)G.mascotChoices={};
+    G.mascotChoices[G.selStudent+'_'+G.selDate]=idx;
+    saveAppData();
+    picker.remove();
+  });
+  // 바깥 클릭 시 닫기
+  setTimeout(()=>{
+    document.addEventListener('click',function _close(ev){
+      if(!picker.contains(ev.target)){picker.remove();document.removeEventListener('click',_close);}
+    });
+  },0);
 }
 
 // ─── 이행률 그래프 ───
