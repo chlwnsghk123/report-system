@@ -114,7 +114,7 @@ function selectDate(date){
       const hs=td.hwStatus||[];
       const types=td.hwItemTypes||items.map(()=>({type:'base'}));
       if(items.length){
-        rec.items=items.map((text,i)=>({text,status:hs[i]??-1,type:types[i]?.type||'base',fromDate:types[i]?.fromDate||''}));
+        rec.items=items.map((text,i)=>({text,status:hs[i]??-1,type:types[i]?.type||'base',ref:types[i]?.ref||'',fromDate:types[i]?.fromDate||''}));
         items.forEach((_,i)=>{if(!types[i]||types[i].type==='base')rec[`과제${i+1}_상태`]=hs[i]??-1;});
       }
       if(td.rateManual!=null){rec.이행률=td.rateManual;G.rates[name]=G.rates[name]||{};G.rates[name][G.selDate]=td.rateManual;}
@@ -277,7 +277,7 @@ function addLesson(){
     const d=new Date(newDate);d.setDate(d.getDate()+1);
     newDate=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
-  G.lessons.push({날짜:newDate,전체문제수:5,교재:'',단원:'',상세진도:'',과제1:'',과제2:'',과제3:'',과제4:''});
+  G.lessons.push({id:genLessonId(),날짜:newDate,전체문제수:5,교재:'',단원:'',상세진도:'',과제1:'',과제2:'',과제3:'',과제4:''});
   G.lessons.sort((a,b)=>a.날짜.localeCompare(b.날짜));
   renderLessonCards();renderViewTabs();saveAppData();
 }
@@ -353,6 +353,7 @@ function syncHwRecItems(student,date){
     text,
     status:G.hwStatus[i]??-1,
     type:G.hwItemTypes[i]?.type||'base',
+    ref:G.hwItemTypes[i]?.ref||'',
     fromDate:G.hwItemTypes[i]?.fromDate||''
   }));
   // 레거시 필드도 업데이트 (base items)
@@ -388,28 +389,29 @@ function _getCarryAutoText(student,date){
   const key=`${student}||${date}`;
   const rec=G.hwRec[key];
   if(!rec?.items)return'';
-  const carryItems=rec.items.filter(it=>it.type==='carry');
-  if(!carryItems.length)return'';
-  const stLabel={2:'완료',1:'부분완료',0:'미완료'};
-  return carryItems.map(it=>{
+  // 이월 과제 중 완료(2)된 것만 자동 기록
+  const done=rec.items.filter(it=>it.type==='carry'&&it.status===2);
+  if(!done.length)return'';
+  return done.map(it=>{
     const fd=it.fromDate?shortD(it.fromDate):'';
-    const sl=stLabel[it.status]||'미확인';
-    return`(${fd}) ${it.text} → ${sl}`;
+    return`(전${fd?'·'+fd:''}) ${it.text} → 완료`;
   }).join('\n');
 }
 
 function openMemo(){
   if(!G.selStudent||!G.selDate)return;
   _memoKey=`${G.selStudent}||${G.selDate}`;
-  const text=G.memos[_memoKey]||'';
+  let text=G.memos[_memoKey]||'';
+  // 완료된 이월과제 자동 텍스트를 메모에 포함 (없으면 앞에 추가)
+  const autoText=_getCarryAutoText(G.selStudent,G.selDate);
+  if(autoText&&!text.includes(autoText)){
+    text=text?autoText+'\n'+text:autoText;
+  }
   _memoOriginal=text;
   $$('memoTitle').textContent=`📋 비고 — ${G.selStudent} (${shortD(G.selDate)})`;
-  // 자동 이월과제 요약 표시
-  const autoText=_getCarryAutoText(G.selStudent,G.selDate);
+  // 자동 텍스트 영역 숨김 (통합됨)
   const autoArea=$$('memoAutoArea');
-  if(autoText){
-    $$('memoAutoText').textContent=autoText;
-    autoArea.style.display='';
+  if(false){
   }else{
     autoArea.style.display='none';
   }

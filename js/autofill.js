@@ -9,7 +9,7 @@ function computeCarryover(student,date){
   if(!rec?.items?.length)return[];
   return rec.items
     .filter(it=>it.status===0||it.status===1)
-    .map(it=>({text:it.text,fromDate:it.fromDate||prevDate}));
+    .map(it=>({text:it.text,ref:it.ref||'',fromDate:it.fromDate||prevDate}));
 }
 
 // ─── 이번 주차 과제 + 추가과제 + 미완료 캐리 반영 (리포트카드) ───
@@ -23,7 +23,7 @@ function updateNoticeWithCarry(){
   const unfinished=[];
   G.hwItems.forEach((text,i)=>{
     const st=G.hwStatus[i];
-    if(st===0||st===1)unfinished.push(text);
+    if(!isNone(st)&&(st===0||st===1))unfinished.push(text);
   });
   const list=$$('rNoticeList');
   const baseHtml=baseHw.map(t=>`<div class="next-hw-li">${esc(t)}</div>`).join('');
@@ -136,9 +136,9 @@ function autoFillAll(){
     G.hwItems=[...baseItems,...carryItems.map(c=>c.text)];
     G.hwItemTypes=[
       ...baseItems.map(()=>({type:'base'})),
-      ...carryItems.map(c=>({type:'carry',fromDate:c.fromDate}))
+      ...carryItems.map(c=>({type:'carry',ref:c.ref,fromDate:c.fromDate}))
     ];
-    // 상태 로드 — 인덱스 기반 매칭 (base), fromDate 기반 (carry)
+    // 상태 로드 — 인덱스 기반 매칭 (base), ref 기반 (carry)
     const key=G.selDate?`${G.selStudent}||${G.selDate}`:null;
     const hwR=key?G.hwRec[key]:null;
     if(hwR&&hwR.items&&hwR.items.length){
@@ -153,9 +153,14 @@ function autoFillAll(){
           baseIdx++;
           return st;
         }else if(typ.type==='carry'){
-          // fromDate 기반 매칭 (같은 날짜 과제가 여럿이면 text도 비교)
-          const sameDate=savedCarry.filter(it=>it.fromDate===typ.fromDate);
-          const match=sameDate.length===1?sameDate[0]:sameDate.find(it=>it.text===G.hwItems[i]);
+          // ref 기반 매칭 (하위호환: ref 없으면 fromDate+text)
+          let match;
+          if(typ.ref){
+            match=savedCarry.find(it=>it.ref===typ.ref);
+          }else{
+            const sameDate=savedCarry.filter(it=>it.fromDate===typ.fromDate);
+            match=sameDate.length===1?sameDate[0]:sameDate.find(it=>it.text===G.hwItems[i]);
+          }
           return match?.status??-1;
         }
         return -1;

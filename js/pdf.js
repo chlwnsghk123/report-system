@@ -140,7 +140,7 @@ async function _doSummaryImage(){
       if(!hasRate){
         html+=`<div style="padding:8px 0;"><span style="font-size:18px;font-weight:800;color:#dc2626;">결석</span></div>`;
       }else{
-        const visible=items.filter(it=>it.status!==-1&&it.status!==''&&stLabel[it.status]);
+        const visible=items.filter(it=>!isNone(it.status)&&stLabel[it.status]);
         if(visible.length){
           let idx=0;
           html+=visible.map(it=>{

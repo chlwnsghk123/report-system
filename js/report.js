@@ -206,13 +206,13 @@ function updateHeaderDate(curDate,nextDate){
 function updateHwDisplay(){
   const list=$$('rHwList'),sec=$$('secPrevHw');
   const stName={2:'완료',1:'부분완료',0:'미완료'};
-  const visible=G.hwItems.filter((_,i)=>G.hwStatus[i]!==-1);
+  const visible=G.hwItems.filter((_,i)=>!isNone(G.hwStatus[i]));
   if(!G.hwItems.length||!visible.length){if(sec)sec.style.display='none';list.innerHTML='';return;}
   if(sec)sec.style.display='';
   const icons={2:'✓',1:'◑',0:'✗'};
   const baseHtml=[],carryHtml=[],extraHtml=[];
   G.hwItems.forEach((item,i)=>{
-    if(!item.trim()||G.hwStatus[i]===-1)return;
+    if(!item.trim()||isNone(G.hwStatus[i]))return;
     const st=G.hwStatus[i]??0;
     const typ=G.hwItemTypes[i]?.type||'base';
     const isCarry=typ==='carry';
