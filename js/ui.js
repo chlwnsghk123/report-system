@@ -52,13 +52,6 @@ function fp(cid,pid){const c=$$(cid),p=$$(pid);if(c&&p){const v=p.value.replace(
 
 function switchView(view){
   G.currentView=view;
-  // 수업설정 탭 활성 상태
-  const cfgTab=document.querySelector('.vt-item[data-view="config"]');
-  if(cfgTab)cfgTab.classList.toggle('active',view==='config');
-  // 날짜 탭 활성 상태
-  document.querySelectorAll('.vt-date').forEach(el=>{
-    el.classList.toggle('active',el.dataset.date===G.selDate&&view==='date');
-  });
   // 뷰 토글
   $$('viewDate').style.display=view==='date'?'':'none';
   if(view==='config'){
@@ -67,6 +60,8 @@ function switchView(view){
     closeLessonModal();
     renderDateSummary();
     renderTabs();
+    renderDateNav();
+    renderDateSidebar();
     updateMemoBtn();
     if(G.selDate&&G.selStudent)autoFillAll();
     else if(G.selDate)autoFillCommon();
@@ -103,7 +98,7 @@ function renderViewTabs(){
 function shiftDate(dir){
   const max=Math.max(0,G.lessons.length-4);
   G.dateTabOffset=Math.max(0,Math.min(max,(G.dateTabOffset||0)+dir));
-  renderViewTabs();
+  renderDateNav();renderDateSidebar();
 }
 
 function selectDate(date){
@@ -140,14 +135,6 @@ function selectDate(date){
   G.hwRateManual=null;
   G.reportEdits={};
   if(!G.selStudent&&G.students.length)G.selStudent=G.students[0];
-  // dateTabOffset 조정: 선택된 날짜가 보이도록
-  const idx=G.lessons.findIndex(l=>l.날짜===date);
-  if(idx>=0){
-    const maxVis=4;
-    if(idx<G.dateTabOffset)G.dateTabOffset=idx;
-    else if(idx>=G.dateTabOffset+maxVis)G.dateTabOffset=idx-maxVis+1;
-  }
-  renderViewTabs();
   switchView('date');
   updateAttendUI();
 }
@@ -298,7 +285,7 @@ function updateLessonDate(idx,newDate){
   G.lessons[idx].날짜=newDate;
   G.lessons.sort((a,b)=>a.날짜.localeCompare(b.날짜));
   if(G.selDate===oldDate)G.selDate=newDate;
-  renderLessonCards();renderViewTabs();saveAppData();
+  renderLessonCards();renderDateNav();renderDateSidebar();saveAppData();
 }
 
 function addLesson(){
@@ -316,7 +303,7 @@ function addLesson(){
   }
   G.lessons.push({id:genLessonId(),날짜:newDate,전체문제수:5,교재:'',단원:'',상세진도:'',과제1:''});
   G.lessons.sort((a,b)=>a.날짜.localeCompare(b.날짜));
-  renderLessonCards();renderViewTabs();saveAppData();
+  renderLessonCards();renderDateNav();renderDateSidebar();saveAppData();
 }
 
 function removeLesson(idx){
@@ -324,7 +311,7 @@ function removeLesson(idx){
   if(!confirm(`${fmtKo(date)} 수업을 삭제할까요?`))return;
   G.lessons.splice(idx,1);
   if(G.selDate===date)G.selDate='';
-  renderLessonCards();renderViewTabs();saveAppData();
+  renderLessonCards();renderDateNav();renderDateSidebar();saveAppData();
 }
 
 // ─── 날짜 뷰: 수업 요약 ───
@@ -369,7 +356,7 @@ function renderTabs(){
   list.querySelectorAll('.ss-item').forEach(item=>{
     let hoverTimer=null;
     item.addEventListener('mouseenter',()=>{
-      hoverTimer=setTimeout(()=>_showSsMenu(item),200);
+      hoverTimer=setTimeout(()=>_showSsMenu(item),1500);
     });
     item.addEventListener('mouseleave',()=>{
       clearTimeout(hoverTimer);
@@ -381,6 +368,8 @@ function renderTabs(){
 function _showSsMenu(item){
   // 기존 메뉴 제거
   document.querySelectorAll('.ss-hover-menu').forEach(m=>m.remove());
+  // 선택된(active) 학생만 호버 메뉴 표시
+  if(!item.classList.contains('active'))return;
   const name=item.dataset.student;
   const hasPdf=(G.studentPdfs[name]||[]).length>0;
   const pdfLabel=hasPdf?'📎 PDF 교체':'📎 PDF 첨부';
@@ -419,6 +408,9 @@ function switchTab(name){
   if(G.selDate)autoFillAll();
   updateAttendUI();
   saveSession();
+  // 리포트카드 전환 애니메이션
+  const rc=$$('reportCard');
+  if(rc){rc.classList.remove('rc-transition');void rc.offsetWidth;rc.classList.add('rc-transition');}
 }
 
 function saveTabData(){
@@ -600,6 +592,55 @@ function toggleColorMode(){
   if(btn)btn.textContent=G.colorMode?'☀️ 컬러 모드':'🌙 흑백 모드';
   saveSession();
 }
+
+// ─── 날짜 사이드바 (학생 사이드바 왼쪽, 세로) ───
+function renderDateSidebar(){
+  const sidebar=$$('dateSidebar'),list=$$('dsList');
+  if(!sidebar||!list)return;
+  if(!G.lessons.length||G.currentView!=='date'){sidebar.style.display='none';return;}
+  sidebar.style.display='flex';
+  list.innerHTML=G.lessons.map(l=>{
+    const cls=`ds-item${l.날짜===G.selDate?' active':''}`;
+    return`<div class="${cls}" onclick="selectDate('${l.날짜}')" title="${fmtKo(l.날짜)}">
+      <span class="ds-item-label">${shortD(l.날짜)}</span>
+    </div>`;
+  }).join('');
+  // 선택된 날짜로 스크롤
+  const active=list.querySelector('.ds-item.active');
+  if(active)setTimeout(()=>active.scrollIntoView({block:'nearest',behavior:'smooth'}),50);
+}
+
+// ─── 상단 날짜 네비게이션 (리포트 위) ───
+function renderDateNav(){
+  const bar=$$('dateNavBar');if(!bar)return;
+  if(!G.lessons.length||!G.selDate){bar.style.display='none';return;}
+  bar.style.display='flex';
+  const label=$$('dnLabel');
+  label.textContent=fmtKo(G.selDate);
+}
+function navDatePrev(){
+  const idx=G.lessons.findIndex(l=>l.날짜===G.selDate);
+  if(idx>0)selectDate(G.lessons[idx-1].날짜);
+}
+function navDateNext(){
+  const idx=G.lessons.findIndex(l=>l.날짜===G.selDate);
+  if(idx>=0&&idx<G.lessons.length-1)selectDate(G.lessons[idx+1].날짜);
+}
+function toggleDateDropdown(){
+  const dd=$$('dnDropdown');
+  const isOpen=dd.classList.contains('open');
+  dd.classList.toggle('open');
+  if(!isOpen){
+    dd.innerHTML=G.lessons.map(l=>
+      `<button class="${l.날짜===G.selDate?'active':''}" onclick="selectDate('${l.날짜}');$$('dnDropdown').classList.remove('open');">${fmtKo(l.날짜)}</button>`
+    ).join('');
+  }
+}
+// 드롭다운 외부 클릭 시 닫기
+document.addEventListener('click',function(e){
+  const dd=$$('dnDropdown');
+  if(dd&&dd.classList.contains('open')&&!e.target.closest('.date-nav-bar'))dd.classList.remove('open');
+});
 
 // ─── 토글 (미니테스트/코멘트) ───
 function toggleSec(type){

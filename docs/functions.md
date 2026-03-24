@@ -55,9 +55,14 @@
 | `initCE()` | contenteditable 양방향 동기화 설정 |
 | `fp(cid,pid)` | 리포트카드 → 패널 단방향 텍스트 동기화 |
 | `switchView(view)` | 'config'/'date' 뷰 전환 |
-| `renderViewTabs()` | 뷰 탭 바 렌더링 (⚙ 수업설정 + 날짜 탭) |
-| `shiftDate(dir)` | 날짜 탭 ◀▶ 스크롤 |
+| `renderViewTabs()` | (레거시, 미사용) 뷰 탭 바 렌더링 |
+| `shiftDate(dir)` | (레거시, 미사용) 날짜 탭 스크롤 |
 | `selectDate(date)` | 날짜 선택 → date 뷰 전환 |
+| `renderDateSidebar()` | 우측 날짜 사이드바 렌더링 (학생 사이드바 왼쪽, 세로 사선 스타일) |
+| `renderDateNav()` | 상단 날짜 네비게이션 바 렌더링 (< 날짜 > + 드롭다운) |
+| `navDatePrev()` | 이전 날짜로 이동 |
+| `navDateNext()` | 다음 날짜로 이동 |
+| `toggleDateDropdown()` | 날짜 드롭다운 토글 |
 | `openLessonModal()` | 수업설정 전체화면 모달 열기 |
 | `closeLessonModal()` | 수업설정 모달 닫기 |
 | `getLessonHwKeys(l)` | 레슨 객체의 동적 과제 키 목록 반환 |
@@ -194,4 +199,5 @@
 |---|---|
 | `loadMascotImages()` | 마스코트 이미지 수동 등록 (하드코딩된 파일 목록) |
 | `document keydown` | 전역 키보드: ESC(모달 닫기), Ctrl+S(저장) |
-| `window.onload` | 앱 초기화 진입점: DB오픈→updateScale→initCE→loadMascotImages→restorePdfData |
+| `initPanelResize()` | 좌측 패널 드래그 리사이즈 핸들 초기화 |
+| `window.onload` | 앱 초기화 진입점: DB오픈→updateScale→initCE→loadMascotImages→initPanelResize→restorePdfData |
