@@ -669,6 +669,24 @@ function _renderStudentReport(student,startDate,endDate,container){
       }else{
         html+=`<div style="padding:8px 14px;font-size:11px;color:#9ca3af;">상태 지정된 과제 없음</div>`;
       }
+      // 이월과제 비고
+      const carryStDesc={2:'완료',1:'일부 완료',0:'미완료'};
+      const carries=(rec?.items||[]).filter(it=>it.type==='carry'&&!isNone(it.status));
+      if(carries.length){
+        html+=`<div style="padding:6px 12px 8px;border-top:1px dashed #e5e7eb;">`;
+        carries.forEach(it=>{
+          const fd=it.fromDate?`${shortD(it.fromDate)} 출제`:'이전 수업';
+          const isDone=it.status===2;
+          const cColor=isDone?'#166534':it.status===1?'#92400e':'#991b1b';
+          const cBg=isDone?'#f0fdf4':it.status===1?'#fffbeb':'#fef2f2';
+          html+=`<div style="display:flex;align-items:center;gap:6px;padding:3px 8px;border-radius:5px;background:${cBg};margin-bottom:3px;">
+            <span style="font-size:10px;font-weight:700;color:#d97706;flex-shrink:0;">이월</span>
+            <span style="flex:1;font-size:11px;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.text)} <span style="color:#999;font-size:10px;">(${fd})</span></span>
+            <span style="font-size:10px;font-weight:700;color:${cColor};flex-shrink:0;">${carryStDesc[it.status]}</span>
+          </div>`;
+        });
+        html+=`</div>`;
+      }
     }
     html+=`</div>`;
   });
