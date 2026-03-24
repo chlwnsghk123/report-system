@@ -29,16 +29,18 @@ function updateScale(){
 
 // ─── contenteditable 동기화 ───
 function initCE(){
-  document.querySelectorAll('[contenteditable][data-panel]').forEach(el=>{
-    el.addEventListener('input',function(){
-      const p=$$(this.dataset.panel);
-      if(p&&(p.tagName==='INPUT'||p.tagName==='TEXTAREA')){p.value=this.innerText.trim();p.classList.remove('auto');}
-    });
-    el.addEventListener('paste',function(e){e.preventDefault();document.execCommand('insertText',false,e.clipboardData.getData('text/plain'));});
-  });
+  // 리포트카드 직접 편집 비활성화 — 이행률(rRate)만 유지
   $$('rRate').addEventListener('input',function(){
-    const v=parseInt(this.innerText);if(!isNaN(v)){G.hwRateManual=v;updateHwBadge();rebuildGraph();}
+    const v=parseInt(this.innerText);
+    if(!isNaN(v)){
+      G.hwRateManual=v;
+      $$('inputRate').value=v;$$('inputRate').classList.remove('auto');
+      if(G.selStudent&&G.selDate){G.rates[G.selStudent]=G.rates[G.selStudent]||{};G.rates[G.selStudent][G.selDate]=v;}
+      updateHwBadge();rebuildGraph();updateRateFace();
+      if(v>=0)autoAttendOnRate();
+    }
   });
+  $$('rRate').addEventListener('paste',function(e){e.preventDefault();document.execCommand('insertText',false,e.clipboardData.getData('text/plain'));});
 }
 
 // 리포트카드 → 패널 단방향 동기화 (좌패널에서 갱신 시 override 제거)

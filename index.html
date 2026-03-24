@@ -67,7 +67,7 @@
         <div id="hwEditor" style="display:flex;flex-direction:column;gap:4px;"></div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
           <span style="font-size:13px;font-weight:700;color:#4e5968;">이행률</span>
-          <span class="ab">자동계산</span>
+          <button class="ab" style="cursor:pointer;border:none;font-family:inherit;" onclick="autoCalcRate()" title="과제 상태에서 이행률을 자동 계산합니다">⚡ 자동계산</button>
           <input type="number" id="inputRate" min="0" max="100" style="width:100px;text-align:center;" oninput="onRateManual()">
           <span style="font-size:13px;font-weight:600;color:#9ca3af;">%</span>
         </div>
@@ -156,7 +156,7 @@
           <div class="tb-menu-sep"></div>
           <button onclick="dlSummaryPdf();closeToolbarMenus()">📋 전체 과제 요약 이미지</button>
           <div class="tb-menu-sep"></div>
-          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.45)</button>
+          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.46)</button>
         </div>
       </div>
       <button class="tb-btn" disabled title="준비 중">🖨 프린트</button>
@@ -184,7 +184,7 @@
           <div class="rc" id="reportCard">
             <div class="rc-header">
               <div class="rc-sname">
-                <span id="rName" class="eh" contenteditable="true" style="display:inline;"></span><span class="suf" style="font-size: inherit; font-weight: inherit; color: inherit; margin-left: 8px;">학생</span>
+                <span id="rName" class="eh" style="display:inline;"></span><span class="suf" style="font-size: inherit; font-weight: inherit; color: inherit; margin-left: 8px;">학생</span>
               </div>
               <div class="rc-meta">
                 <div class="rc-date" id="rDate"></div>
@@ -221,18 +221,18 @@
                 <div class="prog-card current">
                   <div class="prog-label">현재 진도 <span id="rCurDt" style="text-transform:none;font-weight:500;"></span></div>
                   <div>
-                    <span class="prog-book eh" id="rCurBook" contenteditable="true" data-panel="inCurBook"></span>
-                    <span class="prog-chap eh" id="rCurChap" contenteditable="true" data-panel="inCurChap"></span>
+                    <span class="prog-book eh" id="rCurBook" data-panel="inCurBook"></span>
+                    <span class="prog-chap eh" id="rCurChap" data-panel="inCurChap"></span>
                   </div>
-                  <div class="prog-detail eh" id="rCurDetail" contenteditable="true" data-panel="inCurDetail"></div>
+                  <div class="prog-detail eh" id="rCurDetail" data-panel="inCurDetail"></div>
                 </div>
                 <div class="prog-card prev">
                   <div class="prog-label">이전 진도 <span id="rPrevDt" style="text-transform:none;font-weight:500;"></span></div>
                   <div>
-                    <span class="prog-book eh" id="rPrevBook" contenteditable="true" data-panel="inPrevBook"></span>
-                    <span class="prog-chap eh" id="rPrevChap" contenteditable="true" data-panel="inPrevChap"></span>
+                    <span class="prog-book eh" id="rPrevBook" data-panel="inPrevBook"></span>
+                    <span class="prog-chap eh" id="rPrevChap" data-panel="inPrevChap"></span>
                   </div>
-                  <div class="prog-detail eh" id="rPrevDetail" contenteditable="true" data-panel="inPrevDetail"></div>
+                  <div class="prog-detail eh" id="rPrevDetail" data-panel="inPrevDetail"></div>
                 </div>
               </div>
             </div>
@@ -261,8 +261,8 @@
             <div class="sec" id="secComment" style="display:none;">
               <div class="sec-title"><span class="sec-icon">·</span> 코멘트</div>
               <div class="comment-wrap">
-                <div class="comment-text eh" id="commentBody" contenteditable="true" data-panel="inputComment"></div>
-                <div class="teacher-sign eh" id="commentSign" contenteditable="true"></div>
+                <div class="comment-text eh" id="commentBody" data-panel="inputComment"></div>
+                <div class="teacher-sign eh" id="commentSign"></div>
               </div>
             </div>
 

@@ -131,6 +131,7 @@
 | `addExtraHw()` | 이번 주차 추가 과제 항목 추가 (G.extraHw) |
 | `removeExtraHw(idx)` | 이번 주차 추가 과제 항목 삭제 |
 | `updateExtraHwText(idx,val)` | 이번 주차 추가 과제 텍스트 수정 |
+| `autoCalcRate()` | 과제 상태에서 이행률 자동 계산 (완료=100%, 부분=50%, 미완료=0%) |
 | `onRateManual()` | 이행률 수동입력 핸들러 |
 | `hwBtnLabel(s)` | 상태 → 버튼 라벨 문자열 반환 |
 | `cycleHwStatus(i)` | 과제 상태 순환 (없음→완료→부분→미완료→없음) |
@@ -141,7 +142,7 @@
 | `updateCommentSign()` | 강사 서명 업데이트 |
 | `updateWrongTags(tagStr)` | 오답 번호 태그 UI 업데이트 |
 | `applyReportEdits()` | 리포트카드 contenteditable 직접편집 오버라이드 적용 |
-| `initReportListeners()` | 리포트카드 contenteditable 요소에 input 이벤트 리스너 등록 |
+| `initReportListeners()` | 리포트카드 편집 리스너 (현재 비활성화 — 안정성 확보) |
 | `setAttend(val)` | 출결 상태 설정 (2=출석,1=지각,0=결석) |
 | `updateAttendUI()` | 출결 토글 버튼 UI 갱신 |
 | `autoAttendOnRate()` | 이행률 변경 시 결석→출석 자동전환 |

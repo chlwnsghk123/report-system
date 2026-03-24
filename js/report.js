@@ -158,6 +158,23 @@ function updateExtraHwText(idx,val){
   updateNoticeWithCarry();
   syncHwRecItems(G.selStudent,G.selDate);saveAppData();
 }
+// ─── 이행률 자동계산 ───
+function autoCalcRate(){
+  // 과제 상태에서 이행률 계산: 완료=100%, 부분완료=50%, 미완료=0%, 없음=제외
+  const scored=[];
+  G.hwStatus.forEach((s,i)=>{
+    if(isCarryForDate(G.hwItemRefs[i]?.fromDate,G.selDate))return; // 이월항목 제외
+    if(isNone(s))return;
+    if(s===2)scored.push(100);
+    else if(s===1)scored.push(50);
+    else if(s===0)scored.push(0);
+  });
+  if(!scored.length){alert('상태가 지정된 과제가 없습니다.');return;}
+  const rate=Math.round(scored.reduce((a,b)=>a+b,0)/scored.length);
+  $$('inputRate').value=rate;$$('inputRate').classList.remove('auto');
+  onRateManual();
+}
+
 function onRateManual(){
   const v=$$('inputRate').value;G.hwRateManual=v!==''?Number(v):null;
   $$('inputRate').classList.remove('auto');
@@ -276,17 +293,8 @@ function applyReportEdits(){
 
 // ─── 리포트카드 편집 리스너 초기화 ───
 function initReportListeners(){
-  ['rHwList','rNoticeList','commentBody','commentSign'].forEach(id=>{
-    const el=$$(id);if(!el)return;
-    el.setAttribute('contenteditable','true');
-    el.addEventListener('input',function(){
-      G.reportEdits[id]=this.innerHTML;
-    });
-    el.addEventListener('paste',function(e){
-      e.preventDefault();
-      document.execCommand('insertText',false,e.clipboardData.getData('text/plain'));
-    });
-  });
+  // 리포트카드 직접 편집 비활성화 (안정성 확보)
+  // 이행률(rRate)만 contenteditable 유지
 }
 
 // ─── 출결 토글 ───
