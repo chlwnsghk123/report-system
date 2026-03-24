@@ -372,15 +372,10 @@ function _renderGradeTable(dates,container){
     let rateSum=0,rateCount=0;
     dates.forEach(d=>{
       const rate=G.rates[name]?.[d];
-      const correct=G.corrects[name]?.[d];
-      const les=G.lessons.find(l=>l.날짜===d);
-      const total=les?.전체문제수||5;
       if(rate!=null&&rate>=0){
         rateSum+=rate;rateCount++;
-        const scoreStr=correct!=null?`${correct}/${total}`:'';
         html+=`<td style="padding:6px 6px;text-align:center;border-bottom:1px solid #f0f0f0;">
           <div style="display:inline-block;padding:2px 8px;border-radius:6px;font-weight:700;color:${rateColor(rate)};background:${rateBg(rate)};font-size:12px;">${rate}%</div>
-          ${scoreStr?`<div style="font-size:10px;color:#9ca3af;margin-top:2px;">${scoreStr}</div>`:''}
         </td>`;
       }else{
         html+=`<td style="padding:6px 6px;text-align:center;border-bottom:1px solid #f0f0f0;color:#d1d5db;font-size:11px;">결석</td>`;
