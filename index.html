@@ -129,7 +129,11 @@
       <div class="tb-dropdown" id="tbMenu">
         <button class="tb-btn" onclick="toggleToolbarMenu('tbMenu')">☰ 메뉴</button>
         <div class="tb-menu">
-          <button onclick="dlSummaryPdf();closeToolbarMenus()">📊 전체 과제 요약 이미지</button>
+          <button onclick="dlBatchPdf();closeToolbarMenus()">📄 일괄 PDF 내보내기</button>
+          <button onclick="dlGradeSummary();closeToolbarMenus()">📊 성적 요약표</button>
+          <button onclick="dlClassJournal();closeToolbarMenus()">📝 수업 일지 이미지</button>
+          <div class="tb-menu-sep"></div>
+          <button onclick="dlSummaryPdf();closeToolbarMenus()">📋 전체 과제 요약 이미지</button>
         </div>
       </div>
       <button class="tb-btn" disabled title="준비 중">🖨 프린트</button>

@@ -83,6 +83,9 @@ B 미리보기 (우측)
 | 엑셀 파싱 | `js/excel.js` | `parseWB()` (이월과제 시트 + 동적 과제열) |
 | 엑셀 저장 | `js/excel.js` | `saveToExcel()` (이월과제 시트 + 비고열) |
 | PDF 저장 | `js/pdf.js` | `dlPdf()` |
+| 일괄 PDF 내보내기 | `js/pdf.js` | `dlBatchPdf()`, `_doBatchPdf()` |
+| 성적 요약표 | `js/pdf.js` | `dlGradeSummary()`, `_renderGradeTable()`, `_downloadGradeImage()` |
+| 수업 일지 이미지 | `js/pdf.js` | `dlClassJournal()`, `_downloadJournalImage()` |
 | 시험자료 PDF 뷰어 | `js/pdf.js` | `loadAttachPdf()`, `renderSpread()` |
 | 마스코트 이미지 로드 | `js/init.js` | `loadMascotImages()` |
 | 날짜 자동 선택 | `js/session.js` | `autoSelectDate()` |

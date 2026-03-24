@@ -20,7 +20,7 @@ js/
   session.js        saveAppData, saveAppDataNow, saveSession, restoreSession, showGroups, autoSelectDate, renderStudentList, addStudent, removeStudent, toggleStudentSec
   autofill.js       computeCarryover, updateNoticeWithCarry, autoFillCommon, stFromExcel, autoFillAll
   report.js         rebuildGraph, renderHwEditor, addExtraHw, removeExtraHw, updateExtraHwText, onRateManual, cycleHwStatus, hwBtnLabel, updateHeaderDate, updateHwDisplay, updateHwBadge, updateNoticeList, updateCommentSign, updateWrongTags, registerMascots, updateRateFace, openMascotPicker, applyReportEdits, initReportListeners
-  pdf.js            loadAttachPdf, renderSpread, drawPdfPrev, prevSpread, nextSpread, dlPdf, toggleToolbarMenu, closeToolbarMenus, dlSummaryPdf, _doSummaryImage, showConfirmModal, dataUrlToBytes
+  pdf.js            loadAttachPdf, renderSpread, drawPdfPrev, prevSpread, nextSpread, dlPdf, toggleToolbarMenu, closeToolbarMenus, dlSummaryPdf, _doSummaryImage, showConfirmModal, dataUrlToBytes, dlBatchPdf, _doBatchPdf, dlGradeSummary, _renderGradeTable, _downloadGradeImage, dlClassJournal, _downloadJournalImage
   init.js           window.onload (앱 진입점), loadMascotImages
 docs/               참조 문서 (필요 시만 읽기)
 ```
