@@ -1,1 +1,34 @@
-
+{
+  "icons": [
+    {
+      "file": "favicon.svg",
+      "purpose": "브라우저 탭 파비콘 (SVG, 벡터)",
+      "location": "index.html <head> link[rel=icon]"
+    },
+    {
+      "file": "favicon-96x96.png",
+      "purpose": "브라우저 탭 파비콘 (PNG 96x96 폴백)",
+      "location": "index.html <head> link[rel=icon]"
+    },
+    {
+      "file": "favicon.ico",
+      "purpose": "레거시 브라우저용 파비콘 (.ico)",
+      "location": "index.html <head> link[rel=shortcut icon]"
+    },
+    {
+      "file": "apple-touch-icon.png",
+      "purpose": "iOS 홈 화면 아이콘 (180x180)",
+      "location": "index.html <head> link[rel=apple-touch-icon]"
+    },
+    {
+      "file": "web-app-manifest-192x192.png",
+      "purpose": "PWA 앱 아이콘 (192x192)",
+      "location": "site.webmanifest icons"
+    },
+    {
+      "file": "web-app-manifest-512x512.png",
+      "purpose": "PWA 스플래시/설치 아이콘 (512x512)",
+      "location": "site.webmanifest icons"
+    }
+  ]
+}
