@@ -80,6 +80,9 @@ G = {
   // 토글 상태
   showMini: false, showComment: false,
 
+  // 마스코트 선택
+  mascotChoices: {},   // {"학생명_날짜": 이미지인덱스} — 사용자가 선택한 마스코트
+
   // 탭 임시 저장
   tabData: {},
 
@@ -105,4 +108,4 @@ G = {
 
 ## IndexedDB
 - DB: `reportApp4`, Store: `data`
-- 키: `'appData'`(G.lessons/students/rates/scores/corrects/wrong/hwRec/memos/tabData/excelFileName), `'session'`(selDate·selStudent·showMini·showComment·currentView)
+- 키: `'appData'`(G.lessons/students/rates/scores/corrects/wrong/hwRec/memos/tabData/excelFileName/mascotChoices), `'session'`(selDate·selStudent·showMini·showComment·currentView)

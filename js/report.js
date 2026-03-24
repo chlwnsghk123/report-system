@@ -21,12 +21,36 @@ function updateRateFace(){
   const key=tier+'_'+(G.selStudent||'')+'_'+(G.selDate||'');
   if(el.dataset.mascotKey!==key){
     el.dataset.mascotKey=key;
-    el.dataset.mascotIdx=Math.floor(Math.random()*imgs.length);
+    // 저장된 선택이 있으면 복원, 없으면 랜덤
+    const savedIdx=G.mascotChoices?.[G.selStudent+'_'+G.selDate];
+    if(savedIdx!=null&&savedIdx<imgs.length) el.dataset.mascotIdx=savedIdx;
+    else el.dataset.mascotIdx=Math.floor(Math.random()*imgs.length);
   }
+  el.dataset.mascotTier=tier;
   const src=imgs[+el.dataset.mascotIdx];
   if(!el.querySelector('img')||el.querySelector('img').src!==src){
     el.innerHTML=`<img src="${src}" alt="mascot" draggable="false">`;
   }
+  // 클릭 이벤트 (한 번만 등록)
+  if(!el._mascotClick){
+    el._mascotClick=true;
+    el.title='클릭하여 캐릭터 변경';
+    el.addEventListener('click',cycleMascot);
+  }
+}
+
+/* 마스코트 클릭 시 같은 티어 내 다음 이미지로 순환 */
+function cycleMascot(){
+  const el=$$('rateMascot');if(!el)return;
+  const tier=el.dataset.mascotTier;
+  const imgs=MASCOT_IMGS[tier];if(!imgs||imgs.length<=1)return;
+  let idx=(+el.dataset.mascotIdx+1)%imgs.length;
+  el.dataset.mascotIdx=idx;
+  el.innerHTML=`<img src="${imgs[idx]}" alt="mascot" draggable="false">`;
+  // 선택 저장
+  if(!G.mascotChoices)G.mascotChoices={};
+  G.mascotChoices[G.selStudent+'_'+G.selDate]=idx;
+  saveAppData();
 }
 
 // ─── 이행률 그래프 ───
