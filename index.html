@@ -132,6 +132,7 @@
 <div class="preview" id="previewArea">
   <!-- 상단 메뉴 바 -->
   <div class="toolbar">
+    <div id="rLastSaved" class="tb-lastsaved"></div>
     <div class="tb-group">
       <button class="tb-btn tb-save" id="btnSave" onclick="saveToExcel()" style="display:none" disabled>💾 저장</button>
       <div class="tb-dropdown" id="tbMenu">
@@ -160,7 +161,6 @@
 
       <!-- 리포트 카드 -->
       <div class="rc" id="reportCard">
-        <div id="rLastSaved" class="rc-lastsaved"></div>
         <div class="rc-header">
           <div class="rc-sname">
             <span id="rName" class="eh" contenteditable="true" style="display:inline;"></span><span class="suf" style="font-size: inherit; font-weight: inherit; color: inherit; margin-left: 8px;">학생</span>
