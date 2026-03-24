@@ -298,8 +298,6 @@ async function saveToExcel(){
     const aoa=[
       ['이름','성적','오답','과제이행률',...hwHdrs,...extraHdrs,'비고'],
       ...G.students.map(n=>{
-        const correct=G.corrects[n]?.[date];
-        const scoreStr=correct!==undefined?`${correct}/${total}`:'';
         const key=`${n}||${date}`,rec=G.hwRec[key];
         const rate=rec?.이행률!=null?rec.이행률:G.rates[n]?.[date]??null;
         const hwVals=Array.from({length:hwCount},(_,i)=>
@@ -320,7 +318,7 @@ async function saveToExcel(){
         }).join(', ');
         const userMemo=G.memos[`${n}||${date}`]||'';
         const bigo=[autoText,userMemo].filter(x=>x).join(' | ');
-        return[n,scoreStr,G.wrong[n]?.[date]||'',rate!=null?rate:'',...hwVals,...extraVals,bigo];
+        return[n,'',G.wrong[n]?.[date]||'',rate!=null?rate:'',...hwVals,...extraVals,bigo];
       })
     ];
     const wsD=XLSX.utils.aoa_to_sheet(aoa,{skipHeader:false});
