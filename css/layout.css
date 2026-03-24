@@ -228,6 +228,7 @@ body{margin:0;padding:0;background-color:#f2f4f6;font-family:'Pretendard',sans-s
 .tb-menu button{display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;font-size:13px;font-weight:600;
   color:#333;background:none;border:none;cursor:pointer;font-family:inherit;border-radius:7px;transition:.12s;text-align:left;}
 .tb-menu button:hover{background:#f3f4f6;}
+.tb-menu-sep{height:1px;background:#e5e7eb;margin:4px 8px;}
 
 /* ═══ 모달 열림 시 배경 스크롤 방지 ═══ */
 body.modal-open .panel,

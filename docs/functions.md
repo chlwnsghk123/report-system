@@ -138,6 +138,13 @@
 | `_doSummaryImage()` | 과제 요약 PNG 캡처 및 다운로드 (내부 함수) |
 | `showConfirmModal(title,desc,fn)` | 범용 확인/취소 모달 |
 | `dataUrlToBytes(u)` | DataURL → Uint8Array 변환 |
+| `dlBatchPdf()` | 일괄 PDF 내보내기 진입점 (확인 모달 → _doBatchPdf) |
+| `_doBatchPdf()` | 결석 제외 전체 학생 리포트 → 세로 A4 멀티페이지 PDF 생성·다운로드 |
+| `dlGradeSummary()` | 성적 요약표 날짜 범위 선택 모달 열기 |
+| `_renderGradeTable(dates,container)` | 학생×날짜 성적 테이블 HTML 렌더링 |
+| `_downloadGradeImage(dates)` | 성적 요약표 PNG 캡처·다운로드 |
+| `dlClassJournal()` | 수업 일지 날짜 선택 모달 열기 |
+| `_downloadJournalImage(date)` | 수업 일지 PNG 캡처·다운로드 |
 
 ## js/init.js
 | 함수 | 역할 |
