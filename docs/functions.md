@@ -73,7 +73,7 @@
 | `updateMemoBtn()` | 비고 버튼 상태 업데이트 (작성/수정 + disabled) |
 | `_openModal(id)` | 모달 열기 공통 (배경 스크롤 잠금) |
 | `_closeModal(id)` | 모달 닫기 공통 (스크롤 복원) |
-| `_showModalToast(id,msg)` | 모달 내 토스트 메시지 표시 |
+| `_showModalToast(modalId,msg)` | 모달 내 토스트 메시지 표시 |
 | `toggleSec(type)` | 미니테스트/코멘트 토글 |
 
 ## js/session.js
@@ -94,7 +94,6 @@
 | 함수 | 역할 |
 |---|---|
 | `stFromExcel(v)` | 엑셀 기호/숫자(○/△/X/0/1/2) → 한글 상태 변환 |
-| ~~`calcScore()`~~ | (삭제됨) |
 | `computeCarryover(student,date)` | 직전 날짜 hwRec에서 미완료/부분완료 항목 수집 → 캐리오버 배열 반환 |
 | `updateNoticeWithCarry()` | 이번 주차 과제 + 미완료 캐리오버 → 리포트카드 반영 |
 | `autoFillCommon()` | 날짜 기준 공통 필드 자동채우기 |
@@ -121,6 +120,8 @@
 | `updateNoticeList(text)` | 이번 과제 목록 리포트 UI 업데이트 |
 | `updateCommentSign()` | 강사 서명 업데이트 |
 | `updateWrongTags(tagStr)` | 오답 번호 태그 UI 업데이트 |
+| `applyReportEdits()` | 리포트카드 contenteditable 직접편집 오버라이드 적용 |
+| `initReportListeners()` | 리포트카드 contenteditable 요소에 input 이벤트 리스너 등록 |
 
 ## js/pdf.js
 | 함수 | 역할 |
@@ -133,8 +134,8 @@
 | `dlPdf()` | 리포트+첨부PDF 합성 → 다운로드 |
 | `toggleToolbarMenu(id)` | 툴바 드롭다운 메뉴 토글 |
 | `closeToolbarMenus()` | 모든 툴바 메뉴 닫기 |
-| `dlSummaryPdf()` | 전체 과제 요약 이미지 생성 (확인 모달 → 긴 PNG) |
-| `_doSummaryImage()` | 과제 요약 PNG 캡처 및 다운로드 |
+| `dlSummaryPdf()` | 전체 과제 요약 이미지 생성 (확인 모달 표시) |
+| `_doSummaryImage()` | 과제 요약 PNG 캡처 및 다운로드 (내부 함수) |
 | `showConfirmModal(title,desc,fn)` | 범용 확인/취소 모달 |
 | `dataUrlToBytes(u)` | DataURL → Uint8Array 변환 |
 

@@ -69,7 +69,7 @@ B 미리보기 (우측)
 | 마스코트 이미지 (이행률 티어별) | `js/report.js` | `updateRateFace()`, `registerMascots()` |
 | 과제 상태 버튼 순환 | `js/report.js` | `cycleHwStatus()` |
 | 과제 에디터 렌더링 | `js/report.js` | `renderHwEditor()` (캐리오버 뱃지 포함) |
-| 점수 계산 공식 | `js/autofill.js` | `calcScore()` |
+| 점수 계산 공식 | `js/autofill.js` | `autoFillCommon()` 내 점수 로직 |
 | 자동채우기 (날짜 기준) | `js/autofill.js` | `autoFillCommon()` |
 | 자동채우기 (학생+날짜) | `js/autofill.js` | `autoFillAll()` (base + 캐리오버 병합) |
 | 캐리오버 계산 | `js/autofill.js` | `computeCarryover()` |
@@ -86,7 +86,7 @@ B 미리보기 (우측)
 | 시험자료 PDF 뷰어 | `js/pdf.js` | `loadAttachPdf()`, `renderSpread()` |
 | 마스코트 이미지 로드 | `js/init.js` | `loadMascotImages()` |
 | 날짜 자동 선택 | `js/session.js` | `autoSelectDate()` |
-| 앱 저장/복원 | `js/session.js` | `saveAppData()`, `restoreSession()` |
+| 앱 저장/복원 | `js/session.js` | `saveAppData()`, `saveAppDataNow()`, `restoreSession()` |
 
 ### 스타일 수정
 | 수정 대상 | 수정 파일 |

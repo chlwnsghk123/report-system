@@ -73,9 +73,10 @@ G = {
   hwStatus: [],       // 각 과제 상태 ('' | '완료' | '부분완료' | '미완료')
   hwItemTypes: [],    // 각 항목 타입 [{type:'base'} | {type:'carry',fromDate:'YYYY-MM-DD'}]
   hwRateManual: null, // null=엑셀 데이터 사용, 숫자=수동입력
+  reportEdits: {},    // 리포트카드 contenteditable 직접편집 오버라이드 (키: 요소ID, 값: innerHTML)
 
   // 미니테스트
-  scoreCalc: null, totalQ: 5,
+  totalQ: 5,
 
   // 토글 상태
   showMini: false, showComment: false,
@@ -109,4 +110,5 @@ G = {
 
 ## IndexedDB
 - DB: `reportApp4`, Store: `data`
-- 키: `'appData'`(G.lessons/students/rates/scores/corrects/wrong/hwRec/memos/tabData/excelFileName/mascotChoices), `'session'`(selDate·selStudent·showMini·showComment·currentView)
+- 키: `'appData'`(lessons/students/rates/scores/corrects/wrong/hwRec/memos/tabData/fileName/mascotChoices), `'session'`(selDate·selStudent·showMini·showComment·currentView)
+- 참고: IndexedDB에 저장되는 키는 `fileName` (G.excelFileName 값을 저장)
