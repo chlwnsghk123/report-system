@@ -462,11 +462,10 @@ function openMemo(){
   if(!G.selStudent||!G.selDate)return;
   _memoKey=`${G.selStudent}||${G.selDate}`;
   let text=G.memos[_memoKey]||'';
-  // 완료된 이월과제 자동 텍스트를 메모에 포함 (없으면 앞에 추가)
+  // 기존 저장된 [이월] 자동 텍스트 제거 후 최신으로 교체
   const autoText=_getCarryAutoText(G.selStudent,G.selDate);
-  if(autoText&&!text.includes(autoText)){
-    text=text?autoText+'\n'+text:autoText;
-  }
+  text=text.split('\n').filter(l=>!l.startsWith('[이월]')).join('\n').trim();
+  if(autoText){text=text?autoText+'\n'+text:autoText;}
   _memoOriginal=text;
   $$('memoTitle').textContent=`📋 비고 — ${G.selStudent} (${shortD(G.selDate)})`;
   // 자동 텍스트 영역 숨김 (통합됨)
