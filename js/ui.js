@@ -42,7 +42,7 @@ function initCE(){
 }
 
 // 리포트카드 → 패널 단방향 동기화 (좌패널에서 갱신 시 override 제거)
-function fp(cid,pid){const c=$$(cid),p=$$(pid);if(c&&p&&c.innerText.trim()!==p.value){c.innerText=p.value;delete G.reportEdits[cid];}}
+function fp(cid,pid){const c=$$(cid),p=$$(pid);if(c&&p){const v=p.value.replace(/\n{2,}/g,'\n');if(c.innerText.trim()!==v){c.innerText=v;delete G.reportEdits[cid];}}}
 
 // ═══════════════════════════════════════
 // 뷰 전환 시스템
