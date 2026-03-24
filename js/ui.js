@@ -383,13 +383,13 @@ function syncHwRecItems(student,date){
   if(G.hwRateManual!=null) rec.이행률=G.hwRateManual;
   else if(G.rates[student]?.[date]!=null) rec.이행률=G.rates[student][date];
   else rec.이행률=null;
-  rec.items=G.hwItems.map((text,i)=>({
-    text,
-    status:G.hwStatus[i]??-1,
-    type:G.hwItemTypes[i]?.type||'base',
-    ref:G.hwItemTypes[i]?.ref||'',
-    fromDate:G.hwItemTypes[i]?.fromDate||''
-  }));
+  let _bc=0;
+  rec.items=G.hwItems.map((text,i)=>{
+    const typ=G.hwItemTypes[i]?.type||'base';
+    let ref=G.hwItemTypes[i]?.ref||'';
+    if(typ==='base'){if(!ref)ref=`${date}-hw${_bc}`;_bc++;}
+    return{text,status:G.hwStatus[i]??-1,type:typ,ref,fromDate:G.hwItemTypes[i]?.fromDate||''};
+  });
   // 레거시 필드도 업데이트 (base items)
   G.hwItems.forEach((_, i)=>{
     if(!G.hwItemTypes[i]||G.hwItemTypes[i].type==='base'){
