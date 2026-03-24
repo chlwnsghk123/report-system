@@ -373,6 +373,11 @@ function _renderGradeTable(dates,container){
       <td style="padding:8px 12px;font-weight:700;color:#222;border-bottom:1px solid #f0f0f0;white-space:nowrap;">${esc(name)}</td>`;
     let rateSum=0,rateCount=0;
     dates.forEach(d=>{
+      const att=G.attend[name]?.[d];
+      if(att===-1){
+        html+=`<td style="padding:6px 6px;text-align:center;border-bottom:1px solid #f0f0f0;color:#d1d5db;font-size:11px;">-</td>`;
+        return;
+      }
       const rate=G.rates[name]?.[d];
       if(rate!=null&&rate>=0){
         rateSum+=rate;rateCount++;
@@ -652,14 +657,16 @@ function dlStudentReport(){
   $$('stuRptDl').onclick=async()=>{
     const student=$$('stuRptStudent').value;
     const s=$$('stuRptStart').value,e=$$('stuRptEnd').value;
-    const dates=G.lessons.filter(l=>l.날짜>=s&&l.날짜<=e).map(l=>l.날짜);
+    const dates=G.lessons.filter(l=>l.날짜>=s&&l.날짜<=e).map(l=>l.날짜)
+      .filter(d=>G.attend[student]?.[d]!==-1);
     if(!dates.length)return;
     await _downloadStudentReportPdf(student,dates);
   };
 }
 
 function _renderStudentReport(student,startDate,endDate,container){
-  const dates=G.lessons.filter(l=>l.날짜>=startDate&&l.날짜<=endDate).map(l=>l.날짜);
+  const dates=G.lessons.filter(l=>l.날짜>=startDate&&l.날짜<=endDate).map(l=>l.날짜)
+    .filter(d=>G.attend[student]?.[d]!==-1); // 출결 -1(특수) 제외
   if(!dates.length){container.innerHTML='<div style="padding:20px;text-align:center;color:#9ca3af;">날짜 범위를 확인하세요</div>';return;}
 
   const stLabel={2:'완료',1:'부분완료',0:'미완료'};
