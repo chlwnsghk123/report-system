@@ -344,36 +344,38 @@ function renderDateSummary(){
 // ─── 학생 사이드바 ───
 function renderTabs(){
   const sidebar=$$('studentSidebar');
-  const fab=$$('pdfFab');
+  const inlineBtn=$$('pdfAddInline');
   if(!G.students.length||G.currentView!=='date'){
     if(sidebar)sidebar.style.display='none';
-    if(fab)fab.style.display='none';
+    if(inlineBtn)inlineBtn.style.display='none';
     return;
   }
   if(sidebar)sidebar.style.display='';
-  if(fab)fab.style.display='flex';
+  if(inlineBtn)inlineBtn.style.display='flex';
   const list=$$('ssList');if(!list)return;
   list.innerHTML=G.students.map(n=>{
     const pdfs=G.studentPdfs[n]||[];
     const hasPdf=pdfs.length>0;
-    const totalPages=pdfs.reduce((s,p)=>s+p.pageCount,0);
     const cls=`ss-item${n===G.selStudent?' active':''}${hasPdf?' has-pdf':''}`;
-    // 호버 툴팁
-    let tooltip='';
-    if(hasPdf){
-      tooltip=`<div class="ss-pdf-tooltip"><div class="ss-tt-title">📎 첨부된 PDF (${pdfs.length}개)</div>`;
-      pdfs.forEach((p,i)=>{
-        tooltip+=`<div class="ss-tt-item"><span style="color:#6366f1;">📄</span> ${esc(p.name)} (${p.pageCount}p)</div>`;
-      });
-      tooltip+=`</div>`;
-    }
-    return`<div class="${cls}" onclick="switchTab('${esc(n)}')" data-student="${esc(n)}">
-      <div class="ss-name">${esc(n)}</div>
-      ${hasPdf?`<span class="ss-pdf-badge">📎${totalPages}p</span>`:''}
-      <button class="ss-pdf-btn" onclick="event.stopPropagation();attachPdfForStudent('${esc(n)}')" title="PDF 첨부">+</button>
-      ${tooltip}
+    const en=esc(n);
+    // 호버 세부 메뉴 (왼쪽으로 펼침)
+    const pdfLabel=hasPdf?'📎 PDF 교체':'📎 PDF 첨부';
+    const menu=`<div class="ss-hover-menu" onclick="event.stopPropagation();">
+      <button class="ss-hm-btn" onclick="openStudentReportFor('${en}')">📊 이행률 요약표</button>
+      <div class="ss-hm-sep"></div>
+      <button class="ss-hm-btn" onclick="attachPdfForStudent('${en}')">${pdfLabel}</button>
+    </div>`;
+    return`<div class="${cls}" onclick="switchTab('${en}')" data-student="${en}">
+      <div class="ss-name">${en}</div>
+      ${hasPdf?`<span class="ss-pdf-badge">📎</span>`:''}
+      ${menu}
     </div>`;
   }).join('');
+}
+
+// 학생별 이행률 요약표 바로 열기
+function openStudentReportFor(name){
+  dlStudentReport(name);
 }
 
 function switchTab(name){

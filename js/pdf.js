@@ -1,5 +1,6 @@
 // ─── PDF 첨부 (학생별) ───
 let _pdfAttachTarget=''; // '' = current student, '_all_' = all students
+let _pdfReplaceMode=false;
 
 async function _processPdfFile(file){
   setBar('wait','⏳ PDF 렌더링 중...');
@@ -55,18 +56,22 @@ async function handlePdfInput(input){
   const pdfData=await _processPdfFile(file);
   if(!pdfData){input.value='';return;}
   if(_pdfAttachTarget==='_all_'){
-    G.students.forEach(s=>_addPdfToStudent(s,{
-      bytes:new Uint8Array(pdfData.bytes),name:pdfData.name,pageCount:pdfData.pageCount,isPng:!!pdfData.isPng,
-      canvases:pdfData.canvases.map(cv=>{
-        const c=document.createElement('canvas');c.width=cv.width;c.height=cv.height;
-        c.getContext('2d').drawImage(cv,0,0);return c;
-      })
-    }));
+    G.students.forEach(s=>{
+      G.studentPdfs[s]=[];  // 전체 교체
+      _addPdfToStudent(s,{
+        bytes:new Uint8Array(pdfData.bytes),name:pdfData.name,pageCount:pdfData.pageCount,isPng:!!pdfData.isPng,
+        canvases:pdfData.canvases.map(cv=>{
+          const c=document.createElement('canvas');c.width=cv.width;c.height=cv.height;
+          c.getContext('2d').drawImage(cv,0,0);return c;
+        })
+      });
+    });
   }else{
     const target=_pdfAttachTarget||G.selStudent;
+    if(_pdfReplaceMode)G.studentPdfs[target]=[];  // 교체 모드: 기존 삭제
     _addPdfToStudent(target,pdfData);
   }
-  _pdfAttachTarget='';
+  _pdfAttachTarget='';_pdfReplaceMode=false;
   _syncGlobalPdf();
   G.currentSpread=0;renderSpread();renderTabs();
   setBar('ok',`✅ ${G.excelFileName}`);
@@ -74,9 +79,21 @@ async function handlePdfInput(input){
   input.value='';
 }
 
-function showPdfAttachMenu(e){
-  _closePdfMenu();
+// 리포트 옆 인라인 + 버튼
+function inlinePdfAttach(){
   if(!G.selStudent)return;
+  // 한 명이라도 개별 PDF 있으면 → 현재 학생에게만
+  const anyHasPdf=Object.keys(G.studentPdfs).some(k=>G.studentPdfs[k]?.length>0);
+  if(anyHasPdf){
+    _pdfAttachTarget=G.selStudent;
+    $$('pdfInput').click();
+  }else{
+    _showInlineMenu();
+  }
+}
+
+function _showInlineMenu(){
+  _closePdfMenu();
   const menu=document.createElement('div');
   menu.className='pdf-attach-menu';menu.id='pdfAttachMenu';
   menu.innerHTML=`
@@ -88,10 +105,10 @@ function showPdfAttachMenu(e){
       <span style="font-size:16px;">👥</span> 모든 학생에게 첨부
     </button>`;
   document.body.appendChild(menu);
-  // 위치 계산
-  if(e){
-    const rect=e.target.closest('.pdf-fab')?.getBoundingClientRect()||{right:window.innerWidth-40,bottom:window.innerHeight-40};
-    menu.style.right=(window.innerWidth-rect.right)+'px';
+  const btn=$$('pdfAddInline');
+  if(btn){
+    const rect=btn.getBoundingClientRect();
+    menu.style.left=rect.left+'px';
     menu.style.bottom=(window.innerHeight-rect.top+8)+'px';
   }
   setTimeout(()=>document.addEventListener('click',_closePdfMenuOnClick,{once:true}),0);
@@ -100,7 +117,9 @@ function _closePdfMenu(){const m=$$('pdfAttachMenu');if(m)m.remove();}
 function _closePdfMenuOnClick(e){if(!e.target.closest('.pdf-attach-menu'))_closePdfMenu();}
 
 function attachPdfForStudent(name){
+  // 이미 PDF 있으면 교체 (기존 삭제 후 새로 첨부)
   _pdfAttachTarget=name;
+  _pdfReplaceMode=!!(G.studentPdfs[name]?.length);
   $$('pdfInput').click();
 }
 
@@ -180,24 +199,31 @@ function renderSpread(){
   _syncGlobalPdf();
   const total=1+G.pdfPageCount,spreads=Math.ceil(total/2);
   const nav=$$('pageNav');nav.style.display=G.pdfPageCount>0?'flex':'none';
-  // 페이지 네비 + PDF 삭제 버튼
   let navHtml=`<button id="btnPrev" onclick="prevSpread()" ${G.currentSpread===0?'disabled':''}>‹</button>
     <span class="pinfo" id="pageInfo">${G.currentSpread+1} / ${spreads}</span>
     <button id="btnNext" onclick="nextSpread()" ${G.currentSpread>=spreads-1?'disabled':''}>›</button>`;
-  if(G.pdfPageCount>0){
-    navHtml+=`<button class="pdf-del-btn" onclick="removeAllStudentPdfs('${esc(G.selStudent||'')}')" title="PDF 전체 삭제">🗑</button>`;
-  }
   nav.innerHTML=navHtml;
 
   const li=G.currentSpread*2,ri=li+1;
   const rc=$$('reportCard'),lc=$$('leftPdfCanvas'),rs=$$('rightSlot'),rpc=$$('rightPdfCanvas');
+  // 기존 X 버튼 제거
+  document.querySelectorAll('.pdf-page-del').forEach(el=>el.remove());
+  const stu=esc(G.selStudent||'');
   if(li===0){rc.style.display='';lc.style.display='none';$$('leftLabel').textContent='리포트';}
-  else{rc.style.display='none';const pi=li-1;if(pi<G.pdfCanvases.length){drawPdfPrev(lc,G.pdfCanvases[pi]);lc.style.display='block';$$('leftLabel').textContent=`시험자료 ${pi+1}p`;}}
+  else{rc.style.display='none';const pi=li-1;if(pi<G.pdfCanvases.length){drawPdfPrev(lc,G.pdfCanvases[pi]);lc.style.display='block';$$('leftLabel').textContent=`시험자료 ${pi+1}p`;
+    _addPdfDelBtn($$('leftSlot'),stu);}}
   const isDual=G.pdfPageCount>0&&ri<total;
-  if(isDual){rs.style.display='';const pi=ri-1;if(pi<G.pdfCanvases.length){drawPdfPrev(rpc,G.pdfCanvases[pi]);$$('rightLabel').textContent=`시험자료 ${pi+1}p`;}}
+  if(isDual){rs.style.display='';const pi=ri-1;if(pi<G.pdfCanvases.length){drawPdfPrev(rpc,G.pdfCanvases[pi]);$$('rightLabel').textContent=`시험자료 ${pi+1}p`;
+    _addPdfDelBtn(rs,stu);}}
   else rs.style.display='none';
   $$('spreadRow').classList.toggle('dual',isDual);
   setTimeout(updateScale,60);
+}
+function _addPdfDelBtn(slot,studentName){
+  const btn=document.createElement('button');
+  btn.className='pdf-page-del';btn.title='PDF 삭제';btn.textContent='✕';
+  btn.onclick=()=>removeAllStudentPdfs(decodeURIComponent(studentName));
+  slot.appendChild(btn);
 }
 function drawPdfPrev(tgt,src){
   tgt.width=src.width;tgt.height=src.height;
@@ -765,7 +791,7 @@ function _buildJournalAttendImageHtml(date){
 }
 
 // ─── 학생별 리포트 요약 ───
-function dlStudentReport(){
+function dlStudentReport(preselect){
   if(!G.lessons.length||!G.students.length){alert('수업 및 학생 데이터가 필요합니다.');return;}
   if(G.selStudent)saveTabData();
 
@@ -779,7 +805,6 @@ function dlStudentReport(){
       <div style="padding:16px 24px 0;display:flex;flex-direction:column;gap:10px;flex-shrink:0;">
         <div style="display:flex;gap:8px;align-items:center;">
           <select id="stuRptStudent" style="flex:1;padding:10px 12px;border:1px solid #e5e8eb;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;"></select>
-          <button class="btn-s" id="stuRptWingBtn" style="padding:10px 14px;font-size:13px;white-space:nowrap;" title="미완료 과제 패널 열기/닫기">📋 미완료</button>
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
           <select id="stuRptStart" style="flex:1;padding:10px 12px;border:1px solid #e5e8eb;border-radius:10px;font-family:inherit;font-size:14px;"></select>
@@ -788,14 +813,14 @@ function dlStudentReport(){
         </div>
       </div>
       <div style="flex:1;display:flex;min-height:0;overflow:hidden;">
-        <div id="stuRptPreview" style="flex:1;overflow-y:auto;padding:16px 24px;min-height:0;"></div>
+        <div id="stuRptPreview" style="flex:1;overflow-y:auto;padding:12px 20px;min-height:0;"></div>
         <div id="stuRptWing" style="width:0;overflow:hidden;transition:width .25s ease;border-left:0 solid #e5e7eb;flex-shrink:0;">
           <div id="stuRptWingContent" style="width:260px;padding:14px;overflow-y:auto;height:100%;box-sizing:border-box;"></div>
         </div>
       </div>
       <div style="padding:12px 24px 16px;display:flex;gap:10px;flex-shrink:0;">
         <button class="btn-s" id="stuRptCancel" style="flex:1;">닫기</button>
-        <button class="btn-p" id="stuRptDl" style="flex:1;">📥 PDF 다운로드</button>
+        <button class="btn-p" id="stuRptDl" style="flex:1;">💾 저장하기</button>
       </div>
     </div>`;
     document.body.appendChild(overlay);
@@ -803,7 +828,8 @@ function dlStudentReport(){
 
   // 학생 옵션
   $$('stuRptStudent').innerHTML=G.students.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
-  if(G.selStudent)$$('stuRptStudent').value=G.selStudent;
+  const initStudent=preselect||G.selStudent;
+  if(initStudent)$$('stuRptStudent').value=initStudent;
   // 날짜 옵션 (첫 수업일 제외, 오늘까지만)
   const stuToday=todayKST();
   const stuDates=G.lessons.filter((l,i)=>i>0&&l.날짜<=stuToday);
@@ -814,8 +840,24 @@ function dlStudentReport(){
 
   let wingOpen=false;
   const render=()=>{
-    _renderStudentReport($$('stuRptStudent').value,$$('stuRptStart').value,$$('stuRptEnd').value,$$('stuRptPreview'));
+    _renderStudentReport($$('stuRptStudent').value,$$('stuRptStart').value,$$('stuRptEnd').value,$$('stuRptPreview'),{compact:true});
     if(wingOpen)_renderWingPanel();
+    // 요약 카드 영역에 미완료 버튼 삽입
+    setTimeout(()=>{
+      const summaryDiv=$$('stuRptPreview')?.querySelector('[data-summary]');
+      if(summaryDiv){
+        let wingBtn=summaryDiv.querySelector('.stu-rpt-wing-toggle');
+        if(!wingBtn){
+          wingBtn=document.createElement('button');
+          wingBtn.className='stu-rpt-wing-toggle';
+          wingBtn.style.cssText='position:absolute;top:10px;right:10px;padding:4px 10px;border-radius:6px;font-size:10px;font-weight:700;border:1px solid #fca5a5;background:#fef2f2;color:#991b1b;cursor:pointer;transition:.15s;font-family:inherit;';
+          wingBtn.textContent=wingOpen?'✕ 닫기':'📋 미완료 모아보기';
+          wingBtn.onclick=toggleWing;
+          summaryDiv.style.position='relative';
+          summaryDiv.appendChild(wingBtn);
+        }
+      }
+    },0);
   };
   const _renderWingPanel=()=>{
     const student=$$('stuRptStudent').value;
@@ -866,13 +908,30 @@ function dlStudentReport(){
   $$('stuRptClose').onclick=close;
   $$('stuRptCancel').onclick=close;
   overlay.onclick=e=>{if(e.target===overlay)close();};
-  $$('stuRptDl').onclick=async()=>{
+  $$('stuRptDl').onclick=()=>{
+    _closePdfMenu();
     const student=$$('stuRptStudent').value;
     const s=$$('stuRptStart').value,e=$$('stuRptEnd').value;
     const dates=G.lessons.filter(l=>l.날짜>=s&&l.날짜<=e).map(l=>l.날짜)
       .filter(d=>G.attend[student]?.[d]!==-1);
     if(!dates.length)return;
-    await _downloadStudentReportPdf(student,dates);
+    // 저장 옵션 메뉴
+    const menu=document.createElement('div');
+    menu.className='pdf-attach-menu';menu.id='pdfAttachMenu';
+    menu.style.cssText='position:fixed;z-index:9999;';
+    menu.innerHTML=`
+      <button onclick="_closePdfMenu();_downloadStudentReportPdf('${esc(student)}',[${dates.map(d=>`'${d}'`).join(',')}]);">
+        <span style="font-size:16px;">📥</span> PDF로 다운로드
+      </button>
+      <div class="pam-sep"></div>
+      <button onclick="_closePdfMenu();_attachStudentReportToView('${esc(student)}',[${dates.map(d=>`'${d}'`).join(',')}]);">
+        <span style="font-size:16px;">📌</span> 리포트에 첨부하기
+      </button>`;
+    document.body.appendChild(menu);
+    const rect=$$('stuRptDl').getBoundingClientRect();
+    menu.style.left=rect.left+'px';
+    menu.style.bottom=(window.innerHeight-rect.top+6)+'px';
+    setTimeout(()=>document.addEventListener('click',_closePdfMenuOnClick,{once:true}),0);
   };
 }
 
@@ -933,27 +992,31 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
   });
   const avgRate=rateCount>0?Math.round(rateSum/rateCount):null;
 
+  const cmp=opts.compact;
+  const fs=cmp?{title:'12px',num:'16px',label:'9px',sub:'10px',pad:'10px 12px',gap:'6px',mb:'10px'}
+    :{title:'15px',num:'20px',label:'10px',sub:'11px',pad:'16px',gap:'8px',mb:'14px'};
+
   // 요약 카드
-  let html=`<div style="background:#f8f9fa;border-radius:12px;padding:16px;margin-bottom:14px;">
-    <div style="font-size:15px;font-weight:800;color:#111;margin-bottom:10px;">${esc(student)} 종합 요약</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <div style="flex:1;min-width:100px;background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #e5e7eb;text-align:center;">
-        <div style="font-size:10px;color:#888;margin-bottom:4px;">평균 이행률</div>
-        <div style="font-size:20px;font-weight:800;color:${avgRate!=null?rateColor(avgRate):'#d1d5db'};">${avgRate!=null?avgRate+'%':'-'}</div>
+  let html=`<div data-summary style="background:#f8f9fa;border-radius:10px;padding:${fs.pad};margin-bottom:${fs.mb};">
+    <div style="font-size:${fs.title};font-weight:800;color:#111;margin-bottom:8px;">${esc(student)} 종합 요약</div>
+    <div style="display:flex;gap:${fs.gap};flex-wrap:wrap;">
+      <div style="flex:1;min-width:80px;background:#fff;border-radius:6px;padding:6px 8px;border:1px solid #e5e7eb;text-align:center;">
+        <div style="font-size:${fs.label};color:#888;margin-bottom:2px;">평균 이행률</div>
+        <div style="font-size:${fs.num};font-weight:800;color:${avgRate!=null?rateColor(avgRate):'#d1d5db'};">${avgRate!=null?avgRate+'%':'-'}</div>
       </div>
-      <div style="flex:1;min-width:100px;background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #e5e7eb;text-align:center;">
-        <div style="font-size:10px;color:#888;margin-bottom:4px;">수업 횟수</div>
-        <div style="font-size:20px;font-weight:800;color:#111;">${rateCount}<span style="font-size:11px;color:#999;">/${dates.length}회</span></div>
+      <div style="flex:1;min-width:80px;background:#fff;border-radius:6px;padding:6px 8px;border:1px solid #e5e7eb;text-align:center;">
+        <div style="font-size:${fs.label};color:#888;margin-bottom:2px;">수업 횟수</div>
+        <div style="font-size:${fs.num};font-weight:800;color:#111;">${rateCount}<span style="font-size:${fs.sub};color:#999;">/${dates.length}회</span></div>
       </div>
-      <div style="flex:1;min-width:100px;background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #e5e7eb;text-align:center;">
-        <div style="font-size:10px;color:#888;margin-bottom:4px;">완료한 과제 수</div>
-        <div style="font-size:20px;font-weight:800;color:${totalHw?rateColor(Math.round(completedHw/totalHw*100)):'#d1d5db'};">${completedHw}<span style="font-size:11px;color:#999;">/${totalHw}개</span></div>
+      <div style="flex:1;min-width:80px;background:#fff;border-radius:6px;padding:6px 8px;border:1px solid #e5e7eb;text-align:center;">
+        <div style="font-size:${fs.label};color:#888;margin-bottom:2px;">완료한 과제</div>
+        <div style="font-size:${fs.num};font-weight:800;color:${totalHw?rateColor(Math.round(completedHw/totalHw*100)):'#d1d5db'};">${completedHw}<span style="font-size:${fs.sub};color:#999;">/${totalHw}개</span></div>
       </div>
     </div>
-    ${totalHw?`<div style="display:flex;gap:12px;margin-top:8px;font-size:11px;">
-      <span style="color:#166534;">✓ 완료 ${doneHw}</span>
-      <span style="color:#92400e;">△ 부분완료 ${partialHw}</span>
-      <span style="color:#991b1b;">✗ 미완료 ${missHw}</span>
+    ${totalHw?`<div style="display:flex;gap:10px;margin-top:6px;font-size:${fs.sub};">
+      <span style="color:#166534;">✓ ${doneHw}</span>
+      <span style="color:#92400e;">△ ${partialHw}</span>
+      <span style="color:#991b1b;">✗ ${missHw}</span>
     </div>`:''}
   </div>`;
 
@@ -967,29 +1030,34 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
     const hasRate=rate!=null&&!isNaN(rate);
     const isAbsent=!hasRate;
 
-    html+=`<div style="border:1.5px solid #d1d5db;border-radius:10px;margin-bottom:10px;overflow:hidden;">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:${isAbsent?'#fef2f2':'#f0f1f3'};border-bottom:1.5px solid #d1d5db;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:13px;font-weight:800;color:#222;">${fmtKo(d)}</span>
-          ${lesson?`<span style="font-size:11px;color:#888;">${esc(lesson.교재||'')} ${esc(lesson.단원||'')}</span>`:''}
+    const dFs=cmp?{head:'8px 10px',dateSz:'11px',infoSz:'9px',rateSz:'10px',mb:'6px'}
+      :{head:'10px 14px',dateSz:'13px',infoSz:'11px',rateSz:'12px',mb:'10px'};
+    html+=`<div style="border:1px solid #d1d5db;border-radius:8px;margin-bottom:${dFs.mb};overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:${dFs.head};background:${isAbsent?'#fef2f2':'#f0f1f3'};border-bottom:1px solid #d1d5db;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:${dFs.dateSz};font-weight:800;color:#222;">${fmtKo(d)}</span>
+          ${lesson?`<span style="font-size:${dFs.infoSz};color:#888;">${esc(lesson.교재||'')} ${esc(lesson.단원||'')}</span>`:''}
         </div>
-        ${isAbsent?`<span style="font-size:11px;font-weight:700;color:#dc2626;">결석</span>`
-          :`<span style="padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;color:${rateColor(rate)};background:${rateBg(rate)};">${rate}%</span>`}
+        ${isAbsent?`<span style="font-size:${dFs.infoSz};font-weight:700;color:#dc2626;">결석</span>`
+          :`<span style="padding:1px 6px;border-radius:5px;font-size:${dFs.rateSz};font-weight:700;color:${rateColor(rate)};background:${rateBg(rate)};">${rate}%</span>`}
       </div>`;
 
     if(!isAbsent){
       const visible=items.filter(it=>!isNone(it.status)&&stLabel[it.status]!=null);
+      const hwPad=cmp?'5px 8px':'8px 12px';
+      const hwFs=cmp?'10px':'12px';
+      const hwBs=cmp?'9px':'10px';
       if(visible.length){
-        html+=`<div style="padding:8px 12px;display:flex;flex-direction:column;gap:4px;">`;
+        html+=`<div style="padding:${hwPad};display:flex;flex-direction:column;gap:2px;">`;
         visible.forEach(it=>{
-          html+=`<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:6px;background:#fff;">
-            <span style="flex:1;font-size:12px;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.text)}</span>
-            <span style="padding:1px 7px;border-radius:4px;font-size:10px;font-weight:700;color:${stColor[it.status]};background:${stBg[it.status]};flex-shrink:0;">${stLabel[it.status]}</span>
+          html+=`<div style="display:flex;align-items:center;gap:6px;padding:2px 6px;border-radius:4px;background:#fff;">
+            <span style="flex:1;font-size:${hwFs};color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.text)}</span>
+            <span style="padding:0px 5px;border-radius:3px;font-size:${hwBs};font-weight:700;color:${stColor[it.status]};background:${stBg[it.status]};flex-shrink:0;">${stLabel[it.status]}</span>
           </div>`;
         });
         html+=`</div>`;
       }else{
-        html+=`<div style="padding:8px 14px;font-size:11px;color:#9ca3af;">상태 지정된 과제 없음</div>`;
+        html+=`<div style="padding:${hwPad};font-size:${hwFs};color:#9ca3af;">상태 지정된 과제 없음</div>`;
       }
       // 이월과제 비고 (원본 대비 상태가 변한 것만 + 중복 제거)
       const carryStDesc={2:'완료',1:'일부 완료',0:'미완료'};
@@ -1009,10 +1077,11 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
           const isDone=it.status===2;
           const cColor=isDone?'#166534':it.status===1?'#92400e':'#991b1b';
           const cBg=isDone?'#f0fdf4':it.status===1?'#fffbeb':'#fef2f2';
-          html+=`<div style="display:flex;align-items:center;gap:6px;padding:3px 8px;border-radius:5px;background:${cBg};margin-bottom:3px;">
-            <span style="font-size:10px;font-weight:700;color:#d97706;flex-shrink:0;">이월</span>
-            <span style="flex:1;font-size:11px;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.text)} <span style="color:#999;font-size:10px;">(${fd})</span></span>
-            <span style="font-size:10px;font-weight:700;color:${cColor};flex-shrink:0;">${carryStDesc[it.status]}</span>
+          const cyFs=cmp?'9px':'11px';const cyBs=cmp?'8px':'10px';
+          html+=`<div style="display:flex;align-items:center;gap:4px;padding:2px 6px;border-radius:4px;background:${cBg};margin-bottom:2px;">
+            <span style="font-size:${cyBs};font-weight:700;color:#d97706;flex-shrink:0;">이월</span>
+            <span style="flex:1;font-size:${cyFs};color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.text)} <span style="color:#999;font-size:${cyBs};">(${fd})</span></span>
+            <span style="font-size:${cyBs};font-weight:700;color:${cColor};flex-shrink:0;">${carryStDesc[it.status]}</span>
           </div>`;
         });
         html+=`</div>`;
@@ -1021,54 +1090,64 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
     html+=`</div>`;
   });
 
-  // ─── 미완료 과제 모아보기 섹션 ───
-  if(incompleteItems.length){
-    const stL={0:'✗ 미완료',1:'△ 부분완료'};
-    const stC={0:'#991b1b',1:'#92400e'};
-    const stB={0:'#fee2e2',1:'#fef3c7'};
-    html+=`<div style="border:2px solid #fca5a5;border-radius:12px;margin-top:16px;overflow:hidden;" id="incompleteSection">
-      <div style="padding:12px 16px;background:#fef2f2;border-bottom:1.5px solid #fca5a5;display:flex;align-items:center;gap:8px;">
-        <span style="font-size:14px;font-weight:800;color:#991b1b;">📋 미완료 과제 모아보기</span>
-        <span style="padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;color:#fff;background:#ef4444;">${incompleteItems.length}건</span>
-      </div>
-      <div style="padding:10px 14px;display:flex;flex-direction:column;gap:4px;">`;
-    // 날짜별 그룹
-    let lastD='';
-    incompleteItems.forEach(it=>{
-      if(it.date!==lastD){
-        if(lastD)html+=`<div style="height:6px;"></div>`;
-        html+=`<div style="font-size:10px;font-weight:700;color:#6b7280;padding:4px 0 2px;">${shortD(it.date)} ${esc(it.lesson?.교재||'')} ${esc(it.lesson?.단원||'')}</div>`;
-        lastD=it.date;
-      }
-      html+=`<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;border-radius:6px;background:${stB[it.status]};">
-        <span style="flex:1;font-size:12px;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.text)}</span>
-        <span style="padding:1px 7px;border-radius:4px;font-size:10px;font-weight:700;color:${stC[it.status]};background:#fff;flex-shrink:0;">${stL[it.status]}</span>
-      </div>`;
-    });
-    html+=`</div></div>`;
-  }
-
   container.innerHTML=html;
+}
+
+// 요약표를 현재 학생 PDF로 첨부
+async function _attachStudentReportToView(student,dates){
+  const btn=$$('stuRptDl');
+  const origText=btn.textContent;btn.textContent='⏳ 첨부 중...';btn.disabled=true;
+  try{
+    const W=400;
+    const wrap=document.createElement('div');
+    wrap.style.cssText='position:fixed;left:-9999px;top:0;';
+    document.body.appendChild(wrap);
+    const container=document.createElement('div');
+    container.style.cssText=`width:${W}px;background:#fff;padding:20px 24px;box-sizing:border-box;font-family:Pretendard,sans-serif;`;
+    container.innerHTML=`<div style="text-align:center;margin-bottom:6px;">
+      <div style="font-size:14px;font-weight:800;color:#111;">숙제 이행률 요약표</div>
+      <div style="font-size:10px;color:#888;margin-top:2px;">${shortD(dates[0])} ~ ${shortD(dates[dates.length-1])}</div>
+    </div><div id="_stuRptAttach"></div>`;
+    wrap.appendChild(container);
+    _renderStudentReport(student,dates[0],dates[dates.length-1],container.querySelector('#_stuRptAttach'),{compact:true});
+    const canvas=await html2canvas(container,{scale:2,useCORS:true,backgroundColor:'#fff',width:W,scrollX:0,scrollY:0,windowWidth:W});
+    document.body.removeChild(wrap);
+    // A4 캔버스 생성 (리포트카드와 동일 비율)
+    const a4w=794*2.5,a4h=1123*2.5;
+    const cv=document.createElement('canvas');cv.width=a4w;cv.height=a4h;
+    const ctx=cv.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,a4w,a4h);
+    const scale=Math.min((a4w*0.9)/canvas.width,(a4h*0.85)/canvas.height);
+    const dw=canvas.width*scale,dh=canvas.height*scale;
+    ctx.drawImage(canvas,(a4w-dw)/2,(a4h-dh)/2*0.4,dw,dh);
+    const pngUrl=cv.toDataURL('image/png');
+    const pngBytes=dataUrlToBytes(pngUrl);
+    // 기존 PDF 교체
+    G.studentPdfs[student]=[{bytes:pngBytes,name:'이행률요약표.png',canvases:[cv],pageCount:1,isPng:true}];
+    _syncGlobalPdf();G.currentSpread=0;renderSpread();renderTabs();_savePdfData();
+    // 모달 닫기
+    $$('stuRptOverlay').style.display='none';document.body.classList.remove('modal-open');
+  }catch(e){alert('첨부 오류: '+e.message);console.error(e);}
+  btn.textContent=origText;btn.disabled=false;
 }
 
 async function _downloadStudentReportPdf(student,dates){
   const btn=$$('stuRptDl');
   const origText=btn.textContent;btn.textContent='⏳ 생성 중...';btn.disabled=true;
   try{
-    const W=500;
+    const W=400;
     const wrap=document.createElement('div');
     wrap.style.cssText='position:fixed;left:-9999px;top:0;';
     document.body.appendChild(wrap);
 
     const container=document.createElement('div');
-    container.style.cssText=`width:${W}px;background:#fff;padding:28px 32px;box-sizing:border-box;font-family:Pretendard,sans-serif;`;
-    container.innerHTML=`<div style="text-align:center;margin-bottom:8px;">
-      <div style="font-size:18px;font-weight:800;color:#111;">숙제 이행률 요약표</div>
-      <div style="font-size:12px;color:#888;margin-top:4px;">${shortD(dates[0])} ~ ${shortD(dates[dates.length-1])}</div>
+    container.style.cssText=`width:${W}px;background:#fff;padding:20px 24px;box-sizing:border-box;font-family:Pretendard,sans-serif;`;
+    container.innerHTML=`<div style="text-align:center;margin-bottom:6px;">
+      <div style="font-size:14px;font-weight:800;color:#111;">숙제 이행률 요약표</div>
+      <div style="font-size:10px;color:#888;margin-top:2px;">${shortD(dates[0])} ~ ${shortD(dates[dates.length-1])}</div>
     </div><div id="_stuRptCapture"></div>
-    <div style="text-align:center;font-size:9px;color:#ccc;padding-top:12px;">Generated by 학습리포트</div>`;
+    <div style="text-align:center;font-size:8px;color:#ccc;padding-top:8px;">Generated by 학습리포트</div>`;
     wrap.appendChild(container);
-    _renderStudentReport(student,dates[0],dates[dates.length-1],container.querySelector('#_stuRptCapture'));
+    _renderStudentReport(student,dates[0],dates[dates.length-1],container.querySelector('#_stuRptCapture'),{compact:true});
 
     const canvas=await html2canvas(container,{scale:2,useCORS:true,backgroundColor:'#fff',
       width:W,scrollX:0,scrollY:0,windowWidth:W});

@@ -156,7 +156,7 @@
           <div class="tb-menu-sep"></div>
           <button onclick="dlSummaryPdf();closeToolbarMenus()">📋 전체 과제 요약 이미지</button>
           <div class="tb-menu-sep"></div>
-          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.43)</button>
+          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.44)</button>
         </div>
       </div>
       <button class="tb-btn" disabled title="준비 중">🖨 프린트</button>
@@ -170,11 +170,6 @@
     </div>
   </div>
   <div class="preview-body">
-    <!-- 학생 사이드바 (우측) -->
-    <div class="student-sidebar" id="studentSidebar" style="display:none;">
-      <div class="ss-header">학생 목록</div>
-      <div class="ss-list" id="ssList"></div>
-    </div>
     <!-- 메인 콘텐츠 -->
     <div class="preview-content" id="previewContent">
       <div class="page-nav" id="pageNav" style="display:none;">
@@ -282,8 +277,13 @@
           <div class="pdf-lbl" id="rightLabel"></div>
         </div>
       </div>
-      <!-- PDF 첨부 FAB 버튼 -->
-      <button class="pdf-fab" id="pdfFab" onclick="showPdfAttachMenu(event)" title="PDF 첨부" style="display:none;">+</button>
+      <!-- 리포트 옆 PDF 첨부 버튼 -->
+      <button class="pdf-add-inline" id="pdfAddInline" onclick="inlinePdfAttach()" title="PDF 첨부" style="display:none;">+</button>
+    </div>
+    <!-- 학생 사이드바 (맨 우측) -->
+    <div class="student-sidebar" id="studentSidebar" style="display:none;">
+      <div class="ss-header">학생</div>
+      <div class="ss-list" id="ssList"></div>
     </div>
   </div>
   <!-- PDF 파일 입력 (숨김) -->
