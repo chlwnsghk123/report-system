@@ -297,7 +297,7 @@ async function _doSummaryImage(){
     const prevLesson=getPrevL();
     const W=800; // 이미지 폭
     const minCardH=160; // 결석 등 최소 높이
-    const stLabel={2:'✓ 완료',1:'△ 부분완료',0:'✗ 미완료'};
+    const stLabel={2:'완료',1:'부분완료',0:'미완료'};
     const stColor={2:'#166534',1:'#92400e',0:'#991b1b'};
     const stBg={2:'#dcfce7',1:'#fef3c7',0:'#fee2e2'};
 
@@ -878,7 +878,7 @@ function dlStudentReport(preselect){
     });
     const wc=$$('stuRptWingContent');
     if(!inc.length){wc.innerHTML='<div style="text-align:center;color:#22c55e;font-size:13px;font-weight:700;padding:40px 0;">✓ 미완료 과제 없음</div>';return;}
-    const stL={0:'✗',1:'△'};const stC={0:'#991b1b',1:'#92400e'};const stB={0:'#fee2e2',1:'#fef3c7'};
+    const stL={0:'미완료',1:'부분완료'};const stC={0:'#991b1b',1:'#92400e'};const stB={0:'#fee2e2',1:'#fef3c7'};
     let h=`<div style="font-size:13px;font-weight:800;color:#991b1b;margin-bottom:10px;">미완료 과제 <span style="padding:1px 7px;border-radius:8px;font-size:11px;background:#ef4444;color:#fff;">${inc.length}</span></div>`;
     let ld='';
     inc.forEach(it=>{
@@ -1016,9 +1016,9 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
       </div>
     </div>
     ${totalHw?`<div style="display:flex;gap:10px;margin-top:6px;font-size:${fs.sub};">
-      <span style="color:#166534;">✓ ${doneHw}</span>
-      <span style="color:#92400e;">△ ${partialHw}</span>
-      <span style="color:#991b1b;">✗ ${missHw}</span>
+      <span style="color:#166534;">완료 ${doneHw}</span>
+      <span style="color:#92400e;">부분완료 ${partialHw}</span>
+      <span style="color:#991b1b;">미완료 ${missHw}</span>
     </div>`:''}
   </div>`;
 
