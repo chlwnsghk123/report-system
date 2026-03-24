@@ -127,19 +127,14 @@ function parseWB(wb){
         for(let ci=hwStartCol;ci<hwEndCol;ci++){
           rec[`과제${ci-hwStartCol+1}_상태`]=String(r[ci]||'').trim();
         }
-        // 추가과제 열 파싱 ("내용|상태숫자" 형식)
+        // 추가과제 열 파싱 → extraHw (이번 주차 추가 과제)
         if(extraStartCol>=0){
-          rec.items=rec.items||[];
+          rec.extraHw=rec.extraHw||[];
           for(let ci=extraStartCol;ci<extraEndCol;ci++){
             const val=String(r[ci]||'').trim();if(!val)continue;
             const pipePos=val.lastIndexOf('|');
-            if(pipePos>0){
-              const text=val.slice(0,pipePos).trim();
-              const status=stFromExcel(val.slice(pipePos+1).trim());
-              rec.items.push({text,status,type:'extra',fromDate:''});
-            }else{
-              rec.items.push({text:val,status:'',type:'extra',fromDate:''});
-            }
+            const text=pipePos>0?val.slice(0,pipePos).trim():val;
+            rec.extraHw.push({text});
           }
         }
         G.hwRec[key]=rec;
@@ -230,6 +225,16 @@ function parseWB(wb){
         const status=stFromExcel(rec[`과제${i+1}_상태`]||'');
         return{text,status,type:'base',fromDate:''};
       }).filter(it=>it.text);
+      // 이전 날짜의 학생별 추가과제도 base로 포함
+      const prevDateKey=`${name}||${prevLesson.날짜}`;
+      const prevRec=G.hwRec[prevDateKey];
+      if(prevRec?.extraHw){
+        const extraBaseStart=baseItems.length;
+        prevRec.extraHw.forEach((ex,ei)=>{
+          const status=stFromExcel(rec[`과제${extraBaseStart+ei+1}_상태`]||'');
+          baseItems.push({text:ex.text,status,type:'base',fromDate:''});
+        });
+      }
       const carryItems=(rec.items||[]).filter(it=>it.type==='carry');
       rec.items=[...baseItems,...carryItems];
     });
@@ -282,6 +287,8 @@ async function saveToExcel(){
     // 레거시 필드
     const baseCount=types.filter(t=>!t.type||t.type==='base').length;
     for(let i=0;i<baseCount;i++)ex[`과제${i+1}_상태`]=hs[i]||ex[`과제${i+1}_상태`]||'';
+    // 이번 주차 추가 과제 동기화
+    if(td.extraHw)ex.extraHw=td.extraHw.map(it=>({...it}));
     G.hwRec[key]=ex;
   });
   await saveAppDataNow();
@@ -307,10 +314,10 @@ async function saveToExcel(){
     const baseHwCount=prevLesson?getLessonHwKeys(prevLesson).length:4;
     const hwCount=Math.max(4,baseHwCount);
     const hwHdrs=Array.from({length:hwCount},(_,i)=>`과제${i+1}`);
-    // 추가과제 최대 개수 파악
+    // 추가과제 최대 개수 파악 (extraHw: 이번 주차 추가 과제)
     const maxExtra=Math.max(0,...G.students.map(n=>{
       const rec=G.hwRec[`${n}||${date}`];
-      return(rec?.items||[]).filter(it=>it.type==='extra').length;
+      return(rec?.extraHw||[]).length;
     }));
     const extraHdrs=Array.from({length:maxExtra},(_,i)=>`추가과제${i+1}`);
     const aoa=[
@@ -320,11 +327,11 @@ async function saveToExcel(){
         const rate=rec?.이행률!=null?rec.이행률:G.rates[n]?.[date]??null;
         const hwVals=Array.from({length:hwCount},(_,i)=>
           stToExcel(rec?.[`과제${i+1}_상태`]||''));
-        // 추가과제: "내용|상태숫자" 형식
-        const extras=(rec?.items||[]).filter(it=>it.type==='extra');
+        // 추가과제: 이번 주차 추가 과제 텍스트
+        const extras=rec?.extraHw||[];
         const extraVals=Array.from({length:maxExtra},(_,i)=>{
           const ex=extras[i];if(!ex)return'';
-          return`${ex.text}|${stToExcel(ex.status)}`;
+          return ex.text;
         });
         // 비고: 이월과제 자동 요약 + 사용자 메모 통합
         const carryItems=(rec?.items||[]).filter(it=>it.type==='carry');

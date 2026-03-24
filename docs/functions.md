@@ -95,9 +95,12 @@
 |---|---|
 | `stFromExcel(v)` | 엑셀 기호/숫자(○/△/X/0/1/2) → 한글 상태 변환 |
 | `computeCarryover(student,date)` | 직전 날짜 hwRec에서 미완료/부분완료 항목 수집 → 캐리오버 배열 반환 |
-| `updateNoticeWithCarry()` | 이번 주차 과제 + 미완료 캐리오버 → 리포트카드 반영 |
+| `updateNoticeWithCarry()` | 이번 주차 과제 + 추가과제 + 미완료 캐리오버 → 리포트카드 반영 |
+| `renderCurHwList()` | 패널 이번 주차 과제 목록 렌더 (레슨 과제, 읽기전용) |
+| `renderExtraHwEditor()` | 패널 학생별 추가 과제 에디터 렌더 (수정/삭제 가능) |
 | `autoFillCommon()` | 날짜 기준 공통 필드 자동채우기 |
-| `autoFillAll()` | 학생+날짜 기준 전체 자동채우기 (base + 캐리오버 병합) |
+| `getPrevExtraHw(student,date)` | 이전 날짜의 학생별 추가과제 텍스트 배열 반환 |
+| `autoFillAll()` | 학생+날짜 기준 전체 자동채우기 (base + 이전extraHw + 캐리오버, 인덱스 기반 매칭) |
 
 ## js/report.js
 | 함수 | 역할 |
@@ -107,10 +110,10 @@
 | `updateRateFace()` | 이행률 기반 마스코트 이미지 표시 (75↑high, 30↑mid, 30↓low), 사용자 선택 시 세션 내 고정, 첫 로드만 랜덤 |
 | `openMascotPicker()` | 마스코트 클릭 시 선택 팝업 열기 (같은 티어 이미지 그리드 표시) |
 | `rebuildGraph()` | SVG 이행률 꺾은선 그래프 재빌드 |
-| `renderHwEditor()` | 과제 에디터 UI 렌더링 (base/carry/extra 통합) |
-| `addExtraHw()` | 추가 숙제 항목 추가 |
-| `removeExtraHw(idx)` | 추가 숙제 항목 삭제 |
-| `updateExtraHwText(idx,val)` | 추가 숙제 텍스트 수정 |
+| `renderHwEditor()` | 과제 에디터 UI 렌더링 (base/carry만, 저번 주차 체크) |
+| `addExtraHw()` | 이번 주차 추가 과제 항목 추가 (G.extraHw) |
+| `removeExtraHw(idx)` | 이번 주차 추가 과제 항목 삭제 |
+| `updateExtraHwText(idx,val)` | 이번 주차 추가 과제 텍스트 수정 |
 | `onRateManual()` | 이행률 수동입력 핸들러 |
 | `hwBtnLabel(s)` | 상태 → 버튼 라벨 문자열 반환 |
 | `cycleHwStatus(i)` | 과제 상태 순환 (없음→완료→부분→미완료→없음) |

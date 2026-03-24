@@ -69,9 +69,10 @@ G = {
   selDate: '', selStudent: '',
 
   // 과제 입력
-  hwItems: [],        // 이전 수업 과제 항목 문자열 배열 (base + carry 병합)
+  hwItems: [],        // 저번 주차 과제 항목 배열 (base + 이전extraHw + carry 병합)
   hwStatus: [],       // 각 과제 상태 ('' | '완료' | '부분완료' | '미완료')
   hwItemTypes: [],    // 각 항목 타입 [{type:'base'} | {type:'carry',fromDate:'YYYY-MM-DD'}]
+  extraHw: [],        // 이번 주차 학생별 추가 과제 [{text}]
   hwRateManual: null, // null=엑셀 데이터 사용, 숫자=수동입력
   reportEdits: {},    // 리포트카드 contenteditable 직접편집 오버라이드 (키: 요소ID, 값: innerHTML)
 

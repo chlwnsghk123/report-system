@@ -123,6 +123,8 @@ function selectDate(date){
       // 오답·맞힌수 동기화 (날짜 전환 시 유실 방지)
       if(td.wrongInput){G.wrong[name]=G.wrong[name]||{};G.wrong[name][G.selDate]=td.wrongInput;}
       else if(G.wrong[name]?.[G.selDate]){delete G.wrong[name][G.selDate];}
+      // 이번 주차 추가 과제 동기화
+      rec.extraHw=(td.extraHw||[]).map(it=>({...it}));
       G.hwRec[key]=rec;
     }
     saveAppData();
@@ -309,6 +311,7 @@ function saveTabData(){
     hwStatus:[...G.hwStatus],
     hwItems:[...G.hwItems],
     hwItemTypes:G.hwItemTypes.map(t=>({...t})),
+    extraHw:(G.extraHw||[]).map(it=>({...it})),
     totalInput:$$('inputTotal').value,
     wrongInput:$$('inputWrong').value,rateManual:G.hwRateManual,
     comment:$$('inputComment').value,
@@ -339,6 +342,8 @@ function syncHwRecItems(student,date){
       rec[`과제${i+1}_상태`]=G.hwStatus[i]||'';
     }
   });
+  // 이번 주차 추가 과제 저장
+  rec.extraHw=(G.extraHw||[]).map(it=>({...it}));
   G.hwRec[key]=rec;
 }
 
@@ -347,6 +352,7 @@ function restoreTabData(name){
   G.hwStatus=d.hwStatus||[];
   G.hwItems=d.hwItems||[];
   G.hwItemTypes=d.hwItemTypes||G.hwItems.map(()=>({type:'base'}));
+  G.extraHw=(d.extraHw||[]).map(it=>({...it}));
   G.hwRateManual=d.rateManual??null;
   $$('inputTotal').value=d.totalInput||'';
   $$('inputWrong').value=d.wrongInput||'';$$('inputComment').value=d.comment||'';
