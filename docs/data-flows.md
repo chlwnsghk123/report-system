@@ -114,10 +114,10 @@ selectDate() 날짜 전환 시 동기화 항목:
   → tabData → hwRec (items, 이행률, 클리어 시 null)
   → tabData → G.rates (rateManual, 클리어 시 삭제)
   → tabData → G.wrong (wrongInput, 클리어 시 삭제)
-  → tabData → G.corrects (correctInput, 클리어 시 삭제)
+  (correctInput은 미사용 — 엑셀 성적 열은 항상 공란)
 
 saveToExcel() 동기화 (현재 날짜 tabData 기준):
-  → tabData → G.corrects, G.wrong (클리어 시 삭제)
+  → tabData → G.wrong (클리어 시 삭제)
   → tabData → hwRec.이행률 (클리어 시 null)
 
 rebuildGraph()
