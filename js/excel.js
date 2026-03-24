@@ -320,6 +320,7 @@ async function saveToExcel(){
   const btn=$$('btnSave');btn.disabled=true;btn.textContent='저장 중...';
   try{
   saveTabData();
+  flushPropagations();
   // 학생 데이터 → hwRec 동기화
   G.students.forEach(n=>{
     const td=G.tabData[n];if(!td||!G.selDate)return;

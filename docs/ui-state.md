@@ -100,6 +100,7 @@ G = {
   excelFileName: '학습리포트_데이터.xlsx',
   attachedPdfBytes: null,
   pdfCanvases: [], pdfPageCount: 0, currentSpread: 0,
+  pendingPropagations: [],  // 이월 전파 보류 큐 [{student,date,ref,status}]
 }
 ```
 
