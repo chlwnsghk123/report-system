@@ -62,7 +62,7 @@ function switchView(view){
     closeLessonModal();
     renderDateSummary();
     renderTabs();
-    renderDateSidebar();
+    renderDateNav();
     _updateStudentNav();
     updateMemoBtn();
     if(G.selDate&&G.selStudent)autoFillAll();
@@ -139,6 +139,9 @@ function selectDate(date){
   if(!G.selStudent&&G.students.length)G.selStudent=G.students[0];
   switchView('date');
   updateAttendUI();
+  // 날짜 전환 페이드 애니메이션
+  const rc=$$('reportCard');
+  if(rc){rc.classList.remove('rc-fade');void rc.offsetWidth;rc.classList.add('rc-fade');}
 }
 
 // ─── 수업설정: 레슨 카드 ───
@@ -361,7 +364,7 @@ function renderTabs(){
   list.querySelectorAll('.ss-item').forEach(item=>{
     let hoverTimer=null;
     item.addEventListener('mouseenter',()=>{
-      hoverTimer=setTimeout(()=>_showSsMenu(item),1500);
+      hoverTimer=setTimeout(()=>_showSsMenu(item),1000);
     });
     item.addEventListener('mouseleave',()=>{
       clearTimeout(hoverTimer);
@@ -373,15 +376,17 @@ function renderTabs(){
 function _showSsMenu(item){
   // 기존 메뉴 제거
   document.querySelectorAll('.ss-hover-menu').forEach(m=>m.remove());
-  // 선택된(active) 학생만 호버 메뉴 표시
-  if(!item.classList.contains('active'))return;
   const name=item.dataset.student;
+  const isActive=item.classList.contains('active');
   const hasPdf=(G.studentPdfs[name]||[]).length>0;
   const pdfLabel=hasPdf?'📎 PDF 교체':'📎 PDF 첨부';
   const menu=document.createElement('div');
   menu.className='ss-hover-menu';
   menu.style.display='block';
+  // 비선택 학생이면 "이 학생으로 이동" 버튼 추가
+  const goBtn=isActive?'':`<button class="ss-hm-btn" onclick="switchTab('${esc(name)}');this.closest('.ss-hover-menu').remove();">👤 이 학생으로 이동</button><div class="ss-hm-sep"></div>`;
   menu.innerHTML=`
+    ${goBtn}
     <button class="ss-hm-btn" onclick="openStudentReportFor('${esc(name)}')">📊 이행률 요약표</button>
     <div class="ss-hm-sep"></div>
     <button class="ss-hm-btn" onclick="attachPdfForStudent('${esc(name)}')">${pdfLabel}</button>`;
@@ -695,12 +700,12 @@ function navStudentNext(){
   if(idx>=0&&idx<G.students.length-1)switchTab(G.students[idx+1]);
 }
 function _updateStudentNav(){
-  const prevBtn=$$('stuNavPrev'),nextBtn=$$('stuNavNext');
-  if(!prevBtn||!nextBtn)return;
+  const group=$$('stuNavGroup'),prevBtn=$$('stuNavPrev'),nextBtn=$$('stuNavNext');
+  if(!group||!prevBtn||!nextBtn)return;
   if(!G.students.length||!G.selStudent||G.currentView!=='date'){
-    prevBtn.style.display='none';nextBtn.style.display='none';return;
+    group.style.display='none';return;
   }
-  prevBtn.style.display='flex';nextBtn.style.display='flex';
+  group.style.display='flex';
   const idx=G.students.indexOf(G.selStudent);
   prevBtn.disabled=idx<=0;
   nextBtn.disabled=idx>=G.students.length-1;

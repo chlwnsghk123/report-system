@@ -310,10 +310,11 @@ function setAttend(val){
 
 function updateAttendUI(){
   const wrap=$$('attendToggle');if(!wrap)return;
+  const bar=$$('attendBar');
   if(!G.selStudent||!G.selDate||!G.lessons.length||G.selDate===G.lessons[0].날짜){
-    wrap.style.display='none';return;
+    if(bar)bar.style.display='none';return;
   }
-  wrap.style.display='';
+  if(bar)bar.style.display='flex';
   const val=G.attend[G.selStudent]?.[G.selDate];
   // -1=해제(특수), 미래 공란은 선택 안 함, 과거 공란은 결석
   const today=todayKST();
