@@ -427,11 +427,12 @@ function _getCarryAutoText(student,date){
     const prevSt=_getOriginalRefStatus(student,it.ref);
     return prevSt==null||it.status!==prevSt;
   });
-  // 중복 제거: 같은 과제(텍스트+출제일)면 마지막 것만
+  // 중복 제거: 같은 ref(과제 원본)면 마지막 것만
   const seen=new Map();
-  changed.forEach(it=>{const k=`${it.text}||${it.fromDate}`;seen.set(k,it);});
+  changed.forEach(it=>{seen.set(it.ref,it);});
   return[...seen.values()].map(it=>{
-    const fd=it.fromDate?`${shortD(it.fromDate)} 출제`:'이전 수업';
+    const cd=refToCheckDate(it.ref);
+    const fd=cd?`${shortD(cd)} 출제`:'이전 수업';
     const desc=stDesc[it.status]||'확인 전';
     return`[이월] ${it.text} (${fd}) → ${desc}`;
   }).join('\n');
