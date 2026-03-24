@@ -120,7 +120,7 @@ function renderHwEditor(){
     html+='<div style="font-size:11px;color:#b5bac4;padding:4px 2px;">이전 주차 과제 없음</div>';
   }
   G.hwItems.forEach((item,i)=>{
-    const st=G.hwStatus[i]||'';
+    const st=G.hwStatus[i]??-1;
     const typ=G.hwItemTypes[i]?.type||'base';
     const fromDate=G.hwItemTypes[i]?.fromDate||'';
     if(i===firstCarryIdx) html+='<div class="hw-carry-divider">이월 과제</div>';
@@ -173,10 +173,11 @@ function onRateManual(){
 }
 
 // ─── 과제 순환 버튼 ───
-const hwBtnLabel=s=>({'완료':'✓ 완료','부분완료':'◑ 부분완료','미완료':'✗ 미완료'}[s]||'— 없음');
+const hwBtnLabel=s=>({2:'✓ 완료',1:'◑ 부분완료',0:'✗ 미완료'}[s]||'— 없음');
 function cycleHwStatus(i){
-  const order=['','완료','부분완료','미완료'];
-  const next=order[(order.indexOf(G.hwStatus[i])+1)%order.length];
+  const order=[-1,2,1,0];
+  const cur=G.hwStatus[i]??-1;
+  const next=order[(order.indexOf(cur)+1)%order.length];
   G.hwStatus[i]=next;
   const btns=document.querySelectorAll('.hw-btn');
   if(btns[i]){btns[i].className='hw-btn s'+next;btns[i].textContent=hwBtnLabel(next);}
@@ -204,21 +205,22 @@ function updateHeaderDate(curDate,nextDate){
 // ─── 저번 주차 과제 표시 (2열 레이아웃 지원) ───
 function updateHwDisplay(){
   const list=$$('rHwList'),sec=$$('secPrevHw');
-  const visible=G.hwItems.filter((_,i)=>G.hwStatus[i]!=='');
+  const stName={2:'완료',1:'부분완료',0:'미완료'};
+  const visible=G.hwItems.filter((_,i)=>G.hwStatus[i]!==-1);
   if(!G.hwItems.length||!visible.length){if(sec)sec.style.display='none';list.innerHTML='';return;}
   if(sec)sec.style.display='';
-  const icons={'완료':'✓','부분완료':'◑','미완료':'✗'};
+  const icons={2:'✓',1:'◑',0:'✗'};
   const baseHtml=[],carryHtml=[],extraHtml=[];
   G.hwItems.forEach((item,i)=>{
-    if(!item.trim()||G.hwStatus[i]==='')return;
-    const st=G.hwStatus[i]||'미완료';
+    if(!item.trim()||G.hwStatus[i]===-1)return;
+    const st=G.hwStatus[i]??0;
     const typ=G.hwItemTypes[i]?.type||'base';
     const isCarry=typ==='carry';
     const li=`<div class="hw-li s${st}">
       <span class="hw-icon">${icons[st]||'?'}</span>
       ${isCarry?'<span class="hw-carry-mark">(전)</span>':''}
       <span class="hw-text">${esc(item.trim())}</span>
-      <span class="hw-chip">${st}</span>
+      <span class="hw-chip">${stName[st]||''}</span>
     </div>`;
     if(isCarry)carryHtml.push(li);
     else baseHtml.push(li); // extra도 일반 과제와 동일 취급

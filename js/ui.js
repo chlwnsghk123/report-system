@@ -114,8 +114,8 @@ function selectDate(date){
       const hs=td.hwStatus||[];
       const types=td.hwItemTypes||items.map(()=>({type:'base'}));
       if(items.length){
-        rec.items=items.map((text,i)=>({text,status:hs[i]||'',type:types[i]?.type||'base',fromDate:types[i]?.fromDate||''}));
-        items.forEach((_,i)=>{if(!types[i]||types[i].type==='base')rec[`과제${i+1}_상태`]=hs[i]||'';});
+        rec.items=items.map((text,i)=>({text,status:hs[i]??-1,type:types[i]?.type||'base',fromDate:types[i]?.fromDate||''}));
+        items.forEach((_,i)=>{if(!types[i]||types[i].type==='base')rec[`과제${i+1}_상태`]=hs[i]??-1;});
       }
       if(td.rateManual!=null){rec.이행률=td.rateManual;G.rates[name]=G.rates[name]||{};G.rates[name][G.selDate]=td.rateManual;}
       else if(G.rates[name]?.[G.selDate]!=null){rec.이행률=G.rates[name][G.selDate];}
@@ -351,14 +351,14 @@ function syncHwRecItems(student,date){
   else rec.이행률=null;
   rec.items=G.hwItems.map((text,i)=>({
     text,
-    status:G.hwStatus[i]||'',
+    status:G.hwStatus[i]??-1,
     type:G.hwItemTypes[i]?.type||'base',
     fromDate:G.hwItemTypes[i]?.fromDate||''
   }));
   // 레거시 필드도 업데이트 (base items)
   G.hwItems.forEach((_, i)=>{
     if(!G.hwItemTypes[i]||G.hwItemTypes[i].type==='base'){
-      rec[`과제${i+1}_상태`]=G.hwStatus[i]||'';
+      rec[`과제${i+1}_상태`]=G.hwStatus[i]??-1;
     }
   });
   // 이번 주차 추가 과제 저장
@@ -390,7 +390,7 @@ function _getCarryAutoText(student,date){
   if(!rec?.items)return'';
   const carryItems=rec.items.filter(it=>it.type==='carry');
   if(!carryItems.length)return'';
-  const stLabel={'완료':'완료','부분완료':'부분완료','미완료':'미완료'};
+  const stLabel={2:'완료',1:'부분완료',0:'미완료'};
   return carryItems.map(it=>{
     const fd=it.fromDate?shortD(it.fromDate):'';
     const sl=stLabel[it.status]||'미확인';

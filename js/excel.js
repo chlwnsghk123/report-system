@@ -35,19 +35,19 @@ function normalizeRate(v){
   return n;
 }
 
-// 엑셀 상태 → 내부 한글 (하위호환: 기호+숫자 모두 지원)
+// 엑셀 상태 → 내부 숫자 (2=완료,1=부분완료,0=미완료,-1=없음)
 function stFromExcel(v){
-  if(v==='○'||v==='2')return'완료';
-  if(v==='△'||v==='1')return'부분완료';
-  if(v==='X'||v==='x'||v==='✗'||v==='×'||v==='✕'||v==='0')return'미완료';
-  return v;
+  if(v===2||v==='○'||v==='2'||v==='완료')return 2;
+  if(v===1||v==='△'||v==='1'||v==='부분완료')return 1;
+  if(v===0||v==='X'||v==='x'||v==='✗'||v==='×'||v==='✕'||v==='0'||v==='미완료')return 0;
+  return -1;
 }
 
-// 내부 한글 → 엑셀 숫자 문자열
+// 내부 숫자 → 엑셀 문자열
 function stToExcel(v){
-  if(v==='완료'||v==='2')return'2';
-  if(v==='부분완료'||v==='1')return'1';
-  if(v==='미완료'||v==='0')return'0';
+  if(v===2||v==='2'||v==='완료')return'2';
+  if(v===1||v==='1'||v==='부분완료')return'1';
+  if(v===0||v==='0'||v==='미완료')return'0';
   return'';
 }
 
@@ -218,11 +218,12 @@ function parseWB(wb){
     const prevHwKeys=getLessonHwKeys(prevLesson);
     G.students.forEach(name=>{
       const key=`${name}||${date}`;
-      const rec=G.hwRec[key];
-      if(!rec)return;
+      // rec이 없으면 생성 (items 항상 보장)
+      let rec=G.hwRec[key];
+      if(!rec){rec={이행률:null};G.hwRec[key]=rec;}
       const baseItems=prevHwKeys.map((k,i)=>{
         const text=prevLesson[k]||'';
-        const status=stFromExcel(rec[`과제${i+1}_상태`]||'');
+        const status=stFromExcel(rec[`과제${i+1}_상태`]??'');
         return{text,status,type:'base',fromDate:''};
       }).filter(it=>it.text);
       // 이전 날짜의 학생별 추가과제도 base로 포함
@@ -231,7 +232,7 @@ function parseWB(wb){
       if(prevRec?.extraHw){
         const extraBaseStart=baseItems.length;
         prevRec.extraHw.forEach((ex,ei)=>{
-          const status=stFromExcel(rec[`과제${extraBaseStart+ei+1}_상태`]||'');
+          const status=stFromExcel(rec[`과제${extraBaseStart+ei+1}_상태`]??'');
           baseItems.push({text:ex.text,status,type:'base',fromDate:''});
         });
       }
@@ -288,14 +289,14 @@ async function saveToExcel(){
     const types=td.hwItemTypes||items.map(()=>({type:'base'}));
     if(items.length){
       ex.items=items.map((text,i)=>({
-        text,status:hs[i]||'',
+        text,status:hs[i]??-1,
         type:types[i]?.type||'base',
         fromDate:types[i]?.fromDate||''
       }));
     }
     // 레거시 필드
     const baseCount=types.filter(t=>!t.type||t.type==='base').length;
-    for(let i=0;i<baseCount;i++)ex[`과제${i+1}_상태`]=hs[i]||ex[`과제${i+1}_상태`]||'';
+    for(let i=0;i<baseCount;i++)ex[`과제${i+1}_상태`]=hs[i]??ex[`과제${i+1}_상태`]??-1;
     // 이번 주차 추가 과제 동기화
     if(td.extraHw)ex.extraHw=td.extraHw.map(it=>({...it}));
     G.hwRec[key]=ex;
@@ -335,7 +336,7 @@ async function saveToExcel(){
         const key=`${n}||${date}`,rec=G.hwRec[key];
         const rate=rec?.이행률!=null?rec.이행률:G.rates[n]?.[date]??null;
         const hwVals=Array.from({length:hwCount},(_,i)=>
-          stToExcel(rec?.[`과제${i+1}_상태`]||''));
+          stToExcel(rec?.[`과제${i+1}_상태`]??-1));
         // 추가과제: 이번 주차 추가 과제 텍스트
         const extras=rec?.extraHw||[];
         const extraVals=Array.from({length:maxExtra},(_,i)=>{
@@ -344,7 +345,7 @@ async function saveToExcel(){
         });
         // 비고: 이월과제 자동 요약 + 사용자 메모 통합
         const carryItems=(rec?.items||[]).filter(it=>it.type==='carry');
-        const stLabel={'완료':'완','부분완료':'부분','미완료':'미'};
+        const stLabel={2:'완',1:'부분',0:'미'};
         const autoText=carryItems.map(it=>{
           const fd=it.fromDate?shortD(it.fromDate):'';
           const sl=stLabel[it.status]||'';

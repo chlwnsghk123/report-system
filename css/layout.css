@@ -64,13 +64,13 @@ body{margin:0;padding:0;background-color:#f2f4f6;font-family:'Pretendard',sans-s
 .hw-item input{flex:1;border:none;background:transparent;font-family:inherit;font-size:14px;color:#374151;outline:none;}
 .hw-item input.auto{color:#b5bac4;}
 .hw-sel{padding:6px 8px;border:1px solid #e5e8eb;border-radius:8px;font-size:12px;font-family:inherit;font-weight:700;cursor:pointer;outline:none;min-width:80px;}
-.hw-sel.s완료   {color:#15803d;border-color:#86efac;background:#f0fdf4;}
-.hw-sel.s부분완료{color:#92400e;border-color:#fcd34d;background:#fffbeb;}
-.hw-sel.s미완료 {color:#b91c1c;border-color:#fca5a5;background:#fef2f2;}
+.hw-sel.s2{color:#15803d;border-color:#86efac;background:#f0fdf4;}
+.hw-sel.s1{color:#92400e;border-color:#fcd34d;background:#fffbeb;}
+.hw-sel.s0{color:#b91c1c;border-color:#fca5a5;background:#fef2f2;}
 .hw-btn{padding:6px 10px;border:1px solid #e5e8eb;border-radius:8px;font-size:12px;font-family:inherit;font-weight:700;cursor:pointer;outline:none;min-width:80px;background:#f5f6f8;color:#c9cdd4;opacity:.75;transition:.15s;}
-.hw-btn.s완료   {color:#111827;border-color:#86efac;background:#f0fdf4;opacity:1;}
-.hw-btn.s부분완료{color:#111827;border-color:#fcd34d;background:#fffbeb;opacity:1;}
-.hw-btn.s미완료 {color:#111827;border-color:#fca5a5;background:#fef2f2;opacity:1;}
+.hw-btn.s2{color:#111827;border-color:#86efac;background:#f0fdf4;opacity:1;}
+.hw-btn.s1{color:#111827;border-color:#fcd34d;background:#fffbeb;opacity:1;}
+.hw-btn.s0{color:#111827;border-color:#fca5a5;background:#fef2f2;opacity:1;}
 
 /* ═══ 캐리오버 뱃지 ═══ */
 .hw-carry-divider{font-size:11px;font-weight:700;color:#d97706;padding:6px 0 2px;border-top:1px dashed #fcd34d;margin-top:4px;display:flex;align-items:center;gap:6px;}
