@@ -178,7 +178,7 @@ body{margin:0;padding:0;background-color:#f2f4f6;font-family:'Pretendard',sans-s
 .page-nav button:hover{background:#f3f4f6;}
 .page-nav button:disabled{opacity:.3;cursor:default;}
 .pinfo{font-size:14px;font-weight:600;color:#6b7280;min-width:60px;text-align:center;}
-.spread-row{display:flex;gap:24px;justify-content:center;align-items:flex-start;padding:40px 40px 60px;}
+.spread-row{display:flex;gap:24px;justify-content:center;align-items:flex-start;padding:12px 40px 20px;}
 .spread-row.dual{background:#fff;box-shadow:0 6px 32px rgba(0,0,0,.12),0 0 0 1px rgba(0,0,0,.06);border-radius:3px;padding:24px;gap:8px;align-self:center;transform-origin:top center;flex-shrink:0;}
 .page-slot{position:relative;flex-shrink:0;}
 .pdf-lbl{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);font-size:12px;color:#9ca3af;white-space:nowrap;}
@@ -388,7 +388,7 @@ body.modal-open .preview{overflow:hidden!important;}
 .ss-hm-sep{height:1px;background:#e5e7eb;margin:3px 6px;}
 
 /* ═══ 리포트 옆 인라인 + 버튼 ═══ */
-.pdf-add-inline{position:absolute;top:50%;left:calc(100% + 4px);transform:translateY(-50%);
+.pdf-add-inline{position:absolute;top:50%;left:calc(100% + 1px);transform:translateY(-50%);
   width:36px;height:36px;border-radius:10px;border:2px dashed #c7d2fe;
   background:#f8f9ff;color:#6366f1;font-size:20px;font-weight:400;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
@@ -452,7 +452,7 @@ body.modal-open .preview{overflow:hidden!important;}
 
 /* ═══ 학생 전환 화살표 (우측 상하) ═══ */
 .stu-nav-group{position:absolute;right:10px;top:50%;transform:translateY(-50%);
-  display:flex;flex-direction:column;gap:6px;z-index:25;}
+  display:flex;flex-direction:column;gap:16px;z-index:25;}
 .stu-nav-v{width:32px;height:40px;border:none;border-radius:8px;
   background:rgba(0,0,0,.04);color:rgba(0,0,0,.2);font-size:18px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;transition:all .2s;}
@@ -462,7 +462,10 @@ body.modal-open .preview{overflow:hidden!important;}
 .stu-nav-down{transform:rotate(90deg);}
 
 /* ═══ 리포트카드 전환 애니메이션 (상하 슬라이드) ═══ */
-@keyframes rcSlideDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes rcSlideDown{from{opacity:0;transform:translateY(25px)}to{opacity:1;transform:translateY(0)}}
+@keyframes rcSlideUp{from{opacity:0;transform:translateY(-25px)}to{opacity:1;transform:translateY(0)}}
+.rc.rc-slide-down{animation:rcSlideDown .25s ease-out;}
+.rc.rc-slide-up{animation:rcSlideUp .25s ease-out;}
 .rc.rc-transition{animation:rcSlideDown .25s ease-out;}
 /* 날짜 전환 페이드 */
 @keyframes rcFadeIn{from{opacity:0}to{opacity:1}}

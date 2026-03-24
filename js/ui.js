@@ -2,8 +2,8 @@
 function updateScale(){
   const card=$$('reportCard'),area=$$('previewContent')||$$('previewArea');
   const nav=$$('pageNav'),navH=nav&&nav.style.display!=='none'?nav.offsetHeight:0;
-  const availH=area.clientHeight-navH-80;
-  const availW=area.clientWidth-80;
+  const availH=area.clientHeight-navH-40;
+  const availW=area.clientWidth-60;
   const a4w=794,a4h=1123;
   const spreadRow=$$('spreadRow');
   if(spreadRow.classList.contains('dual')){
@@ -16,7 +16,7 @@ function updateScale(){
   }else{
     spreadRow.style.transform='';spreadRow.style.marginBottom='';
     // 수동 줌이 설정되어 있으면 그대로 사용
-    const sv=G._zoomManual!=null?G._zoomManual:Math.max(Math.min(availW/a4w,availH/a4h,0.9),.15);
+    const sv=G._zoomManual!=null?G._zoomManual:Math.max(Math.min(availW/a4w,availH/a4h,0.75),.15);
     card.style.transform=`scale(${sv})`;
     card.style.marginBottom=`${-(a4h*(1-sv))}px`;
     [$$('leftPdfCanvas'),$$('rightPdfCanvas')].forEach(c=>{
@@ -418,9 +418,15 @@ function switchTab(name){
   if(G.selDate)autoFillAll();
   updateAttendUI();
   saveSession();
-  // 리포트카드 전환 애니메이션
+  // 리포트카드 전환 애니메이션 (상하 슬라이드)
   const rc=$$('reportCard');
-  if(rc){rc.classList.remove('rc-transition');void rc.offsetWidth;rc.classList.add('rc-transition');}
+  if(rc){
+    rc.classList.remove('rc-slide-up','rc-slide-down','rc-transition');
+    void rc.offsetWidth;
+    const dir=G._stuDir||'down';
+    rc.classList.add(dir==='up'?'rc-slide-up':'rc-slide-down');
+    G._stuDir=null;
+  }
   _updateStudentNav();
 }
 
@@ -693,11 +699,11 @@ function _updateZoomLabel(){
 // ─── 학생 전환 화살표 (리포트 양쪽) ───
 function navStudentPrev(){
   const idx=G.students.indexOf(G.selStudent);
-  if(idx>0)switchTab(G.students[idx-1]);
+  if(idx>0){G._stuDir='up';switchTab(G.students[idx-1]);}
 }
 function navStudentNext(){
   const idx=G.students.indexOf(G.selStudent);
-  if(idx>=0&&idx<G.students.length-1)switchTab(G.students[idx+1]);
+  if(idx>=0&&idx<G.students.length-1){G._stuDir='down';switchTab(G.students[idx+1]);}
 }
 function _updateStudentNav(){
   const group=$$('stuNavGroup'),prevBtn=$$('stuNavPrev'),nextBtn=$$('stuNavNext');
@@ -710,3 +716,14 @@ function _updateStudentNav(){
   prevBtn.disabled=idx<=0;
   nextBtn.disabled=idx>=G.students.length-1;
 }
+
+// ─── 키보드 방향키: 좌우=날짜, 상하=학생 ───
+document.addEventListener('keydown',function(e){
+  // 입력 중이면 무시
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.isContentEditable)return;
+  if(G.currentView!=='date'||!G.selDate)return;
+  if(e.key==='ArrowLeft'){e.preventDefault();navDatePrev();}
+  else if(e.key==='ArrowRight'){e.preventDefault();navDateNext();}
+  else if(e.key==='ArrowUp'){e.preventDefault();navStudentPrev();}
+  else if(e.key==='ArrowDown'){e.preventDefault();navStudentNext();}
+});
