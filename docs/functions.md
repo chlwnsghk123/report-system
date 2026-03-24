@@ -70,7 +70,7 @@
 | `renderTabs()` | 학생 탭바 렌더링 |
 | `switchTab(name)` | 학생 탭 전환 |
 | `saveTabData()` | 현재 학생 입력값 → G.tabData 임시저장 + hwRec items 동기화 |
-| `syncHwRecItems(student,date)` | G.hwItems/hwStatus/hwItemTypes → hwRec[key].items 동기화 |
+| `syncHwRecItems(student,date)` | G.hwItems/hwStatus/hwItemTypes → hwRec[key].items 동기화 (base 항목에 ref 자동 부여) |
 | `restoreTabData(name)` | G.tabData → UI 복원 (hwItems/hwItemTypes 포함) |
 | `_getCarryAutoText(student,date)` | 이월과제 자동 요약 텍스트 생성 (상태 변경분만, 중복 제거) |
 | `_getOriginalRefStatus(student,ref)` | ref로 원본 과제의 최초 상태 조회 (변경 감지용) |
