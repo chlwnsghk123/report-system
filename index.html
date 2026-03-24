@@ -144,7 +144,7 @@
           <div class="tb-menu-sep"></div>
           <button onclick="dlSummaryPdf();closeToolbarMenus()">📋 전체 과제 요약 이미지</button>
           <div class="tb-menu-sep"></div>
-          <div class="tb-menu-ver">v2.6.0 · 2026-03-24</div>
+          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.10)</button>
         </div>
       </div>
       <button class="tb-btn" disabled title="준비 중">🖨 프린트</button>
@@ -264,8 +264,8 @@
     <div class="lm-header">
       <h3>⚙ 수업 진도 설정</h3>
       <div style="display:flex;align-items:center;gap:8px;">
-        <span class="lm-hint">날짜 탭을 선택하면 닫힙니다</span>
         <button class="btn-s" onclick="addLesson()" style="width:auto;padding:6px 14px;font-size:12px;">➕ 날짜 추가</button>
+        <button class="lm-close" onclick="closeLessonModal();if(G.selDate)switchView('date');">✕</button>
       </div>
     </div>
     <div class="lm-body lm-split">

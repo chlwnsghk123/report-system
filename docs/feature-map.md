@@ -78,6 +78,7 @@ B 미리보기 (우측)
 | 미니/코멘트 토글 | `js/ui.js` | `toggleSec()` |
 | 수업설정 모달 | `js/ui.js` | `openLessonModal()`, `closeLessonModal()` |
 | 수업 카드 렌더링 | `js/ui.js` | `renderLessonCards()` (날짜 상태 분류 포함) |
+| 수업 날짜 변경 | `js/ui.js` | `updateLessonDate()` (hwRec/rates/wrong/memos 키 이동) |
 | 과제 동적 추가/삭제 | `js/ui.js` | `addLessonHw()`, `removeLessonHw()` |
 | hwRec items 동기화 | `js/ui.js` | `syncHwRecItems()` |
 | 엑셀 파싱 | `js/excel.js` | `parseWB()` (이월과제 시트 + 동적 과제열) |
@@ -86,6 +87,7 @@ B 미리보기 (우측)
 | 일괄 PDF 내보내기 | `js/pdf.js` | `dlBatchPdf()`, `_doBatchPdf()` |
 | 성적 요약표 | `js/pdf.js` | `dlGradeSummary()`, `_renderGradeTable()`, `_downloadGradeImage()` |
 | 수업 일지 이미지 | `js/pdf.js` | `dlClassJournal()`, `_downloadJournalImage()` |
+| 업데이트 내역 모달 | `js/pdf.js` | `showUpdateModal()` (updates.md 로드) |
 | 시험자료 PDF 뷰어 | `js/pdf.js` | `loadAttachPdf()`, `renderSpread()` |
 | 마스코트 이미지 로드 | `js/init.js` | `loadMascotImages()` |
 | 날짜 자동 선택 | `js/session.js` | `autoSelectDate()` |

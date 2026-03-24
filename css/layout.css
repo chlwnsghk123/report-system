@@ -158,6 +158,9 @@ body{margin:0;padding:0;background-color:#f2f4f6;font-family:'Pretendard',sans-s
 .lc-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;
   background:#f3f4f6;border-bottom:1px solid #e5e8eb;}
 .lc-date{font-size:13px;font-weight:700;color:#374151;}
+.lc-date-input{font-size:13px;font-weight:700;color:#374151;border:1px solid transparent;border-radius:6px;padding:4px 8px;font-family:inherit;background:transparent;cursor:pointer;}
+.lc-date-input:hover{border-color:#d1d5db;background:#fff;}
+.lc-date-input:focus{border-color:#3182f6;background:#fff;outline:none;}
 .lc-del{background:none;border:none;font-size:14px;cursor:pointer;padding:2px 6px;border-radius:6px;transition:.15s;}
 .lc-del:hover{background:#fee2e2;}
 .lc-body{padding:12px 14px;display:flex;flex-direction:column;gap:8px;}
@@ -233,7 +236,8 @@ body{margin:0;padding:0;background-color:#f2f4f6;font-family:'Pretendard',sans-s
   color:#333;background:none;border:none;cursor:pointer;font-family:inherit;border-radius:7px;transition:.12s;text-align:left;}
 .tb-menu button:hover{background:#f3f4f6;}
 .tb-menu-sep{height:1px;background:#e5e7eb;margin:4px 8px;}
-.tb-menu-ver{padding:6px 14px;font-size:11px;color:#9ca3af;text-align:center;font-weight:500;}
+.tb-menu-ver-btn{display:block;width:100%;padding:8px 14px;font-size:11px;color:#6b7280;text-align:center;font-weight:600;background:#f9fafb;border:none;border-radius:7px;cursor:pointer;font-family:inherit;transition:.15s;}
+.tb-menu-ver-btn:hover{background:#f0f4ff;color:#3182f6;}
 
 /* ═══ 모달 열림 시 배경 스크롤 방지 ═══ */
 body.modal-open .panel,
