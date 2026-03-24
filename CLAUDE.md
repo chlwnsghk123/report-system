@@ -21,12 +21,12 @@ js/
   utils.js          getCurL/getPrevL/getNextL, setAuto, rmAuto, setBar, shortD, fmtKo, esc
   db.js             openDB, dbSet, dbGet
   excel.js          triggerLoad, loadExcel, toDS, normalizeRate, stFromExcel, stToExcel, parseWB, saveToExcel, createTemplate
-  ui.js             updateScale, initCE, fp, switchView, openLessonModal, closeLessonModal, renderViewTabs, shiftDate, selectDate, getLessonHwKeys, renderLessonCards, updateLessonField, syncLessonToReport, addLessonHw, removeLessonHw, addLesson, removeLesson, renderDateSummary, renderTabs, switchTab, saveTabData, syncHwRecItems, restoreTabData, _getCarryAutoText, openMemo, closeMemo, saveMemo, updateMemoBtn, _openModal, _closeModal, _showModalToast, toggleSec
+  ui.js             updateScale, initCE, fp, switchView, openLessonModal, closeLessonModal, selectDate, getLessonHwKeys, renderLessonCards, updateLessonField, syncLessonToReport, addLessonHw, removeLessonHw, addLesson, removeLesson, renderDateSummary, renderDateSidebar, renderDateNav, navDatePrev, navDateNext, toggleDateDropdown, renderTabs, switchTab, saveTabData, syncHwRecItems, restoreTabData, _getCarryAutoText, openMemo, closeMemo, saveMemo, updateMemoBtn, _openModal, _closeModal, _showModalToast, toggleSec
   session.js        saveAppData, saveAppDataNow, saveSession, restoreSession, showGroups, autoSelectDate, renderStudentList, addStudent, removeStudent, toggleStudentSec
   autofill.js       computeCarryover, updateNoticeWithCarry, autoFillCommon, stFromExcel, autoFillAll
   report.js         rebuildGraph, renderHwEditor, addExtraHw, removeExtraHw, updateExtraHwText, onRateManual, cycleHwStatus, hwBtnLabel, updateHeaderDate, updateHwDisplay, updateHwBadge, updateNoticeList, updateCommentSign, updateWrongTags, registerMascots, updateRateFace, openMascotPicker, applyReportEdits, initReportListeners
   pdf.js            loadAttachPdf, renderSpread, drawPdfPrev, prevSpread, nextSpread, dlPdf, toggleToolbarMenu, closeToolbarMenus, dlSummaryPdf, _doSummaryImage, showConfirmModal, dataUrlToBytes, dlBatchPdf, _doBatchPdf, dlGradeSummary, _renderGradeTable, _downloadGradeImage, dlClassJournal, _downloadJournalImage
-  init.js           window.onload (앱 진입점), loadMascotImages
+  init.js           window.onload (앱 진입점), loadMascotImages, initPanelResize
 docs/               참조 문서 (필요 시만 읽기)
 ```
 
@@ -66,7 +66,8 @@ docs/               참조 문서 (필요 시만 읽기)
 | "PDF 저장", "PDF 생성", "합성" | `js/pdf.js` |
 | "시험자료 첨부", "PDF 뷰어" | `js/pdf.js` + `index.html` |
 | "IndexedDB", "새로고침 후 복원" | `js/session.js` |
-| "날짜 선택 드롭다운" | `js/session.js` |
+| "날짜 선택", "날짜 네비게이션", "날짜 사이드바" | `js/ui.js` + `index.html` |
+| "패널 크기", "패널 리사이즈" | `js/init.js` + `css/layout.css` |
 
 ### 데이터·상태 변경
 | 사용자가 말하는 것 | 읽을 파일 |
@@ -98,7 +99,7 @@ docs/               참조 문서 (필요 시만 읽기)
 ## 업데이트 내역 관리 (절대 생략 금지)
 - 파일: `updates.md` (프로젝트 루트)
 - **모든 코드 변경 시** 반드시 새 버전 항목을 `updates.md` 최상단에 추가
-- 버전 형식: `v1.XX` (0.01씩 증가, 현재 최신: v1.11)
+- 버전 형식: `v1.XX` (0.01씩 증가, 현재 최신: v1.50)
 - 항목 형식: `## v1.XX (YYYY-MM-DD)` + `- 변경 내용` 목록
 - 최근 10개 버전만 유지 (오래된 것은 삭제)
 - `index.html`의 업데이트 확인 버튼 텍스트도 새 버전으로 갱신

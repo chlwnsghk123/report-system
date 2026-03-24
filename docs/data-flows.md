@@ -36,18 +36,28 @@ loadExcel() → XLSX.read(arrayBuffer) → parseWB(wb)
 
 ```
 showGroups()
-  → renderViewTabs()    뷰 탭 바 표시
   → autoSelectDate()    오늘 이후 가장 가까운 날짜 자동 선택
     → selectDate(date)
       → G.selDate = date
       → switchView('date')
         → renderDateSummary()   수업정보 요약
-        → renderTabs()          학생 탭
+        → renderTabs()          학생 사이드바
+        → renderDateNav()       상단 날짜 네비게이션 바
+        → renderDateSidebar()   우측 세로 날짜 사이드바
         → autoFillAll()         전체 자동채우기
 
 switchView('config')
-  → renderLessonCards()   수업 날짜별 카드 UI
-  → renderStudentList()   학생 목록 UI
+  → openLessonModal()    수업설정 전체화면 모달 열기
+    → renderLessonCards()   수업 날짜별 카드 UI
+    → renderStudentList()   학생 목록 UI
+
+날짜 선택 (3가지 경로):
+  1. 상단 네비: navDatePrev()/navDateNext() 또는 날짜 클릭 드롭다운
+  2. 우측 세로 날짜 사이드바: 직접 클릭
+  → 모두 selectDate(date) 호출
+
+수업설정 접근:
+  상단 ⚙ 설정 메뉴 → '수업 진도 설정' → openLessonModal()
 
 수업설정 뷰에서 레슨 편집:
   updateLessonField(idx, field, value)
@@ -64,6 +74,8 @@ window.onload()
   → updateScale() + resize 리스너 등록
   → initCE()
   → loadMascotImages()
+  → initPanelResize()   패널 드래그 리사이즈 초기화
+  → restorePdfData()    PDF 데이터 복원
   // 항상 새로 시작 — 이전 세션 자동 복원 없음
 ```
 
@@ -82,9 +94,13 @@ window.onload()
 switchTab(name)
   → saveTabData()       현재 학생 입력값 → G.tabData
   → G.selStudent = name
-  → renderTabs()        활성 탭 UI
+  → renderTabs()        학생 사이드바 갱신
+  → _syncGlobalPdf()    학생별 PDF 동기화
+  → renderSpread()      PDF 미리보기 갱신
   → if(G.selDate) autoFillAll()
+  → updateAttendUI()    출결 토글 갱신
   → saveSession()
+  → 리포트카드 슬라이드 애니메이션 (.rc-transition)
 ```
 
 ## 5. 미니테스트 점수

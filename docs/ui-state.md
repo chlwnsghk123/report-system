@@ -4,49 +4,57 @@
 
 ```
 body (flex, 100vh)
-├─ .panel (좌, 400px)
-│  ├─ .panel-head
+├─ .panel (좌, 400px, 드래그 리사이즈 가능 280~700px)
+│  ├─ .panel-head (흰색 배경, 하단 보더)
+│  │  ├─ .panel-brand (제목 + 마지막 저장 시간)
+│  │  │  ├─ .panel-logo + .panel-title  "📝 학습 리포트"
+│  │  │  └─ #rLastSaved (.panel-saved)  마지막 저장 시간 (작은 텍스트)
 │  │  ├─ #sbar          상태바 / 엑셀 불러오기 (클릭 → triggerLoad)
-│  │  ├─ #btnSave       파일 저장 버튼 (로드 후 표시)
 │  │  └─ #excelInput    파일 선택 input (hidden)
-│  ├─ #viewTabs         뷰 탭 바 (로드 후 표시)
-│  │  ├─ .vt-item[config]  ⚙ 수업설정 탭
-│  │  └─ .vt-date-nav      날짜 탭 영역 (◀ 날짜들 ▶)
-│  ├─ #tabBar           학생 탭바 (레거시, 사이드바로 대체)
+│  ├─ #viewTabs         (숨김, 레거시 — 날짜 선택은 우측 사이드바+상단 네비로 대체)
 │  └─ .panel-body
-│     ├─ #viewConfig    수업설정 뷰
-│     │  ├─ 학생 관리 (접기/펼치기)
-│     │  │  ├─ #studentSummary  학생 요약
-│     │  │  └─ #studentListEdit 학생 추가/삭제 UI
-│     │  └─ #lessonCards        날짜별 레슨 카드
-│     │     └─ .lesson-card × N (교재/단원/상세진도/과제1~4 입력)
 │     └─ #viewDate      날짜별 학생기록 뷰
-│        ├─ #dateSummary     수업정보 읽기전용 요약
-│        ├─ #gPrevHw         저번 주차 과제 + 이행률
-│        │   ├─ #hwEditor    과제 에디터 (항목 + 상태 버튼)
-│        │   └─ #inputRate   이행률 수동 입력 (0~100)
-│        ├─ #toggleMini      미니 테스트 토글 스위치
-│        ├─ #gMini           미니 테스트 입력 영역
-│        ├─ #toggleComment   코멘트 토글 스위치
-│        ├─ #gComment        코멘트 입력 영역
-│        ├─ #btnMemo          비고 작성 버튼
-│        ├─ #btnPdf          PDF 저장 버튼
-│        └─ #btnPdf          PDF 저장 버튼
+│        ├─ #dateSummary     수업정보 읽기전용 요약 (.date-summary, 카드형)
+│        ├─ .panel-section "과제 & 이행률"
+│        │  ├─ .panel-card > #gPrevHw  저번 주차 과제 + 이행률
+│        │  │  ├─ #hwEditor    과제 에디터 (항목 + 상태 버튼)
+│        │  │  └─ .rate-input-row > #inputRate  이행률 수동 입력 (0~100)
+│        │  └─ .panel-card > #gCurHw   이번 주차 과제 + 추가 과제 입력
+│        └─ .panel-section "선택 항목"
+│           ├─ #toggleMini      미니 테스트 토글 스위치
+│           ├─ #gMini > .panel-card  오답 번호 입력 (#inputWrong)
+│           ├─ #toggleComment   코멘트 토글 (임시 숨김)
+│           └─ #btnMemo         비고 작성 버튼 (임시 숨김)
 │  (hidden inputs: inCurBook, inCurChap, inCurDetail, inPrevBook/Chap/Detail, inputNotice, inputCorrect/Total, calcResult)
+├─ .panel-resize (#panelResize)  드래그 리사이즈 핸들
 └─ .preview (우, flex:1)
-   ├─ .toolbar           상단 도구 모음
+   ├─ #unsavedBanner    미저장 배너
+   ├─ .toolbar          상단 도구 모음
+   │  ├─ #attendToggle  출결 세그먼트 (출석/지각/결석)
+   │  ├─ #btnPdf        PDF 내보내기 버튼
+   │  ├─ #btnSave       저장 버튼
+   │  ├─ #tbMenu        ☰ 메뉴 드롭다운 (일괄PDF, 요약표, 수업일지 등)
+   │  └─ #tbSettings    ⚙ 설정 드롭다운
+   │     ├─ 📋 수업 진도 설정 → openLessonModal()
+   │     └─ 🌙 흑백 모드 토글
    └─ .preview-body (flex row)
-      ├─ #studentSidebar  학생 사이드바 (200px, 우측)
-      │  ├─ .ss-header    "학생 목록" 제목
-      │  └─ #ssList       .ss-item × N (이름 + PDF 뱃지 + 첨부 버튼 + 호버 툴팁)
-      └─ .preview-content (flex:1)
-         ├─ #pageNav      페이지 네비 (‹ · 페이지 정보 · › + PDF 삭제 버튼)
-         ├─ #spreadRow
-         │  ├─ #leftSlot
-         │  │  ├─ #reportCard  A4 캡처 대상
-         │  │  └─ #leftPdfCanvas
-         │  └─ #rightSlot > #rightPdfCanvas
-         └─ #pdfFab       PDF 첨부 FAB 버튼 (+)
+      ├─ .preview-content (flex:1)
+      │  ├─ #dateNavBar     상단 날짜 네비게이션 (‹ 날짜 › + 클릭 드롭다운)
+      │  │  ├─ .dn-arrow × 2  이전/다음 화살표
+      │  │  ├─ #dnLabel       날짜 텍스트 (클릭 → 드롭다운)
+      │  │  └─ #dnDropdown    전체 날짜 드롭다운 목록
+      │  ├─ #pageNav      페이지 네비 (‹ · 페이지 정보 · › + PDF 삭제 버튼)
+      │  ├─ #spreadRow
+      │  │  ├─ #leftSlot
+      │  │  │  ├─ #reportCard  A4 캡처 대상 (.rc-transition 슬라이드 애니메이션)
+      │  │  │  ├─ #leftPdfCanvas
+      │  │  │  └─ #pdfAddInline  PDF 첨부 버튼 (+, 리포트카드 바로 오른쪽)
+      │  │  └─ #rightSlot > #rightPdfCanvas
+      ├─ #dateSidebar     세로 날짜 사이드바 (52px, 다크 사선 스타일)
+      │  └─ #dsList       .ds-item × N (세로 날짜 라벨, 클릭 → selectDate)
+      └─ #studentSidebar  학생 사이드바 (200px, 폴더탭 스타일)
+         ├─ .ss-header    "학생" 제목
+         └─ #ssList       .ss-item × N (이름 + PDF 뱃지 + 호버 메뉴)
 ```
 
 ## 전역 상태 객체 G
@@ -94,7 +102,7 @@ G = {
 
   // 뷰 상태
   currentView: 'config',   // 'config' | 'date'
-  dateTabOffset: 0,         // 날짜 탭 스크롤 오프셋
+  dateTabOffset: 0,         // (레거시, 미사용) 날짜 탭 스크롤 오프셋
 
   // 기타
   excelFileName: '학습리포트_데이터.xlsx',
