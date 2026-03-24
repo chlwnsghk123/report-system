@@ -31,11 +31,14 @@ function computeCarryover(student,date){
   return result;
 }
 
-// ─── 이번 주차 과제 + 캐리오버 반영 (리포트카드, 2열 지원) ───
+// ─── 이번 주차 과제 + 추가과제 + 미완료 캐리 반영 (리포트카드) ───
 function updateNoticeWithCarry(){
   const cur=getCurL();if(!cur)return;
   const hwKeys=getLessonHwKeys(cur);
   const baseHw=hwKeys.map(k=>cur[k]||'').filter(x=>x);
+  // 학생별 추가 과제
+  const extraHw=(G.extraHw||[]).map(it=>it.text).filter(x=>x);
+  // 미완료 이월
   const unfinished=[];
   G.hwItems.forEach((text,i)=>{
     const st=G.hwStatus[i];
@@ -43,18 +46,43 @@ function updateNoticeWithCarry(){
   });
   const list=$$('rNoticeList');
   const baseHtml=baseHw.map(t=>`<div class="next-hw-li">${esc(t)}</div>`).join('');
+  const extraHtml=extraHw.map(t=>`<div class="next-hw-li"><span class="carry-tag">(추가)</span>${esc(t)}</div>`).join('');
   const carryHtml=unfinished.map(t=>
     `<div class="next-hw-li"><span class="carry-tag">(전)</span>${esc(t)}</div>`
   ).join('');
-  const total=baseHw.length+unfinished.length;
+  const allBase=baseHw.length+extraHw.length;
+  const total=allBase+unfinished.length;
   if(total>3&&unfinished.length>0){
     list.className='next-hw-list compact';
-    list.innerHTML=`<div class="hw-col"><div class="hw-col-label">본과제</div>${baseHtml}</div>`
+    list.innerHTML=`<div class="hw-col"><div class="hw-col-label">본과제</div>${baseHtml}${extraHtml}</div>`
       +`<div class="hw-col"><div class="hw-col-label">미완료</div>${carryHtml}</div>`;
   }else{
     list.className='next-hw-list';
-    list.innerHTML=baseHtml+carryHtml;
+    list.innerHTML=baseHtml+extraHtml+carryHtml;
   }
+  // 패널 이번 주차 과제 목록 갱신
+  renderCurHwList();
+}
+
+// ─── 패널: 이번 주차 과제 목록 (읽기전용 레슨 과제) ───
+function renderCurHwList(){
+  const c=$$('curHwList');if(!c)return;
+  const cur=getCurL();if(!cur){c.innerHTML='';return;}
+  const hwKeys=getLessonHwKeys(cur);
+  const hw=hwKeys.map(k=>cur[k]||'').filter(x=>x);
+  c.innerHTML=hw.map(t=>`<div class="cur-hw-item">${esc(t)}</div>`).join('');
+}
+
+// ─── 패널: 추가 과제 에디터 (학생별) ───
+function renderExtraHwEditor(){
+  const c=$$('extraHwEditor');if(!c)return;
+  c.innerHTML=(G.extraHw||[]).map((it,i)=>
+    `<div class="extra-hw-item">
+      <span class="hw-extra-badge">(추가)</span>
+      <input type="text" value="${esc(it.text)}" oninput="updateExtraHwText(${i},this.value)">
+      <button class="hw-extra-del" onclick="removeExtraHw(${i})" title="삭제">✕</button>
+    </div>`
+  ).join('');
 }
 
 // ─── 자동 채우기 (날짜 기준 공통) ───
@@ -86,12 +114,23 @@ function stFromExcel(v){
   return v;
 }
 
+// ─── 이전 날짜의 extraHw를 base 항목으로 가져오기 ───
+function getPrevExtraHw(student,date){
+  const curIdx=G.lessons.findIndex(l=>l.날짜===date);
+  if(curIdx<=0)return[];
+  const prevDate=G.lessons[curIdx-1].날짜;
+  const key=`${student}||${prevDate}`;
+  const rec=G.hwRec[key];
+  return(rec?.extraHw||[]).map(it=>it.text).filter(x=>x);
+}
+
 // ─── 자동 채우기 (학생+날짜 기준 전체) ───
 function autoFillAll(){
   autoFillCommon();$$('rName').innerText=G.selStudent;
   const hadData=restoreTabData(G.selStudent);
   if(hadData){
-    renderHwEditor();updateHwDisplay();updateNoticeWithCarry();
+    renderHwEditor();updateHwDisplay();
+    renderExtraHwEditor();updateNoticeWithCarry();
     if(G.hwRateManual!==null){$$('inputRate').value=G.hwRateManual;$$('inputRate').classList.remove('auto');}
     else{
       setAuto('inputRate',G.rates[G.selStudent]?.[G.selDate]??'');
@@ -101,13 +140,15 @@ function autoFillAll(){
     $$('inputComment').value='';fp('commentBody','inputComment');
     $$('inputWrong').value=G.wrong[G.selStudent]?.[G.selDate]||'';
     updateWrongTags($$('inputWrong').value);
-    // base 항목: 직전 레슨 과제
+    // base 항목: 직전 레슨 과제 + 직전 날짜의 학생별 추가과제
     const prev=getPrevL();
     let baseItems=[];
     if(prev){
       const prevHwKeys=getLessonHwKeys(prev);
       baseItems=prevHwKeys.map(k=>prev[k]||'').filter(x=>x);
     }
+    const prevExtra=getPrevExtraHw(G.selStudent,G.selDate);
+    baseItems=[...baseItems,...prevExtra];
     // 캐리오버 항목
     const carryItems=computeCarryover(G.selStudent,G.selDate);
     // 병합 (base + carry)
@@ -116,22 +157,25 @@ function autoFillAll(){
       ...baseItems.map(()=>({type:'base'})),
       ...carryItems.map(c=>({type:'carry',fromDate:c.fromDate}))
     ];
-    // 상태 로드
+    // 상태 로드 — 인덱스 기반 매칭 (base), fromDate 기반 (carry)
     const key=G.selDate?`${G.selStudent}||${G.selDate}`:null;
     const hwR=key?G.hwRec[key]:null;
     if(hwR&&hwR.items&&hwR.items.length){
-      // 신규 형식: items 배열에서 매칭
-      G.hwStatus=G.hwItems.map((text,i)=>{
+      const savedBase=hwR.items.filter(it=>it.type==='base');
+      const savedCarry=hwR.items.filter(it=>it.type==='carry');
+      let baseIdx=0,carryIdx=0;
+      G.hwStatus=G.hwItems.map((_,i)=>{
         const typ=G.hwItemTypes[i];
-        const match=hwR.items.find(it=>it.text===text&&it.type===typ.type
-          &&(typ.type==='base'||it.fromDate===typ.fromDate));
-        return match?match.status:'';
-      });
-      // extra 항목 로드 (hwRec에 저장된 추가 숙제)
-      hwR.items.filter(it=>it.type==='extra').forEach(it=>{
-        G.hwItems.push(it.text);
-        G.hwStatus.push(it.status||'');
-        G.hwItemTypes.push({type:'extra'});
+        if(typ.type==='base'){
+          const saved=savedBase[baseIdx++];
+          return saved?saved.status:'';
+        }else if(typ.type==='carry'){
+          // carry: fromDate + 텍스트로 매칭 (이월 원본이 같은 것)
+          const match=savedCarry.find(it=>it.fromDate===typ.fromDate&&it.text===G.hwItems[i]);
+          if(match)carryIdx++;
+          return match?match.status:'';
+        }
+        return'';
       });
     }else{
       // 레거시: base items만 과제N_상태 사용
@@ -140,8 +184,11 @@ function autoFillAll(){
         return'';
       });
     }
+    // 이번 날짜의 학생별 추가 과제 로드
+    G.extraHw=(hwR?.extraHw||[]).map(it=>({...it}));
     setAuto('inputRate',G.rates[G.selStudent]?.[G.selDate]??'');G.hwRateManual=null;
-    renderHwEditor();updateHwDisplay();updateNoticeWithCarry();
+    renderHwEditor();updateHwDisplay();
+    renderExtraHwEditor();updateNoticeWithCarry();
   }
   const rv=$$('inputRate').value;
   const isFirst=G.lessons.length>0&&G.selDate===G.lessons[0].날짜;

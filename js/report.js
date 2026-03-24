@@ -111,63 +111,50 @@ function rebuildGraph(){
   updateRateFace();
 }
 
-// ─── 과제 에디터 (좌패널: 텍스트 readonly, 상태 버튼만 조작) ───
+// ─── 과제 에디터 (좌패널: 저번 주차 과제 체크, base + carry만) ───
 function renderHwEditor(){
   const c=$$('hwEditor');
   const firstCarryIdx=G.hwItemTypes.findIndex(t=>t.type==='carry');
-  const firstExtraIdx=G.hwItemTypes.findIndex(t=>t.type==='extra');
   let html='';
-  if(!G.hwItems.length||G.hwItems.every((_,i)=>G.hwItemTypes[i]?.type==='extra')){
-    if(!G.hwItems.some((_,i)=>G.hwItemTypes[i]?.type==='extra'))
-      html+='<div style="font-size:11px;color:#b5bac4;padding:4px 2px;">이전 주차 과제 없음</div>';
+  if(!G.hwItems.length){
+    html+='<div style="font-size:11px;color:#b5bac4;padding:4px 2px;">이전 주차 과제 없음</div>';
   }
   G.hwItems.forEach((item,i)=>{
     const st=G.hwStatus[i]||'';
     const typ=G.hwItemTypes[i]?.type||'base';
     const fromDate=G.hwItemTypes[i]?.fromDate||'';
     if(i===firstCarryIdx) html+='<div class="hw-carry-divider">이월 과제</div>';
-    if(i===firstExtraIdx) html+='<div class="hw-carry-divider hw-extra-divider">추가 숙제</div>';
     const isCarry=typ==='carry';
-    const isExtra=typ==='extra';
-    html+=`<div class="hw-item${isCarry?' hw-carry':''}${isExtra?' hw-extra':''}">
+    html+=`<div class="hw-item${isCarry?' hw-carry':''}">
       ${isCarry?`<span class="hw-carry-badge" title="${fromDate?fmtKo(fromDate):''}">(전)</span>`:''}
-      ${isExtra?'<span class="hw-extra-badge">(추가)</span>':''}
-      <input type="text" value="${esc(item)}" ${isExtra?`oninput="updateExtraHwText(${i},this.value)"`:'readonly style="cursor:default;opacity:.8;"'}>
+      <input type="text" value="${esc(item)}" readonly style="cursor:default;opacity:.8;">
       <button class="hw-btn s${st}" onclick="cycleHwStatus(${i})">${hwBtnLabel(st)}</button>
-      ${isExtra?`<button class="hw-extra-del" onclick="removeExtraHw(${i})" title="삭제">✕</button>`:''}
     </div>`;
   });
-  // 추가 숙제 입력
-  html+=`<div class="hw-add-extra">
-    <input type="text" id="extraHwInput" placeholder="추가 숙제 입력" onkeydown="if(event.key==='Enter')addExtraHw()">
-    <button onclick="addExtraHw()">+ 추가</button>
-  </div>`;
   c.innerHTML=html;
   updateHwDisplay();
 }
 
 // ─── 추가 숙제 관리 ───
+// ─── 추가 과제 관리 (이번 주차 과제에 추가, G.extraHw 사용) ───
 function addExtraHw(){
   const input=$$('extraHwInput');if(!input)return;
   const text=input.value.trim();if(!text)return;
-  G.hwItems.push(text);
-  G.hwStatus.push('');
-  G.hwItemTypes.push({type:'extra'});
+  G.extraHw.push({text});
   input.value='';
-  renderHwEditor();updateHwDisplay();updateNoticeWithCarry();
+  renderExtraHwEditor();updateNoticeWithCarry();
   syncHwRecItems(G.selStudent,G.selDate);saveAppData();
 }
 function removeExtraHw(idx){
-  if(G.hwItemTypes[idx]?.type!=='extra')return;
-  G.hwItems.splice(idx,1);
-  G.hwStatus.splice(idx,1);
-  G.hwItemTypes.splice(idx,1);
-  renderHwEditor();updateHwDisplay();updateNoticeWithCarry();
+  if(idx<0||idx>=G.extraHw.length)return;
+  G.extraHw.splice(idx,1);
+  renderExtraHwEditor();updateNoticeWithCarry();
   syncHwRecItems(G.selStudent,G.selDate);saveAppData();
 }
 function updateExtraHwText(idx,val){
-  if(G.hwItemTypes[idx]?.type!=='extra')return;
-  G.hwItems[idx]=val;
+  if(idx<0||idx>=G.extraHw.length)return;
+  G.extraHw[idx].text=val;
+  updateNoticeWithCarry();
   syncHwRecItems(G.selStudent,G.selDate);saveAppData();
 }
 function onRateManual(){

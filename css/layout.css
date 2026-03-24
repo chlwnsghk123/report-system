@@ -94,6 +94,10 @@ body{margin:0;padding:0;background-color:#f2f4f6;font-family:'Pretendard',sans-s
 .hw-add-extra input:focus{border-style:solid;border-color:#6366f1;}
 .hw-add-extra button{padding:6px 14px;background:#6366f1;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;transition:.15s;}
 .hw-add-extra button:hover{background:#4f46e5;}
+.cur-hw-item{padding:6px 10px;font-size:13px;color:#333;background:#f0f4ff;border-radius:6px;border:1px solid #e0e7ff;}
+.extra-hw-item{display:flex;align-items:center;gap:6px;}
+.extra-hw-item input{flex:1;padding:6px 10px;border:1px solid #a5b4fc;border-radius:6px;font-size:13px;font-family:inherit;outline:none;background:#f8f9ff;}
+.extra-hw-item input:focus{border-color:#6366f1;}
 
 /* ═══ 점수 계산 ═══ */
 .score-calc{background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
