@@ -110,6 +110,12 @@ syncHwRecItems() / selectDate() / saveToExcel()
   → rateManual이 null(자동값)이어도 G.rates에 값이 있으면 hwRec에 반영
   → 0과 null 구분 보존
 
+selectDate() 날짜 전환 시 동기화 항목:
+  → tabData → hwRec (items, 이행률)
+  → tabData → G.rates (rateManual)
+  → tabData → G.wrong (wrongInput)
+  → tabData → G.corrects (correctInput)
+
 rebuildGraph()
   → G.rates[학생][날짜] (현재 날짜 이하만, 첫 번째 날짜 제외, -1 제외)
   → v!=null 필터 → null(결석)은 제외, 0은 포함
