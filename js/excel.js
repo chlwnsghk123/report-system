@@ -247,7 +247,7 @@ function parseWB(wb){
         const name=col0;
         const tier=String(r[1]||'').trim();
         const idx=parseInt(r[2]);
-        if(name&&tier&&!isNaN(idx)){G.mascotChoices[name]={tier,idx};}
+        if(name&&tier&&!isNaN(idx)){G.mascotChoices[name]=G.mascotChoices[name]||{};G.mascotChoices[name][tier]=idx;}
       }
     });
   }
@@ -390,8 +390,10 @@ async function saveToExcel(){
   const mascotEntries=Object.entries(G.mascotChoices);
   if(mascotEntries.length){
     cfgAoa.push(['▼ 스티커','','']);
-    mascotEntries.forEach(([name,{tier,idx}])=>{
-      cfgAoa.push([name,tier,String(idx)]);
+    mascotEntries.forEach(([name,tiers])=>{
+      Object.entries(tiers).forEach(([tier,idx])=>{
+        cfgAoa.push([name,tier,String(idx)]);
+      });
     });
   }
   if(cfgAoa.length>1){

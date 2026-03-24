@@ -17,11 +17,11 @@ function updateRateFace(){
   const imgs=MASCOT_IMGS[tier];
   if(!imgs||!imgs.length){el.innerHTML='';el.style.display='none';return;}
   el.style.display='';
-  // 학생별 저장된 마스코트 확인
+  // 학생별·점수대별 저장된 마스코트 확인
   let idx;
   const saved=G.mascotChoices[G.selStudent];
-  if(saved&&saved.tier===tier&&saved.idx<imgs.length){
-    idx=saved.idx;
+  if(saved&&saved[tier]!=null&&saved[tier]<imgs.length){
+    idx=saved[tier];
   }else{
     idx=Math.floor(Math.random()*imgs.length);
   }
@@ -75,7 +75,7 @@ function openMascotPicker(e){
     el.innerHTML=`<img src="${imgs[idx]}" alt="mascot" draggable="false">`;
     const tier=el.dataset.mascotTier;
     G.selectedMascot={tier,idx};
-    if(G.selStudent){G.mascotChoices[G.selStudent]={tier,idx};saveAppData();}
+    if(G.selStudent){G.mascotChoices[G.selStudent]=G.mascotChoices[G.selStudent]||{};G.mascotChoices[G.selStudent][tier]=idx;saveAppData();}
     closePicker();
   });
   // ESC 닫기
