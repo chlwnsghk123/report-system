@@ -171,6 +171,8 @@ function onRateManual(){
     else delete G.rates[G.selStudent][G.selDate];
   }
   updateHwBadge();rebuildGraph();updateRateFace();
+  // 이행률 입력 시 결석→출석 자동 전환
+  if(v!==''&&Number(v)!==-1)autoAttendOnRate();
 }
 
 // ─── 과제 순환 버튼 ───
@@ -279,4 +281,43 @@ function initReportListeners(){
       document.execCommand('insertText',false,e.clipboardData.getData('text/plain'));
     });
   });
+}
+
+// ─── 출결 토글 ───
+function setAttend(val){
+  if(!G.selStudent||!G.selDate)return;
+  G.attend[G.selStudent]=G.attend[G.selStudent]||{};
+  G.attend[G.selStudent][G.selDate]=val;
+  updateAttendUI();
+  saveAppData();
+}
+
+function updateAttendUI(){
+  const wrap=$$('attendToggle');if(!wrap)return;
+  if(!G.selStudent||!G.selDate||!G.lessons.length||G.selDate===G.lessons[0].날짜){
+    wrap.style.display='none';return;
+  }
+  wrap.style.display='';
+  const val=G.attend[G.selStudent]?.[G.selDate];
+  // 미래 날짜 공란은 결석 아님 → 버튼 선택 안 함, 과거 공란은 결석
+  const today=todayKST();
+  let effective=val;
+  if(val==null||val===undefined){
+    effective=G.selDate<=today?0:null;
+  }
+  wrap.querySelectorAll('.att-btn').forEach(btn=>{
+    const bv=parseInt(btn.dataset.att);
+    btn.classList.toggle('active',bv===effective);
+  });
+}
+
+// 이행률 변경 시 결석→출석 자동 전환
+function autoAttendOnRate(){
+  if(!G.selStudent||!G.selDate)return;
+  const att=G.attend[G.selStudent]?.[G.selDate];
+  if(att===0||att==null){
+    G.attend[G.selStudent]=G.attend[G.selStudent]||{};
+    G.attend[G.selStudent][G.selDate]=2;
+    updateAttendUI();
+  }
 }

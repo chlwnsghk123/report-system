@@ -139,7 +139,14 @@
 <div class="preview" id="previewArea">
   <!-- 상단 메뉴 바 -->
   <div class="toolbar">
-    <div id="rLastSaved" class="tb-lastsaved"></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div id="rLastSaved" class="tb-lastsaved"></div>
+      <div id="attendToggle" class="attend-toggle" style="display:none;">
+        <button class="att-btn att-present" data-att="2" onclick="setAttend(2)">출석</button>
+        <button class="att-btn att-late" data-att="1" onclick="setAttend(1)">지각</button>
+        <button class="att-btn att-absent" data-att="0" onclick="setAttend(0)">결석</button>
+      </div>
+    </div>
     <div class="tb-group">
       <button class="tb-btn tb-save" id="btnSave" onclick="saveToExcel()" style="display:none" disabled>💾 저장</button>
       <div class="tb-dropdown" id="tbMenu">
@@ -148,11 +155,11 @@
           <button onclick="dlBatchPdf();closeToolbarMenus()">📄 일괄 PDF 내보내기</button>
           <button onclick="dlStudentReport();closeToolbarMenus()">📊 숙제 이행률 요약표 (학생별)</button>
           <button onclick="dlGradeSummary();closeToolbarMenus()">📊 숙제 이행률 요약표 (전체)</button>
-          <button onclick="dlClassJournal();closeToolbarMenus()">📝 수업 일지 이미지</button>
+          <button onclick="dlClassJournal();closeToolbarMenus()">📝 수업 일지</button>
           <div class="tb-menu-sep"></div>
           <button onclick="dlSummaryPdf();closeToolbarMenus()">📋 전체 과제 요약 이미지</button>
           <div class="tb-menu-sep"></div>
-          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.24)</button>
+          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.25)</button>
         </div>
       </div>
       <button class="tb-btn" disabled title="준비 중">🖨 프린트</button>

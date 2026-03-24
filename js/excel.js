@@ -83,7 +83,7 @@ function parseWB(wb){
     }
   }
 
-  G.students=[];G.scores={};G.corrects={};G.wrong={};G.hwRec={};G.rates={};G.memos={};G.mascotChoices={};
+  G.students=[];G.scores={};G.corrects={};G.wrong={};G.hwRec={};G.rates={};G.memos={};G.attend={};G.mascotChoices={};
 
   const hasDateSheets=wb.SheetNames.some(n=>/^\d{4}-\d{2}-\d{2}$/.test(n));
 
@@ -112,15 +112,11 @@ function parseWB(wb){
       rows.slice(1).forEach(r=>{
         const name=String(r[0]||'').trim();if(!name)return;
         if(!G.students.includes(name))G.students.push(name);
-        const scoreStr=String(r[1]||'').trim();
-        if(scoreStr){
-          const parts=scoreStr.split('/');
-          if(parts.length===2){
-            const correct=parseInt(parts[0]);
-            if(!isNaN(correct)){G.corrects[name]=G.corrects[name]||{};G.corrects[name][date]=correct;}
-            const total=parseInt(parts[1]);
-            if(!isNaN(total)&&total>0){const les=G.lessons.find(l=>l.날짜===date);if(les)les.전체문제수=total;}
-          }
+        // B열: 출결 (-1=특수, 0/공란=결석, 1=지각, 2=출석)
+        const attendVal=String(r[1]||'').trim();
+        if(attendVal!==''){
+          const av=parseInt(attendVal);
+          if(!isNaN(av)){G.attend[name]=G.attend[name]||{};G.attend[name][date]=av;}
         }
         if(r[2]!==''&&r[2]!=null){G.wrong[name]=G.wrong[name]||{};G.wrong[name][date]=String(r[2]).trim();}
         const rate=normalizeRate(r[3]);
@@ -383,10 +379,16 @@ async function saveToExcel(){
     }));
     const extraHdrs=Array.from({length:maxExtra},(_,i)=>`추가과제${i+1}`);
     const aoa=[
-      ['이름','성적','오답','과제이행률',...hwHdrs,...extraHdrs,'비고'],
+      ['이름','출결','오답','과제이행률',...hwHdrs,...extraHdrs,'비고'],
       ...G.students.map(n=>{
         const key=`${n}||${date}`,rec=G.hwRec[key];
-        const rate=rec?.이행률!=null?rec.이행률:G.rates[n]?.[date]??null;
+        let rate=rec?.이행률!=null?rec.이행률:G.rates[n]?.[date]??null;
+        // 출결 값 (이행률 있는데 결석이면 → 출석으로 보정)
+        let att=G.attend[n]?.[date];
+        if(rate!=null&&!isNaN(rate)&&rate!==-1&&(att===0||att==null)){
+          att=2;G.attend[n]=G.attend[n]||{};G.attend[n][date]=2;
+        }
+        const attVal=att!=null?att:'';
         const hwVals=Array.from({length:hwCount},(_,i)=>
           stToExcel(rec?.[`과제${i+1}_상태`]??-1));
         // 추가과제: 이번 주차 추가 과제 텍스트
@@ -404,7 +406,7 @@ async function saveToExcel(){
         }).join(', ');
         const userMemo=G.memos[`${n}||${date}`]||'';
         const bigo=[autoText,userMemo].filter(x=>x).join(' | ');
-        return[n,'',G.wrong[n]?.[date]||'',rate!=null?rate:'',...hwVals,...extraVals,bigo];
+        return[n,attVal,G.wrong[n]?.[date]||'',rate!=null?rate:'',...hwVals,...extraVals,bigo];
       })
     ];
     const wsD=XLSX.utils.aoa_to_sheet(aoa,{skipHeader:false});
@@ -507,7 +509,7 @@ function createTemplate(){
   XLSX.utils.book_append_sheet(wb,ws1,'수업정보');
   dates.forEach(date=>{
     const wsD=XLSX.utils.aoa_to_sheet([
-      ['이름','성적','오답','과제이행률','과제1','과제2','과제3','과제4','비고'],
+      ['이름','출결','오답','과제이행률','과제1','과제2','과제3','과제4','비고'],
       ...students.map(n=>[n,'','','','','','','',''])
     ]);
     XLSX.utils.book_append_sheet(wb,wsD,date);

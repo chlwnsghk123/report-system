@@ -270,6 +270,15 @@ body.modal-open .preview{overflow:hidden!important;}
   opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:10000;white-space:nowrap;}
 .modal-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
+/* ═══ 출결 토글 ═══ */
+.attend-toggle{display:inline-flex;gap:2px;background:#f3f4f6;border-radius:8px;padding:2px;}
+.att-btn{border:none;padding:4px 10px;font-size:11px;font-weight:700;border-radius:6px;cursor:pointer;font-family:inherit;background:transparent;color:#888;transition:all .15s;}
+.att-btn.active{color:#fff;}
+.att-present.active{background:#16a34a;color:#fff;}
+.att-late.active{background:#eab308;color:#fff;}
+.att-absent.active{background:#dc2626;color:#fff;}
+.att-btn:hover:not(.active){background:#e5e7eb;}
+
 /* ═══ 반응형 ═══ */
 @media screen and (max-width:1024px){
   body{flex-direction:column;overflow:auto;height:auto;}
