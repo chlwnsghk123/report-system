@@ -1,6 +1,6 @@
 // ─── 스케일 ───
 function updateScale(){
-  const card=$$('reportCard'),area=$$('previewArea');
+  const card=$$('reportCard'),area=$$('previewContent')||$$('previewArea');
   const nav=$$('pageNav'),navH=nav&&nav.style.display!=='none'?nav.offsetHeight:0;
   const availH=area.clientHeight-navH-80;
   const availW=area.clientWidth-80;
@@ -59,7 +59,6 @@ function switchView(view){
   });
   // 뷰 토글
   $$('viewDate').style.display=view==='date'?'':'none';
-  $$('tabBar').style.display=view==='date'&&G.students.length?'flex':'none';
   if(view==='config'){
     openLessonModal();
   }else if(view==='date'){
@@ -342,12 +341,39 @@ function renderDateSummary(){
   `;
 }
 
-// ─── 학생 탭 ───
+// ─── 학생 사이드바 ───
 function renderTabs(){
-  const bar=$$('tabBar');
-  if(!G.students.length||G.currentView!=='date'){bar.style.display='none';return;}
-  bar.style.display='flex';
-  bar.innerHTML=G.students.map(n=>`<div class="tab-item${n===G.selStudent?' active':''}" onclick="switchTab('${esc(n)}')">${esc(n)}</div>`).join('');
+  const sidebar=$$('studentSidebar');
+  const fab=$$('pdfFab');
+  if(!G.students.length||G.currentView!=='date'){
+    if(sidebar)sidebar.style.display='none';
+    if(fab)fab.style.display='none';
+    return;
+  }
+  if(sidebar)sidebar.style.display='';
+  if(fab)fab.style.display='flex';
+  const list=$$('ssList');if(!list)return;
+  list.innerHTML=G.students.map(n=>{
+    const pdfs=G.studentPdfs[n]||[];
+    const hasPdf=pdfs.length>0;
+    const totalPages=pdfs.reduce((s,p)=>s+p.pageCount,0);
+    const cls=`ss-item${n===G.selStudent?' active':''}${hasPdf?' has-pdf':''}`;
+    // 호버 툴팁
+    let tooltip='';
+    if(hasPdf){
+      tooltip=`<div class="ss-pdf-tooltip"><div class="ss-tt-title">📎 첨부된 PDF (${pdfs.length}개)</div>`;
+      pdfs.forEach((p,i)=>{
+        tooltip+=`<div class="ss-tt-item"><span style="color:#6366f1;">📄</span> ${esc(p.name)} (${p.pageCount}p)</div>`;
+      });
+      tooltip+=`</div>`;
+    }
+    return`<div class="${cls}" onclick="switchTab('${esc(n)}')" data-student="${esc(n)}">
+      <div class="ss-name">${esc(n)}</div>
+      ${hasPdf?`<span class="ss-pdf-badge">📎${totalPages}p</span>`:''}
+      <button class="ss-pdf-btn" onclick="event.stopPropagation();attachPdfForStudent('${esc(n)}')" title="PDF 첨부">+</button>
+      ${tooltip}
+    </div>`;
+  }).join('');
 }
 
 function switchTab(name){
@@ -356,6 +382,9 @@ function switchTab(name){
   saveTabData();G.selStudent=name;renderTabs();
   const m=$$('rateMascot');if(m)delete m.dataset.idx;
   updateMemoBtn();
+  // 학생별 PDF 동기화
+  _syncGlobalPdf();
+  G.currentSpread=0;renderSpread();
   if(G.selDate)autoFillAll();
   updateAttendUI();
   saveSession();

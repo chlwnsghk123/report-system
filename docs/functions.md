@@ -70,8 +70,8 @@
 | `addLesson()` | 새 수업 날짜 추가 (마지막 +7일) |
 | `removeLesson(idx)` | 수업 날짜 삭제 |
 | `renderDateSummary()` | 날짜 뷰 상단: 수업정보 읽기전용 요약 |
-| `renderTabs()` | 학생 탭바 렌더링 |
-| `switchTab(name)` | 학생 탭 전환 |
+| `renderTabs()` | 학생 사이드바 렌더링 (우측 프리뷰 영역, PDF 뱃지·호버 포함) |
+| `switchTab(name)` | 학생 전환 (사이드바 갱신 + PDF 동기화) |
 | `saveTabData()` | 현재 학생 입력값 → G.tabData 임시저장 + hwRec items 동기화 |
 | `syncHwRecItems(student,date)` | G.hwItems/hwStatus/hwItemRefs → hwRec[key].items 동기화 (통일 구조: ref+fromDate) |
 | `restoreTabData(name)` | G.tabData → UI 복원 (hwItems/hwItemRefs 포함) |
@@ -149,7 +149,18 @@
 ## js/pdf.js
 | 함수 | 역할 |
 |---|---|
-| `loadAttachPdf(input)` | PDF 첨부 파일 로드 (pdf.js 렌더링) |
+| `_processPdfFile(file)` | PDF 파일 → 첫 페이지 캔버스 + PNG bytes 추출 (내부 함수) |
+| `_addPdfToStudent(student,pdfData)` | 학생별 PDF 데이터 추가 |
+| `_getStudentPdfCanvases(student)` | 학생별 PDF 캔버스 배열 반환 |
+| `_getStudentPdfPageCount(student)` | 학생별 PDF 총 페이지 수 반환 |
+| `_syncGlobalPdf()` | 현재 학생 기준 전역 pdfCanvases/pdfPageCount 동기화 |
+| `handlePdfInput(input)` | PDF 파일 입력 핸들러 (학생별/전체 분기) |
+| `showPdfAttachMenu(e)` | PDF 첨부 팝업 메뉴 (이 학생/모든 학생 선택) |
+| `attachPdfForStudent(name)` | 특정 학생에게 PDF 직접 첨부 |
+| `removeStudentPdf(student,idx)` | 학생별 PDF 개별 삭제 (confirm) |
+| `removeAllStudentPdfs(student)` | 학생별 PDF 전체 삭제 (confirm) |
+| `_savePdfData()` | 학생별 PDF bytes → IndexedDB 저장 |
+| `restorePdfData()` | IndexedDB → 학생별 PDF 복원 (PNG/레거시 PDF 지원) |
 | `renderSpread()` | 현재 spread 페이지 표시 업데이트 |
 | `drawPdfPrev(tgt,src)` | PDF 캔버스 → 미리보기 캔버스 그리기 |
 | `prevSpread()` | 이전 spread 이동 |
@@ -180,4 +191,4 @@
 |---|---|
 | `loadMascotImages()` | 마스코트 이미지 수동 등록 (하드코딩된 파일 목록) |
 | `document keydown` | 전역 키보드: ESC(모달 닫기), Ctrl+S(저장) |
-| `window.onload` | 앱 초기화 진입점: DB오픈→updateScale→initCE→loadMascotImages |
+| `window.onload` | 앱 초기화 진입점: DB오픈→updateScale→initCE→loadMascotImages→restorePdfData |

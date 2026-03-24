@@ -1,40 +1,194 @@
-// ─── PDF 첨부 뷰어 ───
-async function loadAttachPdf(input){
-  const file=input.files[0];if(!file)return;
+// ─── PDF 첨부 (학생별) ───
+let _pdfAttachTarget=''; // '' = current student, '_all_' = all students
+
+async function _processPdfFile(file){
   setBar('wait','⏳ PDF 렌더링 중...');
   try{
-    const buf=await file.arrayBuffer();G.attachedPdfBytes=new Uint8Array(buf);
+    const buf=await file.arrayBuffer();
     const pdfDoc=await pdfjsLib.getDocument({data:buf.slice(0)}).promise;
-    G.pdfPageCount=pdfDoc.numPages;G.pdfCanvases=[];
-    for(let i=1;i<=G.pdfPageCount;i++){
-      // 1. 원본 렌더
-      const page=await pdfDoc.getPage(i);const vp=page.getViewport({scale:2.5});
-      const raw=document.createElement('canvas');raw.width=vp.width;raw.height=vp.height;
-      await page.render({canvasContext:raw.getContext('2d'),viewport:vp}).promise;
-      const W=raw.width,H=raw.height;
-      // 2. 상5% 하6% 잘라내기 (머리말/꼬리말 제거)
-      const cT=Math.round(H*0.05),cB=Math.round(H*0.06),cropH=H-cT-cB;
-      // 3. 원본과 동일한 A4 흰색 캔버스 생성
-      const cv=document.createElement('canvas');cv.width=W;cv.height=H;
-      const ctx=cv.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
-      // 4. 잘라낸 내용을 정중앙에서 6% 아래로 배치 (위아래 남는 공간은 흰색 유지)
-      const destY=Math.round((H-cropH)/2+H*0.04);
-      ctx.drawImage(raw,0,cT,W,cropH,0,destY,W,cropH);
-      G.pdfCanvases.push(cv);
+    const totalPages=pdfDoc.numPages;
+    // 첫 페이지만 추출 (용량 최적화)
+    const page=await pdfDoc.getPage(1);const vp=page.getViewport({scale:2.5});
+    const raw=document.createElement('canvas');raw.width=vp.width;raw.height=vp.height;
+    await page.render({canvasContext:raw.getContext('2d'),viewport:vp}).promise;
+    const W=raw.width,H=raw.height;
+    const cT=Math.round(H*0.05),cB=Math.round(H*0.06),cropH=H-cT-cB;
+    const cv=document.createElement('canvas');cv.width=W;cv.height=H;
+    const ctx=cv.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
+    const destY=Math.round((H-cropH)/2+H*0.04);
+    ctx.drawImage(raw,0,cT,W,cropH,0,destY,W,cropH);
+    // 첫 페이지만 PNG로 저장 (원본 PDF bytes 대신, 용량 절감)
+    const pngDataUrl=cv.toDataURL('image/png');
+    const pngBytes=dataUrlToBytes(pngDataUrl);
+    if(totalPages>1){
+      alert(`이 PDF는 ${totalPages}페이지입니다. 첫 페이지만 저장됩니다.`);
     }
-    G.currentSpread=0;renderSpread();
-    $$('attachLabel').textContent=`${file.name} (${G.pdfPageCount}p)`;
-    $$('btnAttach').classList.add('has');
-    setBar('ok',`✅ ${G.excelFileName}`);
-  }catch(e){setBar('err','❌ PDF 로드 실패: '+e.message);console.error(e);}
+    return{bytes:pngBytes,name:file.name,canvases:[cv],pageCount:1,isPng:true};
+  }catch(e){setBar('err','❌ PDF 로드 실패: '+e.message);console.error(e);return null;}
+}
+
+function _addPdfToStudent(student,pdfData){
+  if(!G.studentPdfs[student])G.studentPdfs[student]=[];
+  G.studentPdfs[student].push(pdfData);
+}
+
+function _getStudentPdfCanvases(student){
+  const pdfs=G.studentPdfs[student]||[];
+  const all=[];
+  pdfs.forEach(p=>all.push(...p.canvases));
+  return all;
+}
+
+function _getStudentPdfPageCount(student){
+  return(G.studentPdfs[student]||[]).reduce((s,p)=>s+p.pageCount,0);
+}
+
+// 하위 호환: 전역 pdfCanvases/pdfPageCount를 현재 학생 기준으로 동기화
+function _syncGlobalPdf(){
+  if(!G.selStudent){G.pdfCanvases=[];G.pdfPageCount=0;return;}
+  G.pdfCanvases=_getStudentPdfCanvases(G.selStudent);
+  G.pdfPageCount=_getStudentPdfPageCount(G.selStudent);
+}
+
+async function handlePdfInput(input){
+  const file=input.files[0];if(!file)return;
+  const pdfData=await _processPdfFile(file);
+  if(!pdfData){input.value='';return;}
+  if(_pdfAttachTarget==='_all_'){
+    G.students.forEach(s=>_addPdfToStudent(s,{
+      bytes:new Uint8Array(pdfData.bytes),name:pdfData.name,pageCount:pdfData.pageCount,isPng:!!pdfData.isPng,
+      canvases:pdfData.canvases.map(cv=>{
+        const c=document.createElement('canvas');c.width=cv.width;c.height=cv.height;
+        c.getContext('2d').drawImage(cv,0,0);return c;
+      })
+    }));
+  }else{
+    const target=_pdfAttachTarget||G.selStudent;
+    _addPdfToStudent(target,pdfData);
+  }
+  _pdfAttachTarget='';
+  _syncGlobalPdf();
+  G.currentSpread=0;renderSpread();renderTabs();
+  setBar('ok',`✅ ${G.excelFileName}`);
+  _savePdfData();
   input.value='';
 }
+
+function showPdfAttachMenu(e){
+  _closePdfMenu();
+  if(!G.selStudent)return;
+  const menu=document.createElement('div');
+  menu.className='pdf-attach-menu';menu.id='pdfAttachMenu';
+  menu.innerHTML=`
+    <button onclick="_pdfAttachTarget='';$$('pdfInput').click();_closePdfMenu();">
+      <span style="font-size:16px;">👤</span> 이 학생에게만 첨부
+    </button>
+    <div class="pam-sep"></div>
+    <button onclick="_pdfAttachTarget='_all_';$$('pdfInput').click();_closePdfMenu();">
+      <span style="font-size:16px;">👥</span> 모든 학생에게 첨부
+    </button>`;
+  document.body.appendChild(menu);
+  // 위치 계산
+  if(e){
+    const rect=e.target.closest('.pdf-fab')?.getBoundingClientRect()||{right:window.innerWidth-40,bottom:window.innerHeight-40};
+    menu.style.right=(window.innerWidth-rect.right)+'px';
+    menu.style.bottom=(window.innerHeight-rect.top+8)+'px';
+  }
+  setTimeout(()=>document.addEventListener('click',_closePdfMenuOnClick,{once:true}),0);
+}
+function _closePdfMenu(){const m=$$('pdfAttachMenu');if(m)m.remove();}
+function _closePdfMenuOnClick(e){if(!e.target.closest('.pdf-attach-menu'))_closePdfMenu();}
+
+function attachPdfForStudent(name){
+  _pdfAttachTarget=name;
+  $$('pdfInput').click();
+}
+
+function removeStudentPdf(student,idx){
+  if(!confirm('이 PDF를 삭제하시겠습니까?'))return;
+  const pdfs=G.studentPdfs[student];
+  if(!pdfs)return;
+  pdfs.splice(idx,1);
+  if(!pdfs.length)delete G.studentPdfs[student];
+  _syncGlobalPdf();
+  G.currentSpread=0;renderSpread();renderTabs();
+  _savePdfData();
+}
+
+function removeAllStudentPdfs(student){
+  if(!confirm(`${student} 학생의 모든 PDF를 삭제하시겠습니까?`))return;
+  delete G.studentPdfs[student];
+  _syncGlobalPdf();
+  G.currentSpread=0;renderSpread();renderTabs();
+  _savePdfData();
+}
+
+// PDF 데이터 IndexedDB 저장 (bytes만, canvases는 런타임)
+async function _savePdfData(){
+  const data={};
+  for(const[name,pdfs]of Object.entries(G.studentPdfs)){
+    data[name]=pdfs.map(p=>({bytes:p.bytes,name:p.name,pageCount:p.pageCount,isPng:!!p.isPng}));
+  }
+  try{await dbSet('studentPdfs',data);}catch(e){console.error('PDF 저장 실패:',e);}
+}
+
+// PDF 데이터 IndexedDB 복원 (앱 시작 시)
+async function restorePdfData(){
+  try{
+    const data=await dbGet('studentPdfs');
+    if(!data)return;
+    for(const[name,pdfs]of Object.entries(data)){
+      G.studentPdfs[name]=[];
+      for(const p of pdfs){
+        try{
+          if(p.isPng){
+            // PNG 형식 (첫 페이지만 저장된 경우)
+            const blob=new Blob([p.bytes],{type:'image/png'});
+            const url=URL.createObjectURL(blob);
+            const img=new Image();
+            await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url;});
+            const cv=document.createElement('canvas');cv.width=img.width;cv.height=img.height;
+            cv.getContext('2d').drawImage(img,0,0);
+            URL.revokeObjectURL(url);
+            G.studentPdfs[name].push({bytes:p.bytes,name:p.name,canvases:[cv],pageCount:1,isPng:true});
+          }else{
+            // 레거시 PDF 형식
+            const pdfDoc=await pdfjsLib.getDocument({data:p.bytes.buffer.slice(0)}).promise;
+            const canvases=[];
+            for(let i=1;i<=Math.min(pdfDoc.numPages,1);i++){
+              const page=await pdfDoc.getPage(i);const vp=page.getViewport({scale:2.5});
+              const raw=document.createElement('canvas');raw.width=vp.width;raw.height=vp.height;
+              await page.render({canvasContext:raw.getContext('2d'),viewport:vp}).promise;
+              const W=raw.width,H=raw.height;
+              const cT=Math.round(H*0.05),cB=Math.round(H*0.06),cropH=H-cT-cB;
+              const cv=document.createElement('canvas');cv.width=W;cv.height=H;
+              const ctx=cv.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
+              const destY=Math.round((H-cropH)/2+H*0.04);
+              ctx.drawImage(raw,0,cT,W,cropH,0,destY,W,cropH);
+              canvases.push(cv);
+            }
+            G.studentPdfs[name].push({bytes:p.bytes,name:p.name,canvases,pageCount:canvases.length});
+          }
+        }catch(e){console.error(`PDF 복원 실패 (${name}/${p.name}):`,e);}
+      }
+      if(!G.studentPdfs[name].length)delete G.studentPdfs[name];
+    }
+  }catch(e){console.error('PDF 데이터 복원 실패:',e);}
+}
+
 function renderSpread(){
+  _syncGlobalPdf();
   const total=1+G.pdfPageCount,spreads=Math.ceil(total/2);
   const nav=$$('pageNav');nav.style.display=G.pdfPageCount>0?'flex':'none';
-  $$('pageInfo').textContent=`${G.currentSpread+1} / ${spreads}`;
-  $$('btnPrev').disabled=G.currentSpread===0;
-  $$('btnNext').disabled=G.currentSpread>=spreads-1;
+  // 페이지 네비 + PDF 삭제 버튼
+  let navHtml=`<button id="btnPrev" onclick="prevSpread()" ${G.currentSpread===0?'disabled':''}>‹</button>
+    <span class="pinfo" id="pageInfo">${G.currentSpread+1} / ${spreads}</span>
+    <button id="btnNext" onclick="nextSpread()" ${G.currentSpread>=spreads-1?'disabled':''}>›</button>`;
+  if(G.pdfPageCount>0){
+    navHtml+=`<button class="pdf-del-btn" onclick="removeAllStudentPdfs('${esc(G.selStudent||'')}')" title="PDF 전체 삭제">🗑</button>`;
+  }
+  nav.innerHTML=navHtml;
+
   const li=G.currentSpread*2,ri=li+1;
   const rc=$$('reportCard'),lc=$$('leftPdfCanvas'),rs=$$('rightSlot'),rpc=$$('rightPdfCanvas');
   if(li===0){rc.style.display='';lc.style.display='none';$$('leftLabel').textContent='리포트';}
@@ -266,23 +420,33 @@ async function _doBatchPdf(){
         },
         width:rc.offsetWidth,height:rc.offsetHeight,scrollX:0,scrollY:0,
         windowWidth:rc.offsetWidth,windowHeight:rc.offsetHeight});
-      canvases.push({name,canvas:cv});
+      // 학생별 첨부 PDF 캔버스도 수집
+      const stuPdfCvs=_getStudentPdfCanvases(name);
+      canvases.push({name,canvas:cv,pdfCanvases:stuPdfCvs});
     }
 
-    // PDF 생성 (세로 A4, 학생당 1페이지)
+    // PDF 생성 (가로 A4, 학생당 리포트+첨부PDF 2장씩)
     const{PDFDocument}=PDFLib;
     const outDoc=await PDFDocument.create();
-    const PW=595.28,PH=841.89,margin=20;
-    const slotW=PW-margin*2,slotH=PH-margin*2;
+    const LW=841.89,LH=595.28,margin=20,gap=12;
+    const slotW=(LW-margin*2-gap)/2,slotH=LH-margin*2;
 
-    for(const{canvas}of canvases){
-      const page=outDoc.addPage([PW,PH]);
-      const pngBytes=dataUrlToBytes(canvas.toDataURL('image/png'));
-      const pngImg=await outDoc.embedPng(pngBytes);
-      const{width:iw,height:ih}=pngImg;
-      const scale=Math.min(slotW/iw,slotH/ih);
-      const dw=iw*scale,dh=ih*scale;
-      page.drawImage(pngImg,{x:margin+(slotW-dw)/2,y:PH-margin-(slotH-dh)/2-dh,width:dw,height:dh});
+    for(const{canvas,pdfCanvases:stuPdfs}of canvases){
+      const allPages=[{canvas}];
+      stuPdfs.forEach(cv=>allPages.push({canvas:cv}));
+      for(let i=0;i<allPages.length;i+=2){
+        const page=outDoc.addPage([LW,LH]);
+        for(let slot=0;slot<2;slot++){
+          const pi=allPages[i+slot];if(!pi)break;
+          const xOff=margin+slot*(slotW+gap);
+          const pngBytes=dataUrlToBytes(pi.canvas.toDataURL('image/png'));
+          const pngImg=await outDoc.embedPng(pngBytes);
+          const{width:iw,height:ih}=pngImg;
+          const scale=Math.min(slotW/iw,slotH/ih);
+          const dw=iw*scale,dh=ih*scale;
+          page.drawImage(pngImg,{x:xOff+(slotW-dw)/2,y:margin+(slotH-dh)/2,width:dw,height:dh});
+        }
+      }
     }
 
     const a=document.createElement('a');

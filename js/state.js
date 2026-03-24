@@ -22,6 +22,7 @@ const G={
   tabData:{},
   excelFileName:'학습리포트_데이터.xlsx',
   attachedPdfBytes:null,pdfCanvases:[],pdfPageCount:0,currentSpread:0,
+  studentPdfs:{},  // {studentName: [{bytes:Uint8Array, name:string, canvases:[], pageCount:number}, ...]}
   mascotChoices:{},selectedMascot:null,lastSaved:'',
   currentView:'config',dateTabOffset:0,unsaved:false,
   pendingPropagations:[],
