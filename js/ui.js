@@ -448,14 +448,26 @@ function _getPrevCarryStatus(student,date,carryItem){
   const prevDate=G.lessons[curIdx-1].날짜;
   const prevRec=G.hwRec[`${student}||${prevDate}`];
   if(!prevRec?.items)return null;
-  // ref 기반 매칭
+  // 1) 직전 날짜의 이월 항목에서 ref 매칭
   if(carryItem.ref){
     const match=prevRec.items.find(it=>it.ref===carryItem.ref);
     if(match&&!isNone(match.status))return match.status;
   }
-  // 텍스트+fromDate 폴백 매칭
-  const match=prevRec.items.find(it=>it.text===carryItem.text&&it.fromDate===carryItem.fromDate);
-  if(match&&!isNone(match.status))return match.status;
+  // 2) 직전 날짜의 이월 항목에서 텍스트+fromDate 매칭
+  const carryMatch=prevRec.items.find(it=>it.type==='carry'&&it.text===carryItem.text&&it.fromDate===carryItem.fromDate);
+  if(carryMatch&&!isNone(carryMatch.status))return carryMatch.status;
+  // 3) 직전 날짜가 원본(fromDate)이면 base 과제에서 ref로 상태 조회
+  if(carryItem.ref){
+    const [refDate,refIdx]=carryItem.ref.split('-');
+    if(refDate===prevDate){
+      let baseIdx=0;
+      for(const it of prevRec.items){
+        if(it.type==='carry')continue;
+        if(baseIdx===Number(refIdx)&&!isNone(it.status))return it.status;
+        baseIdx++;
+      }
+    }
+  }
   return null;
 }
 
