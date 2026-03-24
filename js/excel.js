@@ -245,11 +245,14 @@ async function saveToExcel(){
   G.students.forEach(n=>{
     const td=G.tabData[n];if(!td||!G.selDate)return;
     if(td.correctInput!==''){G.corrects[n]=G.corrects[n]||{};G.corrects[n][G.selDate]=parseInt(td.correctInput)||0;}
+    else if(G.corrects[n]?.[G.selDate]!=null){delete G.corrects[n][G.selDate];}
     if(td.wrongInput){G.wrong[n]=G.wrong[n]||{};G.wrong[n][G.selDate]=td.wrongInput;}
+    else if(G.wrong[n]?.[G.selDate]!=null){delete G.wrong[n][G.selDate];}
     const key=`${n}||${G.selDate}`;
     const ex=G.hwRec[key]||{이행률:null};
     if(td.rateManual!=null){ex.이행률=td.rateManual;G.rates[n]=G.rates[n]||{};G.rates[n][G.selDate]=td.rateManual;}
     else if(G.rates[n]?.[G.selDate]!=null){ex.이행률=G.rates[n][G.selDate];}
+    else{ex.이행률=null;}
     // items 배열 동기화
     const hs=td.hwStatus||[];
     const items=td.hwItems||[];

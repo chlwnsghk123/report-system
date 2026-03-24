@@ -106,15 +106,19 @@ onRateManual()
   → inputRate '0': G.hwRateManual=0, G.rates[학생][날짜]=0 (=출석, 0%)
 
 syncHwRecItems() / selectDate() / saveToExcel()
-  → hwRec.이행률 동기화 우선순위: rateManual > G.rates[학생][날짜] > 기존값
-  → rateManual이 null(자동값)이어도 G.rates에 값이 있으면 hwRec에 반영
+  → hwRec.이행률 동기화 우선순위: rateManual > G.rates[학생][날짜] > null(결석)
+  → rateManual이 null이고 G.rates도 없으면 hwRec.이행률 = null (결석 처리)
   → 0과 null 구분 보존
 
 selectDate() 날짜 전환 시 동기화 항목:
-  → tabData → hwRec (items, 이행률)
-  → tabData → G.rates (rateManual)
-  → tabData → G.wrong (wrongInput)
-  → tabData → G.corrects (correctInput)
+  → tabData → hwRec (items, 이행률, 클리어 시 null)
+  → tabData → G.rates (rateManual, 클리어 시 삭제)
+  → tabData → G.wrong (wrongInput, 클리어 시 삭제)
+  → tabData → G.corrects (correctInput, 클리어 시 삭제)
+
+saveToExcel() 동기화 (현재 날짜 tabData 기준):
+  → tabData → G.corrects, G.wrong (클리어 시 삭제)
+  → tabData → hwRec.이행률 (클리어 시 null)
 
 rebuildGraph()
   → G.rates[학생][날짜] (현재 날짜 이하만, 첫 번째 날짜 제외, -1 제외)
