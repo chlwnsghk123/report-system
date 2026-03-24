@@ -775,12 +775,12 @@ function _renderStudentReport(student,startDate,endDate,container){
       }else{
         html+=`<div style="padding:8px 14px;font-size:11px;color:#9ca3af;">상태 지정된 과제 없음</div>`;
       }
-      // 이월과제 비고 (상태가 변한 것만 + 중복 제거)
+      // 이월과제 비고 (원본 대비 상태가 변한 것만 + 중복 제거)
       const carryStDesc={2:'완료',1:'일부 완료',0:'미완료'};
-      const allCarries=(rec?.items||[]).filter(it=>it.type==='carry'&&!isNone(it.status));
+      const allCarries=(rec?.items||[]).filter(it=>it.type==='carry'&&it.ref&&!isNone(it.status));
       const changedCarries=allCarries.filter(it=>{
-        const ps=_getPrevCarryStatus(student,d,it);
-        return ps==null||it.status!==ps;
+        const orig=_getOriginalRefStatus(student,it.ref);
+        return orig!=null&&it.status!==orig;
       });
       const cSeen=new Map();
       changedCarries.forEach(it=>{const k=`${it.text}||${it.fromDate}`;cSeen.set(k,it);});

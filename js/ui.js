@@ -441,33 +441,23 @@ function _getCarryAutoText(student,date){
   }).join('\n');
 }
 
-// 이월과제의 직전 날짜 상태 조회
-function _getPrevCarryStatus(student,date,carryItem){
-  const curIdx=G.lessons.findIndex(l=>l.날짜===date);
-  if(curIdx<=0)return null;
-  const prevDate=G.lessons[curIdx-1].날짜;
-  const prevRec=G.hwRec[`${student}||${prevDate}`];
-  if(!prevRec?.items)return null;
-  // 1) 직전 날짜의 이월 항목에서 ref 매칭
-  if(carryItem.ref){
-    const match=prevRec.items.find(it=>it.ref===carryItem.ref);
-    if(match&&!isNone(match.status))return match.status;
-  }
-  // 2) 직전 날짜의 이월 항목에서 텍스트+fromDate 매칭
-  const carryMatch=prevRec.items.find(it=>it.type==='carry'&&it.text===carryItem.text&&it.fromDate===carryItem.fromDate);
-  if(carryMatch&&!isNone(carryMatch.status))return carryMatch.status;
-  // 3) 직전 날짜가 원본(fromDate)이면 base 과제에서 ref로 상태 조회
-  if(carryItem.ref){
-    const [refDate,refIdx]=carryItem.ref.split('-');
-    if(refDate===prevDate){
-      let baseIdx=0;
-      for(const it of prevRec.items){
-        if(it.type==='carry')continue;
-        if(baseIdx===Number(refIdx)&&!isNone(it.status))return it.status;
-        baseIdx++;
-      }
-    }
-  }
+// ref로 원본 과제의 최초 상태 조회
+// ref = "lessonId-과제1" → 해당 수업 다음 날짜의 base 항목에서 상태를 찾음
+function _getOriginalRefStatus(student,ref){
+  if(!ref)return null;
+  const dashIdx=ref.lastIndexOf('-');
+  if(dashIdx<0)return null;
+  const lessonId=ref.slice(0,dashIdx);
+  const srcLesson=G.lessons.find(l=>l.id===lessonId);
+  if(!srcLesson)return null;
+  const srcIdx=G.lessons.indexOf(srcLesson);
+  if(srcIdx<0||srcIdx>=G.lessons.length-1)return null;
+  // 원본 수업 바로 다음 날짜에서 base 항목의 상태가 최초 기록
+  const nextDate=G.lessons[srcIdx+1].날짜;
+  const rec=G.hwRec[`${student}||${nextDate}`];
+  if(!rec?.items)return null;
+  const item=rec.items.find(it=>it.ref===ref&&it.type!=='carry');
+  if(item&&!isNone(item.status))return item.status;
   return null;
 }
 

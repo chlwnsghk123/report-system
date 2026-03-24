@@ -397,12 +397,12 @@ async function saveToExcel(){
           const ex=extras[i];if(!ex)return'';
           return ex.text;
         });
-        // 비고: 상태가 변한 이월과제만 자동 요약 + 중복 제거
+        // 비고: 원본 대비 상태가 변한 이월과제만 자동 요약 + 중복 제거
         const stDesc={2:'완료',1:'일부 완료',0:'미완료'};
-        const carries=(rec?.items||[]).filter(it=>it.type==='carry'&&!isNone(it.status));
+        const carries=(rec?.items||[]).filter(it=>it.type==='carry'&&it.ref&&!isNone(it.status));
         const changed=carries.filter(it=>{
-          const ps=_getPrevCarryStatus(n,date,it);
-          return ps==null||it.status!==ps;
+          const orig=_getOriginalRefStatus(n,it.ref);
+          return orig!=null&&it.status!==orig;
         });
         const seen=new Map();
         changed.forEach(it=>{const k=`${it.text}||${it.fromDate}`;seen.set(k,it);});
@@ -437,7 +437,7 @@ async function saveToExcel(){
       const key=`${n}||${date}`;
       const rec=G.hwRec[key];
       if(!rec?.items)return;
-      const carryItems=rec.items.filter(it=>it.type==='carry');
+      const carryItems=rec.items.filter(it=>it.type==='carry'&&it.ref);
       if(!carryItems.length)return;
       if(date!==lastCarryDate){
         carryAoa.push([`▼ ${fmtKo(date)}`,'','','']);
