@@ -31,7 +31,7 @@ body (flex, 100vh)
 │        ├─ #gComment        코멘트 입력 영역
 │        ├─ #btnMemo          비고 작성 버튼
 │        ├─ #btnPdf          PDF 저장 버튼
-│        └─ #lastSaved       저장 시각 표시
+│        └─ #btnPdf          PDF 저장 버튼
 │  (hidden inputs: inCurBook, inCurChap, inCurDetail, inPrevBook/Chap/Detail, inputNotice, inputCorrect/Total, calcResult)
 └─ .preview (우, flex:1)
    ├─ #pageNav          페이지 네비 (‹ · 페이지 정보 · ›)
@@ -85,6 +85,7 @@ G = {
   // 마스코트 선택
   mascotChoices: {},   // (레거시) DB 호환용, 실사용 안 함
   selectedMascot: null, // {tier:'high'|'mid'|'low', idx:숫자} — 세션 내 고정 마스코트 (DB/엑셀 미저장)
+  lastSaved: '',       // 마지막 엑셀 저장 날짜/시간 (설정 시트에 저장/복원)
 
   // 탭 임시 저장
   tabData: {},

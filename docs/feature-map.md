@@ -82,7 +82,8 @@ B 미리보기 (우측)
 | 과제 동적 추가/삭제 | `js/ui.js` | `addLessonHw()`, `removeLessonHw()` |
 | hwRec items 동기화 | `js/ui.js` | `syncHwRecItems()` |
 | 엑셀 파싱 | `js/excel.js` | `parseWB()` (이월과제 시트 + 동적 과제열) |
-| 엑셀 저장 | `js/excel.js` | `saveToExcel()` (이월과제 시트 + 비고열) |
+| 엑셀 저장 | `js/excel.js` | `saveToExcel()` (이월과제 시트 + 비고열 + 마지막 저장 시각) |
+| 마지막 저장 표시 | `js/excel.js` | `updateLastSavedDisplay()` → #rLastSaved |
 | PDF 저장 | `js/pdf.js` | `dlPdf()` |
 | 일괄 PDF 내보내기 | `js/pdf.js` | `dlBatchPdf()`, `_doBatchPdf()` |
 | 성적 요약표 | `js/pdf.js` | `dlGradeSummary()`, `_renderGradeTable()`, `_downloadGradeImage()` |
