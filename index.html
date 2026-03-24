@@ -55,19 +55,15 @@
 
       <!-- 과제 섹션 -->
       <div class="panel-section">
-        <div class="panel-section-head">
-          <span class="panel-section-icon">📋</span>
-          <span class="panel-section-title">과제 &amp; 이행률</span>
-        </div>
         <div class="panel-card">
           <div class="cg" id="gPrevHw">
             <label>저번 주차 과제 <span class="ab">자동</span></label>
             <div id="hwEditor" style="display:flex;flex-direction:column;gap:4px;"></div>
             <div class="rate-input-row">
               <span class="rate-label">이행률</span>
-              <button class="ab rate-auto-btn" onclick="autoCalcRate()" title="과제 상태에서 이행률을 자동 계산합니다">⚡ 자동계산</button>
               <input type="number" id="inputRate" class="rate-input" min="0" max="100" oninput="onRateManual()">
-              <span class="rate-unit">%</span>
+              <span class="rate-unit-sm">%</span>
+              <button class="ab rate-auto-btn" onclick="autoCalcRate()" title="과제 상태에서 이행률을 자동 계산합니다" style="margin-left:auto;">⚡ 자동계산</button>
             </div>
           </div>
         </div>
@@ -86,10 +82,6 @@
 
       <!-- 선택 항목 섹션 -->
       <div class="panel-section">
-        <div class="panel-section-head">
-          <span class="panel-section-icon">⚙</span>
-          <span class="panel-section-title">선택 항목</span>
-        </div>
         <div class="sw-row" id="toggleMini" onclick="toggleSec('mini')">
           <div class="sw-track"><div class="sw-thumb"></div></div>
           <div style="flex:1;">
@@ -165,7 +157,7 @@
           <div class="tb-menu-sep"></div>
           <button onclick="dlSummaryPdf();closeToolbarMenus()">📋 전체 과제 요약 이미지</button>
           <div class="tb-menu-sep"></div>
-          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.50)</button>
+          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.51)</button>
         </div>
       </div>
       <button class="tb-btn" disabled title="준비 중">🖨 프린트</button>
@@ -183,13 +175,7 @@
   <div class="preview-body">
     <!-- 메인 콘텐츠 -->
     <div class="preview-content" id="previewContent">
-      <!-- 상단 날짜 네비게이션 -->
-      <div class="date-nav-bar" id="dateNavBar" style="display:none;">
-        <button class="dn-arrow" onclick="navDatePrev()">‹</button>
-        <div class="dn-label" id="dnLabel" onclick="toggleDateDropdown()"></div>
-        <button class="dn-arrow" onclick="navDateNext()">›</button>
-        <div class="dn-dropdown" id="dnDropdown"></div>
-      </div>
+      <!-- 상단 날짜 네비게이션 (삭제됨, 세로 사이드바로 대체) -->
       <div class="page-nav" id="pageNav" style="display:none;">
         <button id="btnPrev" onclick="prevSpread()" disabled>‹</button>
         <span class="pinfo" id="pageInfo">1 / 1</span>
@@ -296,6 +282,16 @@
           <div class="pdf-lbl" id="rightLabel"></div>
         </div>
       </div>
+      <!-- 확대/축소 컨트롤 -->
+      <div class="zoom-ctrl" id="zoomCtrl">
+        <button onclick="zoomReport(-0.05)" title="축소">−</button>
+        <span id="zoomLevel">auto</span>
+        <button onclick="zoomReport(0.05)" title="확대">+</button>
+        <button onclick="zoomReport(0)" title="자동 맞춤" style="font-size:10px;width:auto;padding:0 6px;">맞춤</button>
+      </div>
+      <!-- 학생 전환 화살표 -->
+      <button class="stu-nav stu-nav-prev" id="stuNavPrev" onclick="navStudentPrev()" style="display:none;">‹</button>
+      <button class="stu-nav stu-nav-next" id="stuNavNext" onclick="navStudentNext()" style="display:none;">›</button>
     </div>
     <!-- 날짜 사이드바 (학생 사이드바 왼쪽) -->
     <div class="date-sidebar" id="dateSidebar" style="display:none;">

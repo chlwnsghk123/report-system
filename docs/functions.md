@@ -63,6 +63,10 @@
 | `navDatePrev()` | 이전 날짜로 이동 |
 | `navDateNext()` | 다음 날짜로 이동 |
 | `toggleDateDropdown()` | 날짜 드롭다운 토글 |
+| `zoomReport(delta)` | 리포트카드 확대/축소 (0=자동맞춤) |
+| `navStudentPrev()` | 이전 학생으로 전환 |
+| `navStudentNext()` | 다음 학생으로 전환 |
+| `_updateStudentNav()` | 학생 전환 화살표 활성/비활성 갱신 |
 | `openLessonModal()` | 수업설정 전체화면 모달 열기 |
 | `closeLessonModal()` | 수업설정 모달 닫기 |
 | `getLessonHwKeys(l)` | 레슨 객체의 동적 과제 키 목록 반환 |

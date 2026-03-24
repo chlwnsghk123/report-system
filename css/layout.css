@@ -36,6 +36,7 @@ body{margin:0;padding:0;background-color:#f2f4f6;font-family:'Pretendard',sans-s
 .rate-input{width:72px;text-align:center;padding:6px 8px!important;border-radius:8px!important;
   font-size:15px!important;font-weight:700!important;}
 .rate-unit{font-size:14px;font-weight:700;color:#9ca3af;}
+.rate-unit-sm{font-size:11px;font-weight:600;color:#adb5bd;}
 .label-hint{font-size:10px;color:#9ca3af;font-weight:400;}
 .panel-resize{width:6px;cursor:col-resize;background:transparent;flex-shrink:0;position:relative;z-index:20;
   transition:background .15s;}
@@ -433,6 +434,26 @@ body.modal-open .preview{overflow:hidden!important;}
   transition:.12s;text-align:center;}
 .dn-dropdown button:hover{background:#f3f4f6;}
 .dn-dropdown button.active{color:#3182f6;background:#eff6ff;font-weight:700;}
+
+/* ═══ 확대/축소 컨트롤 ═══ */
+.zoom-ctrl{position:fixed;bottom:16px;right:280px;display:flex;align-items:center;gap:4px;
+  background:rgba(255,255,255,.92);border:1px solid #e5e7eb;border-radius:10px;padding:4px 6px;
+  box-shadow:0 2px 10px rgba(0,0,0,.1);z-index:30;backdrop-filter:blur(6px);}
+.zoom-ctrl button{width:26px;height:26px;border:1px solid #e2e5ea;border-radius:6px;background:#fff;
+  font-size:15px;font-weight:600;color:#374151;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;transition:.12s;font-family:inherit;}
+.zoom-ctrl button:hover{background:#f3f4f6;border-color:#d1d5db;}
+.zoom-ctrl span{font-size:11px;font-weight:600;color:#6b7280;min-width:36px;text-align:center;}
+
+/* ═══ 학생 전환 화살표 (리포트 양쪽) ═══ */
+.stu-nav{position:absolute;top:50%;transform:translateY(-50%);width:36px;height:64px;
+  border:none;border-radius:8px;background:rgba(0,0,0,.04);color:rgba(0,0,0,.2);
+  font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .2s;z-index:25;}
+.stu-nav:hover{background:rgba(0,0,0,.08);color:rgba(0,0,0,.45);}
+.stu-nav:disabled{opacity:0;cursor:default;pointer-events:none;}
+.stu-nav-prev{left:8px;}
+.stu-nav-next{right:8px;}
 
 /* ═══ 리포트카드 전환 애니메이션 ═══ */
 @keyframes rcSlideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}

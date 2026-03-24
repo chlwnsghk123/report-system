@@ -15,7 +15,8 @@ function updateScale(){
     [$$('leftPdfCanvas'),$$('rightPdfCanvas')].forEach(c=>{if(!c)return;c.style.transform='none';c.style.marginBottom='';});
   }else{
     spreadRow.style.transform='';spreadRow.style.marginBottom='';
-    const sv=Math.max(Math.min(availW/a4w,availH/a4h,0.9),.15);
+    // 수동 줌이 설정되어 있으면 그대로 사용
+    const sv=G._zoomManual!=null?G._zoomManual:Math.max(Math.min(availW/a4w,availH/a4h,0.9),.15);
     card.style.transform=`scale(${sv})`;
     card.style.marginBottom=`${-(a4h*(1-sv))}px`;
     [$$('leftPdfCanvas'),$$('rightPdfCanvas')].forEach(c=>{
@@ -25,6 +26,7 @@ function updateScale(){
       c.style.marginBottom=`${-(a4h*(1-sv))}px`;
     });
   }
+  _updateZoomLabel();
 }
 
 // ─── contenteditable 동기화 ───
@@ -60,8 +62,8 @@ function switchView(view){
     closeLessonModal();
     renderDateSummary();
     renderTabs();
-    renderDateNav();
     renderDateSidebar();
+    _updateStudentNav();
     updateMemoBtn();
     if(G.selDate&&G.selStudent)autoFillAll();
     else if(G.selDate)autoFillCommon();
@@ -320,13 +322,16 @@ function renderDateSummary(){
   if(!cur){el.innerHTML='';return;}
   const hwKeys=getLessonHwKeys(cur);
   const hwT=hwKeys.map(k=>cur[k]||'').filter(x=>x);
+  // 상세진도를 줄 단위로 분할하여 칩으로 나열
+  const detailChips=(cur.상세진도||'').split(/\n/).map(s=>s.trim()).filter(Boolean)
+    .map(s=>`<span class="ds-chip">${esc(s)}</span>`).join('');
   el.innerHTML=`
     <div class="ds-title">${fmtKo(cur.날짜)}</div>
     <div class="ds-info">
       ${cur.교재?`<span class="ds-chip">📚 ${esc(cur.교재)}</span>`:''}
       ${cur.단원?`<span class="ds-chip">📖 ${esc(cur.단원)}</span>`:''}
+      ${detailChips}
     </div>
-    ${cur.상세진도?`<div class="ds-detail">${esc(cur.상세진도).replace(/\\n|\n/g,'<br>')}</div>`:''}
   `;
 }
 
@@ -411,6 +416,7 @@ function switchTab(name){
   // 리포트카드 전환 애니메이션
   const rc=$$('reportCard');
   if(rc){rc.classList.remove('rc-transition');void rc.offsetWidth;rc.classList.add('rc-transition');}
+  _updateStudentNav();
 }
 
 function saveTabData(){
@@ -656,4 +662,46 @@ function toggleSec(type){
     $$('secComment').style.display=G.showComment?'':'none';
   }
   setTimeout(updateScale,50);saveSession();
+}
+
+// ─── 확대/축소 컨트롤 ───
+G._zoomManual=null; // null=auto
+function zoomReport(delta){
+  if(delta===0){G._zoomManual=null;updateScale();_updateZoomLabel();return;}
+  // 현재 스케일 가져오기
+  const card=$$('reportCard');if(!card)return;
+  const m=card.style.transform.match(/scale\(([\d.]+)\)/);
+  const cur=m?parseFloat(m[1]):0.7;
+  const nv=Math.max(0.2,Math.min(1.2,cur+delta));
+  G._zoomManual=nv;
+  const a4h=1123;
+  card.style.transform=`scale(${nv})`;
+  card.style.marginBottom=`${-(a4h*(1-nv))}px`;
+  _updateZoomLabel();
+}
+function _updateZoomLabel(){
+  const el=$$('zoomLevel');if(!el)return;
+  if(G._zoomManual==null){el.textContent='auto';}
+  else{el.textContent=Math.round(G._zoomManual*100)+'%';}
+}
+
+// ─── 학생 전환 화살표 (리포트 양쪽) ───
+function navStudentPrev(){
+  const idx=G.students.indexOf(G.selStudent);
+  if(idx>0)switchTab(G.students[idx-1]);
+}
+function navStudentNext(){
+  const idx=G.students.indexOf(G.selStudent);
+  if(idx>=0&&idx<G.students.length-1)switchTab(G.students[idx+1]);
+}
+function _updateStudentNav(){
+  const prevBtn=$$('stuNavPrev'),nextBtn=$$('stuNavNext');
+  if(!prevBtn||!nextBtn)return;
+  if(!G.students.length||!G.selStudent||G.currentView!=='date'){
+    prevBtn.style.display='none';nextBtn.style.display='none';return;
+  }
+  prevBtn.style.display='flex';nextBtn.style.display='flex';
+  const idx=G.students.indexOf(G.selStudent);
+  prevBtn.disabled=idx<=0;
+  nextBtn.disabled=idx>=G.students.length-1;
 }
