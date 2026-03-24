@@ -72,7 +72,8 @@
 | `saveTabData()` | 현재 학생 입력값 → G.tabData 임시저장 + hwRec items 동기화 |
 | `syncHwRecItems(student,date)` | G.hwItems/hwStatus/hwItemTypes → hwRec[key].items 동기화 |
 | `restoreTabData(name)` | G.tabData → UI 복원 (hwItems/hwItemTypes 포함) |
-| `_getCarryAutoText(student,date)` | 이월과제 자동 요약 텍스트 생성 |
+| `_getCarryAutoText(student,date)` | 이월과제 자동 요약 텍스트 생성 (상태 변경분만, 중복 제거) |
+| `_getPrevCarryStatus(student,date,item)` | 이월과제 직전 날짜 상태 조회 (변경 감지용) |
 | `openMemo()` | 비고 모달 열기 (자동 요약 표시 + 메모 편집) |
 | `closeMemo(force)` | 비고 모달 닫기 (변경 감지 → confirm) |
 | `saveMemo()` | 비고 저장 → G.memos + saveAppData + 토스트 |
