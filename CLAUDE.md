@@ -19,7 +19,7 @@ js/
   ui.js             updateScale, initCE, fp, switchView, openLessonModal, closeLessonModal, renderViewTabs, shiftDate, selectDate, getLessonHwKeys, renderLessonCards, updateLessonField, syncLessonToReport, addLessonHw, removeLessonHw, addLesson, removeLesson, renderDateSummary, renderTabs, switchTab, saveTabData, syncHwRecItems, restoreTabData, toggleSec
   session.js        saveAppData, saveSession, restoreSession, showGroups, autoSelectDate, renderStudentList, addStudent, removeStudent, toggleStudentSec
   autofill.js       calcScore, computeCarryover, updateNoticeWithCarry, autoFillCommon, stFromExcel, autoFillAll
-  report.js         rebuildGraph, renderHwEditor, onRateManual, cycleHwStatus, hwBtnLabel, updateHeaderDate, updateHwDisplay, updateHwBadge, updateNoticeList, updateCommentSign, updateWrongTags, registerMascots, updateRateFace
+  report.js         rebuildGraph, renderHwEditor, onRateManual, cycleHwStatus, hwBtnLabel, updateHeaderDate, updateHwDisplay, updateHwBadge, updateNoticeList, updateCommentSign, updateWrongTags, registerMascots, updateRateFace, openMascotPicker
   pdf.js            loadAttachPdf, renderSpread, drawPdfPrev, prevSpread, nextSpread, dlPdf, dataUrlToBytes
   init.js           window.onload (앱 진입점), loadMascotImages
 docs/               참조 문서 (필요 시만 읽기)
@@ -71,20 +71,25 @@ docs/               참조 문서 (필요 시만 읽기)
 
 ---
 
-## 작업 순서 (매 요청 시 따를 것)
+## 작업 순서 (매 요청 시 반드시 따를 것)
 1. 위 라우팅 표에서 관련 파일 파악 (최대 2개)
 2. 해당 파일 읽기
 3. 수정
-4. 아래 동기화 표에 따라 docs 갱신
+4. **[필수] 아래 동기화 표에 따라 docs 갱신** — 이 단계를 건너뛰면 안 됨
+5. **[필수] Git 워크플로우에 따라 commit → rebase → push → PR → merge**
 
-## 파일 수정 후 필수 동기화
-| 수정 내용 | 갱신할 파일 |
-|---|---|
-| 함수 추가/삭제/이름 변경 | `docs/functions.md` |
-| 데이터 흐름 변경 | `docs/data-flows.md` |
-| G 객체 필드 추가/삭제 | `docs/ui-state.md` |
-| 엑셀 시트 구조 변경 | `docs/excel-schema.md` |
-| js/ 파일 추가/삭제 | `CLAUDE.md` 파일구조 + `index.html` script 태그 |
+## 파일 수정 후 필수 동기화 (절대 생략 금지)
+**코드를 수정하면 반드시 아래 표를 확인하고 해당하는 docs 파일을 같은 커밋에 포함시킨다.**
+커밋 전에 이 체크리스트를 검토하지 않으면 안 된다.
+
+| 수정 내용 | 갱신할 파일 | 체크 |
+|---|---|---|
+| 함수 추가/삭제/이름 변경 | `docs/functions.md` | 반드시 |
+| 데이터 흐름 변경 | `docs/data-flows.md` | 반드시 |
+| G 객체 필드 추가/삭제 | `docs/ui-state.md` | 반드시 |
+| 엑셀 시트 구조 변경 | `docs/excel-schema.md` | 반드시 |
+| js/ 파일 추가/삭제 | `CLAUDE.md` 파일구조 + `index.html` script 태그 | 반드시 |
+| CSS 클래스 추가 (리포트카드) | `docs/ui-state.md` 레이아웃 트리 | 해당 시 |
 
 ---
 
@@ -102,9 +107,10 @@ docs/               참조 문서 (필요 시만 읽기)
 ## Git 워크플로우 (자동 main 반영)
 코드 수정 완료 후 반드시 아래 순서를 따른다:
 1. 변경 파일 `git add` → `git commit`
-2. `git push` (현재 브랜치)
-3. **main 브랜치에 머지** — PR 생성 후 즉시 머지, 또는 직접 main에 push
-4. 별도 확인 없이 자동으로 수행 (사용자가 "커밋해" 또는 코드 수정을 요청하면 push+merge까지 완료)
+2. **머지 충돌 방지**: push 전에 반드시 `git fetch origin main && git rebase origin/main` 실행
+3. `git push` (현재 브랜치)
+4. **main 브랜치에 머지** — PR 생성 후 즉시 squash 머지
+5. 별도 확인 없이 자동으로 수행 (사용자가 "커밋해" 또는 코드 수정을 요청하면 push+merge까지 완료)
 
 > 요약: 모든 코드 변경은 최종적으로 **main 브랜치에 반영**되어야 한다.
 
