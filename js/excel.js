@@ -69,7 +69,7 @@ function parseWB(wb){
         const lesson={id,날짜:d,전체문제수:5,
           교재:String(r[off]||'').trim(),
           단원:String(r[off+1]||'').trim(),
-          상세진도:String(r[off+2]||'').trim()};
+          상세진도:String(r[off+2]||'').replace(/\r\n/g,'\n').replace(/\\n/g,'\n').trim()};
         // 동적 과제 열 읽기
         const hwStart=off+3;
         for(let ci=hwStart;ci<hdr.length;ci++){
