@@ -161,7 +161,7 @@ function renderLessonCards(){
     c.innerHTML='<div style="font-size:13px;color:#9ca3af;padding:8px;">수업 날짜가 없습니다. 아래 버튼으로 추가하세요.</div>';
     return;
   }
-  const today=new Date().toISOString().slice(0,10);
+  const today=todayKST();
   // 오늘 이후 가장 가까운 날짜 찾기
   const futureDates=G.lessons.filter(l=>l.날짜>=today).map(l=>l.날짜);
   const nextDate=futureDates.length?futureDates[0]:null;
@@ -303,8 +303,7 @@ function addLesson(){
     const d=new Date(last);d.setDate(d.getDate()+7);
     newDate=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }else{
-    const d=new Date();
-    newDate=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    newDate=todayKST();
   }
   while(G.lessons.some(l=>l.날짜===newDate)){
     const d=new Date(newDate);d.setDate(d.getDate()+1);

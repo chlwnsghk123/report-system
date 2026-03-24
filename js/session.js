@@ -55,7 +55,7 @@ function showGroups(){
 // 오늘 이후 가장 가까운 날짜 자동 선택
 function autoSelectDate(){
   if(!G.lessons.length){switchView('config');return;}
-  const today=new Date().toISOString().slice(0,10);
+  const today=todayKST();
   let best=G.lessons.find(l=>l.날짜>=today);
   if(!best)best=G.lessons[G.lessons.length-1];
   G.selDate=best.날짜;

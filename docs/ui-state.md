@@ -73,6 +73,7 @@ G = {
   hwStatus: [],       // 각 과제 상태 ('' | '완료' | '부분완료' | '미완료')
   hwItemTypes: [],    // 각 항목 타입 [{type:'base'} | {type:'carry',fromDate:'YYYY-MM-DD'}]
   extraHw: [],        // 이번 주차 학생별 추가 과제 [{text}]
+  hwDisabled: Set(),  // 이번 주차 과제 비활성화 인덱스 (리포트카드에서 숨김)
   hwRateManual: null, // null=엑셀 데이터 사용, 숫자=수동입력
   reportEdits: {},    // 리포트카드 contenteditable 직접편집 오버라이드 (키: 요소ID, 값: innerHTML)
 

@@ -19,6 +19,9 @@
 | `shortD(d)` | YYYY-MM-DD → M.D |
 | `fmtKo(d)` | YYYY-MM-DD → 한글날짜 (요일 포함) |
 | `esc(s)` | HTML 특수문자 이스케이프 |
+| `nowKST()` | 한국 시간(KST) Date 객체 반환 |
+| `todayKST()` | 한국 시간 기준 오늘 날짜 (YYYY-MM-DD) |
+| `nowKSTStr()` | 한국 시간 기준 현재 일시 (YYYY-MM-DD HH:MM:SS) |
 
 ## js/db.js
 | 함수 | 역할 |
@@ -98,7 +101,8 @@
 | `stFromExcel(v)` | 엑셀 기호/숫자(○/△/X/0/1/2) → 한글 상태 변환 |
 | `computeCarryover(student,date)` | 직전 날짜 hwRec에서 미완료/부분완료 항목 수집 → 캐리오버 배열 반환 |
 | `updateNoticeWithCarry()` | 이번 주차 과제 + 추가과제 + 미완료 캐리오버 → 리포트카드 반영 |
-| `renderCurHwList()` | 패널 이번 주차 과제 목록 렌더 (레슨 과제, 읽기전용) |
+| `renderCurHwList()` | 패널 이번 주차 과제 목록 렌더 (레슨+추가+이월, Enable/Disable 토글) |
+| `toggleHwDisabled(idx)` | 이번 주차 과제 Enable/Disable 토글 |
 | `renderExtraHwEditor()` | 패널 학생별 추가 과제 에디터 렌더 (수정/삭제 가능) |
 | `autoFillCommon()` | 날짜 기준 공통 필드 자동채우기 |
 | `getPrevExtraHw(student,date)` | 이전 날짜의 학생별 추가과제 텍스트 배열 반환 |
