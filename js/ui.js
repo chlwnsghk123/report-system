@@ -175,7 +175,7 @@ function renderLessonCards(){
       </div>`).join('');
     return`<div class="${cls}" data-idx="${i}">
       <div class="lc-head">
-        <span class="lc-date">${fmtKo(l.날짜)}</span>
+        <input type="date" class="lc-date-input" value="${l.날짜}" onchange="updateLessonDate(${i},this.value)">
         <button class="lc-del" onclick="removeLesson(${i})" title="삭제">🗑</button>
       </div>
       <div class="lc-body">
@@ -242,6 +242,25 @@ function removeLessonHw(idx,hwIdx){
   vals.forEach((v,i)=>{l[`과제${i+1}`]=v;});
   if(l.날짜===G.selDate)syncLessonToReport();
   renderLessonCards();saveAppData();
+}
+
+function updateLessonDate(idx,newDate){
+  if(!newDate)return;
+  const oldDate=G.lessons[idx].날짜;
+  if(oldDate===newDate)return;
+  if(G.lessons.some((l,i)=>i!==idx&&l.날짜===newDate)){alert('이미 같은 날짜가 있습니다.');renderLessonCards();return;}
+  // hwRec 키 이동 (학생별)
+  G.students.forEach(n=>{
+    const oldKey=`${n}||${oldDate}`,newKey=`${n}||${newDate}`;
+    if(G.hwRec[oldKey]){G.hwRec[newKey]=G.hwRec[oldKey];delete G.hwRec[oldKey];}
+    if(G.rates[n]?.[oldDate]!=null){G.rates[n][newDate]=G.rates[n][oldDate];delete G.rates[n][oldDate];}
+    if(G.wrong[n]?.[oldDate]){G.wrong[n][newDate]=G.wrong[n][oldDate];delete G.wrong[n][oldDate];}
+    if(G.memos[`${n}||${oldDate}`]){G.memos[`${n}||${newDate}`]=G.memos[`${n}||${oldDate}`];delete G.memos[`${n}||${oldDate}`];}
+  });
+  G.lessons[idx].날짜=newDate;
+  G.lessons.sort((a,b)=>a.날짜.localeCompare(b.날짜));
+  if(G.selDate===oldDate)G.selDate=newDate;
+  renderLessonCards();renderViewTabs();saveAppData();
 }
 
 function addLesson(){

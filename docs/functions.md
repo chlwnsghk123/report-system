@@ -58,6 +58,7 @@
 | `syncLessonToReport()` | 현재 선택 날짜의 수업정보 → 리포트카드 동기화 |
 | `addLessonHw(idx)` | 레슨에 과제 필드 동적 추가 |
 | `removeLessonHw(idx,hwIdx)` | 레슨의 과제 필드 삭제 + 키 재정렬 |
+| `updateLessonDate(idx,newDate)` | 수업 날짜 변경 (hwRec/rates/wrong/memos 키 이동 포함) |
 | `addLesson()` | 새 수업 날짜 추가 (마지막 +7일) |
 | `removeLesson(idx)` | 수업 날짜 삭제 |
 | `renderDateSummary()` | 날짜 뷰 상단: 수업정보 읽기전용 요약 |
@@ -148,6 +149,7 @@
 | `_downloadGradeImage(dates)` | 성적 요약표 PNG 캡처·다운로드 |
 | `dlClassJournal()` | 수업 일지 날짜 선택 모달 열기 |
 | `_downloadJournalImage(date)` | 수업 일지 PNG 캡처·다운로드 |
+| `showUpdateModal()` | 업데이트 내역 모달 (updates.md 로드·표시) |
 
 ## js/init.js
 | 함수 | 역할 |

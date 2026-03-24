@@ -520,3 +520,38 @@ async function _downloadJournalImage(date){
     a.click();URL.revokeObjectURL(a.href);
   },'image/png');
 }
+
+// ─── 업데이트 내역 모달 ───
+async function showUpdateModal(){
+  let overlay=$$('updateModalOverlay');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.id='updateModalOverlay';
+    overlay.className='lm-overlay';
+    overlay.innerHTML=`<div class="lm-modal" style="max-width:520px;max-height:80vh;">
+      <div class="lm-header"><h3>🔄 업데이트 내역</h3><button class="lm-close" id="updateClose">✕</button></div>
+      <div id="updateBody" style="padding:20px 24px;overflow-y:auto;max-height:60vh;font-family:Pretendard,sans-serif;"></div>
+    </div>`;
+    document.body.appendChild(overlay);
+  }
+  overlay.style.display='flex';
+  document.body.classList.add('modal-open');
+  const close=()=>{overlay.style.display='none';document.body.classList.remove('modal-open');};
+  $$('updateClose').onclick=close;
+  overlay.onclick=e=>{if(e.target===overlay)close();};
+  const body=$$('updateBody');
+  body.innerHTML='<div style="text-align:center;color:#9ca3af;padding:20px;">로딩 중...</div>';
+  try{
+    const res=await fetch('updates.md?t='+Date.now());
+    const text=await res.text();
+    const html=text.split('\n').map(line=>{
+      if(line.startsWith('# '))return`<div style="font-size:18px;font-weight:800;color:#111;margin-bottom:16px;">${esc(line.slice(2))}</div>`;
+      if(line.startsWith('## '))return`<div style="font-size:14px;font-weight:700;color:#3182f6;margin-top:16px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #e5e7eb;">${esc(line.slice(3))}</div>`;
+      if(line.startsWith('- '))return`<div style="font-size:13px;color:#333;padding:2px 0 2px 12px;line-height:1.6;">• ${esc(line.slice(2))}</div>`;
+      return'';
+    }).join('');
+    body.innerHTML=html;
+  }catch(e){
+    body.innerHTML='<div style="text-align:center;color:#dc2626;padding:20px;">업데이트 내역을 불러올 수 없습니다.</div>';
+  }
+}
