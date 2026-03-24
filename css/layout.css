@@ -280,6 +280,11 @@ body.modal-open .preview{overflow:hidden!important;}
 .att-absent.active{background:#dc2626;}
 .att-btn:hover:not(.active){background:#d1d5db;}
 
+/* ═══ 미저장 배너 ═══ */
+.unsaved-banner{position:sticky;top:0;z-index:50;text-align:center;padding:8px 16px;
+  background:#fef3c7;color:#92400e;font-size:13px;font-weight:700;
+  border-bottom:1px solid #fbbf24;font-family:inherit;}
+
 /* ═══ 반응형 ═══ */
 @media screen and (max-width:1024px){
   body{flex-direction:column;overflow:auto;height:auto;}

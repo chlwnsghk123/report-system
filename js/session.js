@@ -1,6 +1,7 @@
 // ─── DB 저장 (디바운스 + 에러 핸들링) ───
 let _saveTimer=null;
 function saveAppData(){
+  markUnsaved();
   if(_saveTimer)clearTimeout(_saveTimer);
   _saveTimer=setTimeout(async()=>{
     try{
@@ -97,4 +98,14 @@ function toggleStudentSec(){
   const e=$$('studentListEdit'),open=e.style.display!=='none';
   e.style.display=open?'none':'flex';
   const a=$$('studentArrow');if(a)a.style.transform=open?'':'rotate(180deg)';
+}
+
+// ─── 미저장 상태 배너 ───
+function markUnsaved(){
+  G.unsaved=true;
+  const el=$$('unsavedBanner');if(el)el.style.display='';
+}
+function markSaved(){
+  G.unsaved=false;
+  const el=$$('unsavedBanner');if(el)el.style.display='none';
 }
