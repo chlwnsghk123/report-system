@@ -154,6 +154,9 @@
 | `_downloadGradeImage(dates)` | 성적 요약표 PNG 캡처·다운로드 |
 | `dlClassJournal()` | 수업 일지 날짜 선택 모달 열기 |
 | `_downloadJournalImage(date)` | 수업 일지 PNG 캡처·다운로드 |
+| `dlStudentReport()` | 학생별 리포트 요약 모달 열기 (학생·날짜 범위 선택) |
+| `_renderStudentReport(student,s,e,container)` | 학생별 종합 요약 + 날짜별 과제 상세 HTML 렌더링 |
+| `_downloadStudentReportPdf(student,dates)` | 학생별 리포트 요약 PDF 캡처·다운로드 (A4 멀티페이지) |
 | `showUpdateModal()` | 업데이트 내역 모달 (updates.md 로드·표시) |
 
 ## js/init.js
