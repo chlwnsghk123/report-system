@@ -115,10 +115,10 @@ function selectDate(date){
       const rec=G.hwRec[key]||{이행률:null};
       const items=(td.hwItems||[]);
       const hs=td.hwStatus||[];
-      const types=td.hwItemTypes||items.map(()=>({type:'base'}));
+      const refs=td.hwItemRefs||items.map(()=>({ref:'',fromDate:''}));
       if(items.length){
-        rec.items=items.map((text,i)=>({text,status:hs[i]??-1,type:types[i]?.type||'base',ref:types[i]?.ref||'',fromDate:types[i]?.fromDate||''}));
-        items.forEach((_,i)=>{if(!types[i]||types[i].type==='base')rec[`과제${i+1}_상태`]=hs[i]??-1;});
+        rec.items=items.map((text,i)=>({text,status:hs[i]??-1,ref:refs[i]?.ref||'',fromDate:refs[i]?.fromDate||''}));
+        items.forEach((_,i)=>{rec[`과제${i+1}_상태`]=hs[i]??-1;});
       }
       if(td.rateManual!=null){rec.이행률=td.rateManual;G.rates[name]=G.rates[name]||{};G.rates[name][G.selDate]=td.rateManual;}
       else if(G.rates[name]?.[G.selDate]!=null){rec.이행률=G.rates[name][G.selDate];}
@@ -363,7 +363,7 @@ function saveTabData(){
   G.tabData[G.selStudent]={
     hwStatus:[...G.hwStatus],
     hwItems:[...G.hwItems],
-    hwItemTypes:G.hwItemTypes.map(t=>({...t})),
+    hwItemRefs:G.hwItemRefs.map(r=>({...r})),
     extraHw:(G.extraHw||[]).map(it=>({...it})),
     totalInput:$$('inputTotal').value,
     wrongInput:$$('inputWrong').value,rateManual:G.hwRateManual,
@@ -383,18 +383,14 @@ function syncHwRecItems(student,date){
   if(G.hwRateManual!=null) rec.이행률=G.hwRateManual;
   else if(G.rates[student]?.[date]!=null) rec.이행률=G.rates[student][date];
   else rec.이행률=null;
-  let _bc=0;
   rec.items=G.hwItems.map((text,i)=>{
-    const typ=G.hwItemTypes[i]?.type||'base';
-    let ref=G.hwItemTypes[i]?.ref||'';
-    if(typ==='base'){if(!ref)ref=`${date}-hw${_bc}`;_bc++;}
-    return{text,status:G.hwStatus[i]??-1,type:typ,ref,fromDate:G.hwItemTypes[i]?.fromDate||''};
+    const ref=G.hwItemRefs[i]?.ref||'';
+    const fromDate=G.hwItemRefs[i]?.fromDate||'';
+    return{text,status:G.hwStatus[i]??-1,ref,fromDate};
   });
-  // 레거시 필드도 업데이트 (base items)
-  G.hwItems.forEach((_, i)=>{
-    if(!G.hwItemTypes[i]||G.hwItemTypes[i].type==='base'){
-      rec[`과제${i+1}_상태`]=G.hwStatus[i]??-1;
-    }
+  // 레거시 필드도 업데이트
+  G.hwItems.forEach((_,i)=>{
+    rec[`과제${i+1}_상태`]=G.hwStatus[i]??-1;
   });
   // 이번 주차 추가 과제 저장
   rec.extraHw=(G.extraHw||[]).map(it=>({...it}));
@@ -405,7 +401,7 @@ function restoreTabData(name){
   const d=G.tabData[name];if(!d)return false;
   G.hwStatus=d.hwStatus||[];
   G.hwItems=d.hwItems||[];
-  G.hwItemTypes=d.hwItemTypes||G.hwItems.map(()=>({type:'base'}));
+  G.hwItemRefs=d.hwItemRefs||G.hwItems.map(()=>({ref:'',fromDate:''}));
   G.extraHw=(d.extraHw||[]).map(it=>({...it}));
   G.hwRateManual=d.rateManual??null;
   $$('inputTotal').value=d.totalInput||'';
@@ -423,12 +419,12 @@ function _getCarryAutoText(student,date){
   const key=`${student}||${date}`;
   const rec=G.hwRec[key];
   if(!rec?.items)return'';
-  const carries=rec.items.filter(it=>it.type==='carry'&&!isNone(it.status));
+  const carries=rec.items.filter(it=>isCarryForDate(it.fromDate,date)&&!isNone(it.status));
   if(!carries.length)return'';
   const stDesc={2:'완료',1:'일부 완료',0:'미완료'};
   // 상태가 변한 이월과제만 표시, 중복 제거 (같은 텍스트+출제일이면 최신만)
   const changed=carries.filter(it=>{
-    const prevSt=_getPrevCarryStatus(student,date,it);
+    const prevSt=_getOriginalRefStatus(student,it.ref);
     return prevSt==null||it.status!==prevSt;
   });
   // 중복 제거: 같은 과제(텍스트+출제일)면 마지막 것만
@@ -456,7 +452,7 @@ function _getOriginalRefStatus(student,ref){
   const nextDate=G.lessons[srcIdx+1].날짜;
   const rec=G.hwRec[`${student}||${nextDate}`];
   if(!rec?.items)return null;
-  const item=rec.items.find(it=>it.ref===ref&&it.type!=='carry');
+  const item=rec.items.find(it=>it.ref===ref);
   if(item&&!isNone(item.status))return item.status;
   return null;
 }

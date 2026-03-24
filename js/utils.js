@@ -23,6 +23,19 @@ function fmtKo(d){
   return`${y}년 ${+m}월 ${+day}일 (${w})`;
 }
 
+// ─── 이월 판별 헬퍼 ───
+// 해당 항목의 fromDate가 직전 수업 날짜가 아니면 이월과제
+function isCarryItem(fromDate){
+  const prev=getPrevL();
+  return prev?fromDate!==prev.날짜:false;
+}
+// 날짜를 직접 지정하여 이월 판별 (autoFillAll 등에서 사용)
+function isCarryForDate(fromDate,date){
+  const idx=G.lessons.findIndex(l=>l.날짜===date);
+  if(idx<=0)return false;
+  return fromDate!==G.lessons[idx-1].날짜;
+}
+
 // ─── HTML 이스케이프 ───
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
