@@ -1,0 +1,8 @@
+{
+  "instructions": [
+    "코드 수정 후 반드시 docs/ 동기화를 수행한다. 함수 변경 → docs/functions.md, G 필드 변경 → docs/ui-state.md, 데이터 흐름 변경 → docs/data-flows.md. 이 규칙은 절대 생략할 수 없다.",
+    "Git 워크플로우: commit 전에 git fetch origin main && git rebase origin/main을 실행하여 머지 충돌을 방지한다. push 후 PR을 생성하고 즉시 squash 머지하여 main에 반영한다.",
+    "docs 파일 갱신을 코드 수정과 같은 커밋에 포함시킨다. 별도 커밋으로 분리하지 않는다.",
+    "CLAUDE.md의 파일구조 섹션에 나열된 함수 목록도 함수 추가/삭제 시 함께 갱신한다."
+  ]
+}
