@@ -1,3 +1,46 @@
+// ─── ref → 텍스트·출제일 해석 (이월 전파용) ───
+function _resolveCarryRef(ref,student){
+  if(!ref)return{text:'',fromDate:''};
+  const di=ref.lastIndexOf('-');
+  if(di<0)return{text:'',fromDate:''};
+  const lessonId=ref.slice(0,di),hwKey=ref.slice(di+1);
+  const src=G.lessons.find(l=>l.id===lessonId);
+  if(!src)return{text:'',fromDate:''};
+  if(hwKey.startsWith('추가과제')){
+    const ei=parseInt(hwKey.replace('추가과제',''))-1;
+    const rec=G.hwRec[`${student}||${src.날짜}`];
+    return{text:rec?.extraHw?.[ei]?.text||'',fromDate:src.날짜};
+  }
+  return{text:src[hwKey]||'',fromDate:src.날짜};
+}
+
+// ─── 이월 전파: status 변경 시 미래 날짜 hwRec 갱신 ───
+// status 0/1 → 다음 날짜에 이월 레코드 생성 (없으면)
+// status 2/-1 → 이후 모든 날짜에서 해당 ref 레코드 삭제
+function propagateCarryover(student,date,refStr,newStatus){
+  if(!refStr)return;
+  const curIdx=G.lessons.findIndex(l=>l.날짜===date);
+  if(curIdx<0)return;
+  if(newStatus===0||newStatus===1){
+    if(curIdx>=G.lessons.length-1)return;
+    const nextDate=G.lessons[curIdx+1].날짜;
+    const nk=`${student}||${nextDate}`;
+    let nr=G.hwRec[nk];
+    if(!nr){nr={이행률:null};G.hwRec[nk]=nr;}
+    if(!nr.items)nr.items=[];
+    if(nr.items.some(it=>it.ref===refStr))return;
+    const r=_resolveCarryRef(refStr,student);
+    nr.items.push({text:r.text,status:-1,ref:refStr,fromDate:r.fromDate});
+  }else if(newStatus===2||newStatus===-1){
+    for(let i=curIdx+1;i<G.lessons.length;i++){
+      const fk=`${student}||${G.lessons[i].날짜}`;
+      const fr=G.hwRec[fk];
+      if(!fr?.items)continue;
+      fr.items=fr.items.filter(it=>it.ref!==refStr);
+    }
+  }
+}
+
 // ─── 캐리오버 계산 ───
 // 직전 날짜의 hwRec.items에서 미완료(0)/부분완료(1) 항목을 수집
 function computeCarryover(student,date){

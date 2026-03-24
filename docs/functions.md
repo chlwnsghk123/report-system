@@ -105,6 +105,8 @@
 | 함수 | 역할 |
 |---|---|
 | `stFromExcel(v)` | 엑셀 기호/숫자(○/△/X/0/1/2) → 한글 상태 변환 |
+| `_resolveCarryRef(ref,student)` | ref → 과제 텍스트·출제일 해석 (이월 전파용 헬퍼) |
+| `propagateCarryover(student,date,refStr,newStatus)` | 과제 status 변경 시 미래 날짜 hwRec 갱신 (0/1→다음 날짜 이월 생성, 2/-1→이후 모든 이월 삭제) |
 | `computeCarryover(student,date)` | 직전 날짜 hwRec에서 미완료/부분완료 항목 수집 → 캐리오버 배열 반환 |
 | `updateNoticeWithCarry()` | 이번 주차 과제 + 추가과제 + 미완료 캐리오버 → 리포트카드 반영 |
 | `renderCurHwList()` | 패널 이번 주차 과제 목록 렌더 (레슨+추가+이월, Enable/Disable 토글) |
