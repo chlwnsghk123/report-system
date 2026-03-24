@@ -41,6 +41,13 @@ function propagateCarryover(student,date,refStr,newStatus){
   }
 }
 
+// ─── 보류된 이월 전파 일괄 적용 ───
+function flushPropagations(){
+  if(!G.pendingPropagations.length)return;
+  G.pendingPropagations.forEach(p=>propagateCarryover(p.student,p.date,p.ref,p.status));
+  G.pendingPropagations=[];
+}
+
 // ─── 엑셀 로드 후 전체 이월 전파 ───
 // 모든 날짜·학생의 items를 순회하며 미완료/부분완료 항목의 이월 레코드를 자동 생성
 function buildAllCarryover(){

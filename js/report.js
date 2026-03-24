@@ -195,9 +195,13 @@ function cycleHwStatus(i){
   updateHwDisplay();updateHwBadge();rebuildGraph();
   updateNoticeWithCarry();
   syncHwRecItems(G.selStudent,G.selDate);
-  // 이월 전파: 미래 날짜에 이월 레코드 생성/삭제
+  // 이월 전파 예약 (세션 전환 시 일괄 적용)
   const ref=G.hwItemRefs[i]?.ref;
-  if(ref)propagateCarryover(G.selStudent,G.selDate,ref,next);
+  if(ref){
+    const exists=G.pendingPropagations.findIndex(p=>p.ref===ref&&p.student===G.selStudent&&p.date===G.selDate);
+    if(exists>=0)G.pendingPropagations[exists].status=next;
+    else G.pendingPropagations.push({student:G.selStudent,date:G.selDate,ref,status:next});
+  }
   saveAppData();saveSession();
 }
 

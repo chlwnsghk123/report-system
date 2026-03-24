@@ -106,6 +106,8 @@ function shiftDate(dir){
 }
 
 function selectDate(date){
+  // 보류된 이월 전파 적용
+  flushPropagations();
   // 모든 학생의 tabData를 hwRec에 동기화 (현재 학생은 먼저 saveTabData)
   if(G.selDate){
     if(G.selStudent)saveTabData();
@@ -350,6 +352,7 @@ function renderTabs(){
 
 function switchTab(name){
   if(name===G.selStudent)return;
+  flushPropagations();
   saveTabData();G.selStudent=name;renderTabs();
   const m=$$('rateMascot');if(m)delete m.dataset.idx;
   updateMemoBtn();

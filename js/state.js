@@ -24,6 +24,7 @@ const G={
   attachedPdfBytes:null,pdfCanvases:[],pdfPageCount:0,currentSpread:0,
   mascotChoices:{},selectedMascot:null,lastSaved:'',
   currentView:'config',dateTabOffset:0,unsaved:false,
+  pendingPropagations:[],
 };
 
 // ─── IndexedDB 상수 ───
