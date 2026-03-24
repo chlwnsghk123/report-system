@@ -167,10 +167,12 @@ function autoFillAll(){
       G.hwStatus=G.hwItems.map((_,i)=>{
         const typ=G.hwItemTypes[i];
         if(typ.type==='base'){
-          const saved=savedBase[baseIdx++];
-          return saved?saved.status:'';
+          const saved=savedBase[baseIdx];
+          // items에 상태가 없으면 레거시 과제N_상태 필드 폴백
+          const st=saved?.status||stFromExcel(hwR[`과제${baseIdx+1}_상태`]||'');
+          baseIdx++;
+          return st;
         }else if(typ.type==='carry'){
-          // carry: fromDate + 텍스트로 매칭 (이월 원본이 같은 것)
           const match=savedCarry.find(it=>it.fromDate===typ.fromDate&&it.text===G.hwItems[i]);
           if(match)carryIdx++;
           return match?match.status:'';
