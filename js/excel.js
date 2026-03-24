@@ -254,8 +254,17 @@ function parseWB(wb){
         const idx=parseInt(r[2]);
         if(name&&tier&&!isNaN(idx)){G.mascotChoices[name]=G.mascotChoices[name]||{};G.mascotChoices[name][tier]=idx;}
       }
+      if(section==='▼ 마지막저장'&&col0==='lastSaved'){
+        G.lastSaved=String(r[1]||'').trim();
+      }
     });
   }
+  updateLastSavedDisplay();
+}
+
+function updateLastSavedDisplay(){
+  const el=$$('rLastSaved');if(!el)return;
+  el.textContent=G.lastSaved?`마지막 저장: ${G.lastSaved}`:'';
 }
 
 // ─── 엑셀 저장 ───
@@ -403,21 +412,24 @@ async function saveToExcel(){
       });
     });
   }
-  if(cfgAoa.length>1){
-    const wsCfg=XLSX.utils.aoa_to_sheet(cfgAoa);
-    XLSX.utils.book_append_sheet(wb,wsCfg,'설정');
-  }
+  // 마지막 저장 시각
+  const now=new Date();
+  G.lastSaved=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  cfgAoa.push(['▼ 마지막저장','','']);
+  cfgAoa.push(['lastSaved',G.lastSaved,'']);
+
+  const wsCfg=XLSX.utils.aoa_to_sheet(cfgAoa);
+  XLSX.utils.book_append_sheet(wb,wsCfg,'설정');
 
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([XLSX.write(wb,{bookType:'xlsx',type:'array'})],{type:'application/octet-stream'}));
   a.download=G.excelFileName;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-  $$('lastSaved').style.display='';
-  $$('lastSaved').textContent=`✅ ${new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})} 저장됨`;
-  btn.disabled=false;btn.textContent='💾 파일 저장';
+  updateLastSavedDisplay();
+  btn.disabled=false;btn.textContent='💾 저장';
   setBar('ok',`✅ ${G.excelFileName} 저장 완료`);
   }catch(e){
     console.error('저장 오류:',e);
-    btn.disabled=false;btn.textContent='💾 파일 저장';
+    btn.disabled=false;btn.textContent='💾 저장';
     setBar('err','❌ 저장 실패: '+e.message);
   }
 }

@@ -228,6 +228,8 @@ body{margin:0;padding:0;background-color:#f2f4f6;font-family:'Pretendard',sans-s
   color:#374151;border-radius:8px;cursor:pointer;font-family:inherit;transition:.15s;white-space:nowrap;}
 .tb-btn:hover:not(:disabled){background:#f3f4f6;border-color:#d1d5db;}
 .tb-btn:disabled{opacity:.4;cursor:default;}
+.tb-save:not(:disabled){background:#3182f6;color:#fff;border-color:#3182f6;}
+.tb-save:not(:disabled):hover{background:#1b6de8;border-color:#1b6de8;}
 .tb-dropdown{position:relative;}
 .tb-menu{display:none;position:absolute;top:100%;right:0;margin-top:4px;background:#fff;border:1px solid #e5e7eb;
   border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:100;min-width:200px;padding:4px;overflow:hidden;}

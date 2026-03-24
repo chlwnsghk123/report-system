@@ -31,7 +31,6 @@
       <h2 style="margin:0;font-size:15px;font-weight:800;color:#111;">학습 리포트</h2>
     </div>
     <div id="sbar" class="sbar idle" onclick="triggerLoad()">📂 엑셀 파일 불러오기</div>
-    <button id="btnSave" onclick="saveToExcel()" style="display:none;width:100%;margin-top:4px;text-align:left;font-size:14px;cursor:pointer;background:#fff;color:#333;border:1px solid #e5e8eb;border-radius:12px;padding:10px 14px;" disabled>💾 파일 저장</button>
     <input type="file" id="excelInput" accept=".xlsx,.xls" style="display:none" onchange="loadExcel(this)">
   </div>
 
@@ -56,15 +55,6 @@
       <div id="dateSummary" class="date-summary"></div>
 
       <div class="sdiv">과제 &amp; 진도</div>
-      <div class="cg" id="gCurHw">
-        <label>이번 주차 과제 <span class="ab">자동</span> <span style="font-size:10px;color:#9ca3af;">(학생별 추가 가능)</span></label>
-        <div id="curHwList" style="display:flex;flex-direction:column;gap:3px;"></div>
-        <div id="extraHwEditor" style="display:flex;flex-direction:column;gap:3px;"></div>
-        <div class="hw-add-extra">
-          <input type="text" id="extraHwInput" placeholder="추가 과제 입력" onkeydown="if(event.key==='Enter')addExtraHw()">
-          <button onclick="addExtraHw()">+ 추가</button>
-        </div>
-      </div>
       <div class="cg" id="gPrevHw">
         <label>저번 주차 과제 <span class="ab">자동</span></label>
         <div id="hwEditor" style="display:flex;flex-direction:column;gap:4px;"></div>
@@ -73,6 +63,15 @@
           <span class="ab">자동계산</span>
           <input type="number" id="inputRate" min="0" max="100" style="width:100px;text-align:center;" oninput="onRateManual()">
           <span style="font-size:13px;font-weight:600;color:#9ca3af;">%</span>
+        </div>
+      </div>
+      <div class="cg" id="gCurHw">
+        <label>이번 주차 과제 <span class="ab">자동</span> <span style="font-size:10px;color:#9ca3af;">(학생별 추가 가능)</span></label>
+        <div id="curHwList" style="display:flex;flex-direction:column;gap:3px;"></div>
+        <div id="extraHwEditor" style="display:flex;flex-direction:column;gap:3px;"></div>
+        <div class="hw-add-extra">
+          <input type="text" id="extraHwInput" placeholder="추가 과제 입력" onkeydown="if(event.key==='Enter')addExtraHw()">
+          <button onclick="addExtraHw()">+ 추가</button>
         </div>
       </div>
 
@@ -113,7 +112,6 @@
 
       <button class="btn-s" id="btnMemo" onclick="openMemo()">📋 비고 작성하기</button>
       <button class="btn-d" id="btnPdf" onclick="dlPdf()">📄 PDF로 저장</button>
-      <div id="lastSaved" style="font-size:11px;color:#9ca3af;text-align:center;display:none;"></div>
     </div>
   </div>
 
@@ -135,6 +133,7 @@
   <!-- 상단 메뉴 바 -->
   <div class="toolbar">
     <div class="tb-group">
+      <button class="tb-btn tb-save" id="btnSave" onclick="saveToExcel()" style="display:none" disabled>💾 저장</button>
       <div class="tb-dropdown" id="tbMenu">
         <button class="tb-btn" onclick="toggleToolbarMenu('tbMenu')">☰ 메뉴</button>
         <div class="tb-menu">
@@ -144,7 +143,7 @@
           <div class="tb-menu-sep"></div>
           <button onclick="dlSummaryPdf();closeToolbarMenus()">📋 전체 과제 요약 이미지</button>
           <div class="tb-menu-sep"></div>
-          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.10)</button>
+          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.11)</button>
         </div>
       </div>
       <button class="tb-btn" disabled title="준비 중">🖨 프린트</button>
@@ -161,6 +160,7 @@
 
       <!-- 리포트 카드 -->
       <div class="rc" id="reportCard">
+        <div id="rLastSaved" class="rc-lastsaved"></div>
         <div class="rc-header">
           <div class="rc-sname">
             <span id="rName" class="eh" contenteditable="true" style="display:inline;"></span><span class="suf" style="font-size: inherit; font-weight: inherit; color: inherit; margin-left: 8px;">학생</span>

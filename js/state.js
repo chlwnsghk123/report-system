@@ -16,7 +16,7 @@ const G={
   tabData:{},
   excelFileName:'학습리포트_데이터.xlsx',
   attachedPdfBytes:null,pdfCanvases:[],pdfPageCount:0,currentSpread:0,
-  mascotChoices:{},selectedMascot:null,
+  mascotChoices:{},selectedMascot:null,lastSaved:'',
   currentView:'config',dateTabOffset:0,
 };
 
