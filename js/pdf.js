@@ -610,11 +610,12 @@ function dlStudentReport(){
     overlay=document.createElement('div');
     overlay.id='stuRptOverlay';
     overlay.className='lm-overlay';
-    overlay.innerHTML=`<div class="lm-modal" style="max-width:520px;max-height:85vh;display:flex;flex-direction:column;">
+    overlay.innerHTML=`<div class="lm-modal" id="stuRptModal" style="max-width:520px;max-height:85vh;display:flex;flex-direction:column;transition:max-width .25s ease;">
       <div class="lm-header"><h3>📊 숙제 이행률 요약표 (학생별)</h3><button class="lm-close" id="stuRptClose">✕</button></div>
       <div style="padding:16px 24px 0;display:flex;flex-direction:column;gap:10px;flex-shrink:0;">
         <div style="display:flex;gap:8px;align-items:center;">
           <select id="stuRptStudent" style="flex:1;padding:10px 12px;border:1px solid #e5e8eb;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;"></select>
+          <button class="btn-s" id="stuRptWingBtn" style="padding:10px 14px;font-size:13px;white-space:nowrap;" title="미완료 과제 패널 열기/닫기">📋 미완료</button>
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
           <select id="stuRptStart" style="flex:1;padding:10px 12px;border:1px solid #e5e8eb;border-radius:10px;font-family:inherit;font-size:14px;"></select>
@@ -622,7 +623,12 @@ function dlStudentReport(){
           <select id="stuRptEnd" style="flex:1;padding:10px 12px;border:1px solid #e5e8eb;border-radius:10px;font-family:inherit;font-size:14px;"></select>
         </div>
       </div>
-      <div id="stuRptPreview" style="flex:1;overflow-y:auto;padding:16px 24px;min-height:0;"></div>
+      <div style="flex:1;display:flex;min-height:0;overflow:hidden;">
+        <div id="stuRptPreview" style="flex:1;overflow-y:auto;padding:16px 24px;min-height:0;"></div>
+        <div id="stuRptWing" style="width:0;overflow:hidden;transition:width .25s ease;border-left:0 solid #e5e7eb;flex-shrink:0;">
+          <div id="stuRptWingContent" style="width:260px;padding:14px;overflow-y:auto;height:100%;box-sizing:border-box;"></div>
+        </div>
+      </div>
       <div style="padding:12px 24px 16px;display:flex;gap:10px;flex-shrink:0;">
         <button class="btn-s" id="stuRptCancel" style="flex:1;">닫기</button>
         <button class="btn-p" id="stuRptDl" style="flex:1;">📥 PDF 다운로드</button>
@@ -642,15 +648,57 @@ function dlStudentReport(){
   $$('stuRptEnd').innerHTML=dateOpts;
   if(stuDates.length)$$('stuRptEnd').value=stuDates[stuDates.length-1].날짜;
 
-  const render=()=>_renderStudentReport($$('stuRptStudent').value,$$('stuRptStart').value,$$('stuRptEnd').value,$$('stuRptPreview'));
+  let wingOpen=false;
+  const render=()=>{
+    _renderStudentReport($$('stuRptStudent').value,$$('stuRptStart').value,$$('stuRptEnd').value,$$('stuRptPreview'));
+    if(wingOpen)_renderWingPanel();
+  };
+  const _renderWingPanel=()=>{
+    const student=$$('stuRptStudent').value;
+    const s=$$('stuRptStart').value,e=$$('stuRptEnd').value;
+    const dates=G.lessons.filter(l=>l.날짜>=s&&l.날짜<=e).map(l=>l.날짜).filter(d=>G.attend[student]?.[d]!==-1);
+    // 미완료 수집 (resolvedMap과 동일 로직)
+    const rMap=new Map();
+    dates.forEach(d=>{const rec=G.hwRec[`${student}||${d}`];(rec?.items||[]).forEach(it=>{
+      if(isCarryForDate(it.fromDate,d)&&it.ref&&!isNone(it.status)){const pv=rMap.get(it.ref);if(pv==null||it.status>pv)rMap.set(it.ref,it.status);}
+    });});
+    const inc=[];
+    dates.forEach(d=>{const rec=G.hwRec[`${student}||${d}`];const les=G.lessons.find(l=>l.날짜===d);
+      (rec?.items||[]).forEach(it=>{
+        if(isCarryForDate(it.fromDate,d)||isNone(it.status))return;
+        if(it.status===1){const r=rMap.get(it.ref);if(!(r!=null&&r>=1))inc.push({text:it.text,status:1,date:d,lesson:les});}
+        else if(it.status===0){const r=rMap.get(it.ref);if(r===2||r===1){}else inc.push({text:it.text,status:0,date:d,lesson:les});}
+      });
+    });
+    const wc=$$('stuRptWingContent');
+    if(!inc.length){wc.innerHTML='<div style="text-align:center;color:#22c55e;font-size:13px;font-weight:700;padding:40px 0;">✓ 미완료 과제 없음</div>';return;}
+    const stL={0:'✗',1:'△'};const stC={0:'#991b1b',1:'#92400e'};const stB={0:'#fee2e2',1:'#fef3c7'};
+    let h=`<div style="font-size:13px;font-weight:800;color:#991b1b;margin-bottom:10px;">미완료 과제 <span style="padding:1px 7px;border-radius:8px;font-size:11px;background:#ef4444;color:#fff;">${inc.length}</span></div>`;
+    let ld='';
+    inc.forEach(it=>{
+      if(it.date!==ld){h+=`<div style="font-size:9px;font-weight:700;color:#9ca3af;margin-top:${ld?'8':'0'}px;padding:2px 0;">${shortD(it.date)}</div>`;ld=it.date;}
+      h+=`<div style="display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:5px;background:${stB[it.status]};margin-bottom:3px;">
+        <span style="font-size:10px;font-weight:700;color:${stC[it.status]};flex-shrink:0;">${stL[it.status]}</span>
+        <span style="font-size:11px;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.text)}</span>
+      </div>`;
+    });
+    wc.innerHTML=h;
+  };
+  const toggleWing=()=>{
+    wingOpen=!wingOpen;
+    const wing=$$('stuRptWing');const modal=$$('stuRptModal');const btn=$$('stuRptWingBtn');
+    if(wingOpen){_renderWingPanel();wing.style.width='260px';wing.style.borderLeftWidth='1.5px';modal.style.maxWidth='800px';btn.style.background='#fef2f2';btn.style.borderColor='#fca5a5';}
+    else{wing.style.width='0';wing.style.borderLeftWidth='0';modal.style.maxWidth='520px';btn.style.background='';btn.style.borderColor='';}
+  };
   $$('stuRptStudent').onchange=render;
   $$('stuRptStart').onchange=render;
   $$('stuRptEnd').onchange=render;
+  $$('stuRptWingBtn').onclick=toggleWing;
   render();
 
   overlay.style.display='flex';
   document.body.classList.add('modal-open');
-  const close=()=>{overlay.style.display='none';document.body.classList.remove('modal-open');};
+  const close=()=>{overlay.style.display='none';document.body.classList.remove('modal-open');wingOpen=false;$$('stuRptWing').style.width='0';$$('stuRptWing').style.borderLeftWidth='0';$$('stuRptModal').style.maxWidth='520px';const b=$$('stuRptWingBtn');b.style.background='';b.style.borderColor='';};
   $$('stuRptClose').onclick=close;
   $$('stuRptCancel').onclick=close;
   overlay.onclick=e=>{if(e.target===overlay)close();};
@@ -664,7 +712,8 @@ function dlStudentReport(){
   };
 }
 
-function _renderStudentReport(student,startDate,endDate,container){
+function _renderStudentReport(student,startDate,endDate,container,opts){
+  opts=opts||{};
   const dates=G.lessons.filter(l=>l.날짜>=startDate&&l.날짜<=endDate).map(l=>l.날짜)
     .filter(d=>G.attend[student]?.[d]!==-1); // 출결 -1(특수) 제외
   if(!dates.length){container.innerHTML='<div style="padding:20px;text-align:center;color:#9ca3af;">날짜 범위를 확인하세요</div>';return;}
@@ -691,28 +740,30 @@ function _renderStudentReport(student,startDate,endDate,container){
   });
   // 완료한 과제 수: 한 번에 완료(2) + 한 번에 부분완료(1) + 이월 통해 부분완료 이상
   let completedHw=0;
+  const incompleteItems=[]; // 미완료 과제 수집
   dates.forEach(d=>{
     const rate=G.rates[student]?.[d];
     if(rate!=null&&!isNaN(rate)){rateSum+=rate;rateCount++;}
     const key=`${student}||${d}`;
     const rec=G.hwRec[key];
     const items=rec?.items||[];
+    const lesson=G.lessons.find(l=>l.날짜===d);
     items.forEach(it=>{
-      if(isCarryForDate(it.fromDate,d))return; // 이월항목은 본과제 집계에서 제외
+      if(isCarryForDate(it.fromDate,d))return;
       if(isNone(it.status))return;
       totalHw++;
       if(it.status===2){doneHw++;completedHw++;}
       else if(it.status===1){
         partialHw++;
-        // 이월 통해 부분완료 이상으로 해결된 경우에만 완료 인정
         const resolved=resolvedMap.get(it.ref);
         if(resolved!=null&&resolved>=1)completedHw++;
+        else incompleteItems.push({text:it.text,status:1,date:d,lesson});
       }
       else if(it.status===0){
         const resolved=resolvedMap.get(it.ref);
         if(resolved===2){doneHw++;completedHw++;}
         else if(resolved===1){partialHw++;completedHw++;}
-        else missHw++;
+        else{missHw++;incompleteItems.push({text:it.text,status:0,date:d,lesson});}
       }
     });
   });
@@ -805,6 +856,33 @@ function _renderStudentReport(student,startDate,endDate,container){
     }
     html+=`</div>`;
   });
+
+  // ─── 미완료 과제 모아보기 섹션 ───
+  if(incompleteItems.length){
+    const stL={0:'✗ 미완료',1:'△ 부분완료'};
+    const stC={0:'#991b1b',1:'#92400e'};
+    const stB={0:'#fee2e2',1:'#fef3c7'};
+    html+=`<div style="border:2px solid #fca5a5;border-radius:12px;margin-top:16px;overflow:hidden;" id="incompleteSection">
+      <div style="padding:12px 16px;background:#fef2f2;border-bottom:1.5px solid #fca5a5;display:flex;align-items:center;gap:8px;">
+        <span style="font-size:14px;font-weight:800;color:#991b1b;">📋 미완료 과제 모아보기</span>
+        <span style="padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;color:#fff;background:#ef4444;">${incompleteItems.length}건</span>
+      </div>
+      <div style="padding:10px 14px;display:flex;flex-direction:column;gap:4px;">`;
+    // 날짜별 그룹
+    let lastD='';
+    incompleteItems.forEach(it=>{
+      if(it.date!==lastD){
+        if(lastD)html+=`<div style="height:6px;"></div>`;
+        html+=`<div style="font-size:10px;font-weight:700;color:#6b7280;padding:4px 0 2px;">${shortD(it.date)} ${esc(it.lesson?.교재||'')} ${esc(it.lesson?.단원||'')}</div>`;
+        lastD=it.date;
+      }
+      html+=`<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;border-radius:6px;background:${stB[it.status]};">
+        <span style="flex:1;font-size:12px;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.text)}</span>
+        <span style="padding:1px 7px;border-radius:4px;font-size:10px;font-weight:700;color:${stC[it.status]};background:#fff;flex-shrink:0;">${stL[it.status]}</span>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  }
 
   container.innerHTML=html;
 }
