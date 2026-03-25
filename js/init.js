@@ -34,6 +34,9 @@ function loadMascotImages(){
 document.addEventListener('keydown',function(e){
   // ESC: 열려있는 모달 닫기 (비고 > 수업설정 우선순위)
   if(e.key==='Escape'){
+    // 동적 모달 닫기 (학생관리, 도움말 등)
+    const dynModals=document.querySelectorAll('.stu-modal-overlay,.help-overlay');
+    if(dynModals.length){dynModals.forEach(m=>m.remove());e.preventDefault();return;}
     const memo=$$('memoModalOverlay');
     if(memo&&memo.style.display==='flex'){closeMemo();e.preventDefault();return;}
     const lesson=$$('lessonModalOverlay');
