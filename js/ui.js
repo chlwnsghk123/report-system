@@ -16,7 +16,7 @@ function updateScale(){
   }else{
     spreadRow.style.transform='';spreadRow.style.marginBottom='';
     // 수동 줌이 설정되어 있으면 그대로 사용
-    const sv=G._zoomManual!=null?G._zoomManual:Math.max(Math.min(availW/a4w,availH/a4h,0.75),.15);
+    const sv=G._zoomManual!=null?G._zoomManual:Math.max(Math.min(availW/a4w,availH/a4h,0.65),.15);
     card.style.transform=`scale(${sv})`;
     card.style.marginBottom=`${-(a4h*(1-sv))}px`;
     [$$('leftPdfCanvas'),$$('rightPdfCanvas')].forEach(c=>{
@@ -31,18 +31,39 @@ function updateScale(){
 
 // ─── contenteditable 동기화 ───
 function initCE(){
-  // 리포트카드 직접 편집 비활성화 — 이행률(rRate)만 유지
-  $$('rRate').addEventListener('input',function(){
-    const v=parseInt(this.innerText);
-    if(!isNaN(v)){
-      G.hwRateManual=v;
-      $$('inputRate').value=v;$$('inputRate').classList.remove('auto');
-      if(G.selStudent&&G.selDate){G.rates[G.selStudent]=G.rates[G.selStudent]||{};G.rates[G.selStudent][G.selDate]=v;}
-      updateHwBadge();rebuildGraph();updateRateFace();
-      if(v>=0)autoAttendOnRate();
-    }
+  const rRate=$$('rRate');
+  // 숫자만 입력 허용 (0~999), Enter 차단
+  rRate.addEventListener('keydown',function(e){
+    if(e.key==='Enter'){e.preventDefault();this.blur();return;}
+    // 방향키, 백스페이스, 삭제, 탭 허용
+    if(['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End'].includes(e.key))return;
+    // Ctrl+A/C/V/X 허용
+    if(e.ctrlKey||e.metaKey)return;
+    // 숫자 키만 허용
+    if(!/^\d$/.test(e.key))e.preventDefault();
   });
-  $$('rRate').addEventListener('paste',function(e){e.preventDefault();document.execCommand('insertText',false,e.clipboardData.getData('text/plain'));});
+  rRate.addEventListener('input',function(){
+    // 숫자가 아닌 문자 제거
+    let text=this.innerText.replace(/[^\d]/g,'');
+    let v=parseInt(text);
+    if(isNaN(v))v=0;
+    if(v>100)v=100;
+    if(this.innerText!==String(v)){this.innerText=v;
+      // 커서를 끝으로
+      const sel=window.getSelection();const range=document.createRange();
+      range.selectNodeContents(this);range.collapse(false);sel.removeAllRanges();sel.addRange(range);
+    }
+    G.hwRateManual=v;
+    $$('inputRate').value=v;$$('inputRate').classList.remove('auto');
+    if(G.selStudent&&G.selDate){G.rates[G.selStudent]=G.rates[G.selStudent]||{};G.rates[G.selStudent][G.selDate]=v;}
+    updateHwBadge();rebuildGraph();updateRateFace();
+    if(v>=0)autoAttendOnRate();
+  });
+  rRate.addEventListener('paste',function(e){
+    e.preventDefault();
+    const text=e.clipboardData.getData('text/plain').replace(/[^\d]/g,'');
+    document.execCommand('insertText',false,text);
+  });
 }
 
 // 리포트카드 → 패널 단방향 동기화 (좌패널에서 갱신 시 override 제거)
@@ -370,6 +391,13 @@ function renderTabs(){
       clearTimeout(hoverTimer);
       setTimeout(()=>{const m=document.querySelector('.ss-hover-menu');if(m&&!m.matches(':hover'))m.remove();},150);
     });
+    // 우클릭 컨텍스트 메뉴
+    item.addEventListener('contextmenu',e=>{
+      e.preventDefault();
+      _showContextMenu(e.clientX,e.clientY,[
+        {label:'🎨 캐릭터 설정',action:()=>{if(G.selStudent!==item.dataset.student)switchTab(item.dataset.student);openMascotSettingsModal(item.dataset.student);}}
+      ]);
+    });
   });
 }
 
@@ -377,19 +405,26 @@ function _showSsMenu(item){
   // 기존 메뉴 제거
   document.querySelectorAll('.ss-hover-menu').forEach(m=>m.remove());
   const name=item.dataset.student;
-  const isActive=item.classList.contains('active');
   const hasPdf=(G.studentPdfs[name]||[]).length>0;
   const pdfLabel=hasPdf?'📎 PDF 교체':'📎 PDF 첨부';
+  const en=esc(name);
   const menu=document.createElement('div');
   menu.className='ss-hover-menu';
   menu.style.display='block';
-  // 비선택 학생이면 "이 학생으로 이동" 버튼 추가
-  const goBtn=isActive?'':`<button class="ss-hm-btn" onclick="switchTab('${esc(name)}');this.closest('.ss-hover-menu').remove();">👤 이 학생으로 이동</button><div class="ss-hm-sep"></div>`;
   menu.innerHTML=`
-    ${goBtn}
-    <button class="ss-hm-btn" onclick="openStudentReportFor('${esc(name)}')">📊 이행률 요약표</button>
+    <button class="ss-hm-btn" data-action="report">📊 이행률 요약표</button>
     <div class="ss-hm-sep"></div>
-    <button class="ss-hm-btn" onclick="attachPdfForStudent('${esc(name)}')">${pdfLabel}</button>`;
+    <button class="ss-hm-btn" data-action="pdf">${pdfLabel}</button>`;
+  // 모든 버튼 클릭 시 해당 학생으로 먼저 전환 후 액션 실행
+  menu.querySelectorAll('.ss-hm-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      if(G.selStudent!==name)switchTab(name);
+      const act=btn.dataset.action;
+      if(act==='report')openStudentReportFor(name);
+      else if(act==='pdf')attachPdfForStudent(name);
+      menu.remove();
+    });
+  });
   document.body.appendChild(menu);
   // 위치: 아이템 왼쪽에
   const rect=item.getBoundingClientRect();
@@ -717,9 +752,90 @@ function _updateStudentNav(){
   nextBtn.disabled=idx>=G.students.length-1;
 }
 
+// ─── 커스텀 컨텍스트 메뉴 ───
+function _showContextMenu(x,y,items){
+  _closeContextMenu();
+  const menu=document.createElement('div');
+  menu.className='ctx-menu';
+  menu.innerHTML=items.map((it,i)=>
+    it.sep?'<div class="ctx-sep"></div>'
+    :`<button class="ctx-btn" data-i="${i}">${it.label}</button>`
+  ).join('');
+  document.body.appendChild(menu);
+  // 위치 (화면 밖 방지)
+  const mw=menu.offsetWidth,mh=menu.offsetHeight;
+  menu.style.left=Math.min(x,window.innerWidth-mw-8)+'px';
+  menu.style.top=Math.min(y,window.innerHeight-mh-8)+'px';
+  menu.addEventListener('click',e=>{
+    const btn=e.target.closest('.ctx-btn');if(!btn)return;
+    const idx=+btn.dataset.i;
+    if(items[idx]&&items[idx].action)items[idx].action();
+    _closeContextMenu();
+  });
+  // 외부 클릭/ESC로 닫기
+  setTimeout(()=>{
+    document.addEventListener('click',_closeContextMenu,{once:true});
+    document.addEventListener('contextmenu',_closeContextMenu,{once:true});
+  },0);
+}
+function _closeContextMenu(){
+  document.querySelectorAll('.ctx-menu').forEach(m=>m.remove());
+}
+
+// ─── 캐릭터 설정 모달 (학생별 점수대 마스코트 설정) ───
+function openMascotSettingsModal(studentName){
+  const exist=document.querySelector('.mascot-settings-overlay');
+  if(exist)exist.remove();
+  const tiers=[
+    {key:'high',label:'75% 이상 (잘했어요!)',color:'#16a34a'},
+    {key:'mid',label:'30~74% (보통)',color:'#eab308'},
+    {key:'low',label:'30% 미만 (분발!)',color:'#dc2626'}
+  ];
+  const saved=G.mascotChoices[studentName]||{};
+  const overlay=document.createElement('div');
+  overlay.className='mascot-settings-overlay';
+  const modal=document.createElement('div');
+  modal.className='mascot-settings-modal';
+  modal.innerHTML=`
+    <div class="ms-header">
+      <span class="ms-title">🎨 ${esc(studentName)} 캐릭터 설정</span>
+      <button class="ms-close" onclick="this.closest('.mascot-settings-overlay').remove()">✕</button>
+    </div>
+    <div class="ms-body">
+      ${tiers.map(t=>{
+        const imgs=MASCOT_IMGS[t.key]||[];
+        const selIdx=saved[t.key]!=null?saved[t.key]:-1;
+        return`<div class="ms-tier">
+          <div class="ms-tier-label" style="border-left:3px solid ${t.color};padding-left:8px;">${t.label}</div>
+          <div class="ms-tier-grid" data-tier="${t.key}">
+            ${imgs.map((src,i)=>`<div class="ms-item${i===selIdx?' selected':''}" data-idx="${i}"><img src="${src}" draggable="false"></div>`).join('')}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  // 선택 이벤트
+  modal.querySelectorAll('.ms-tier-grid').forEach(grid=>{
+    grid.addEventListener('click',e=>{
+      const item=e.target.closest('.ms-item');if(!item)return;
+      const tier=grid.dataset.tier;
+      const idx=+item.dataset.idx;
+      grid.querySelectorAll('.ms-item').forEach(it=>it.classList.remove('selected'));
+      item.classList.add('selected');
+      G.mascotChoices[studentName]=G.mascotChoices[studentName]||{};
+      G.mascotChoices[studentName][tier]=idx;
+      saveAppData();
+      // 현재 보이는 마스코트도 즉시 갱신
+      if(G.selStudent===studentName)updateRateFace();
+    });
+  });
+  // 닫기
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+}
+
 // ─── 키보드 방향키: 좌우=날짜, 상하=학생 ───
 document.addEventListener('keydown',function(e){
-  // 입력 중이면 무시
   if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.isContentEditable)return;
   if(G.currentView!=='date'||!G.selDate)return;
   if(e.key==='ArrowLeft'){e.preventDefault();navDatePrev();}
@@ -727,3 +843,50 @@ document.addEventListener('keydown',function(e){
   else if(e.key==='ArrowUp'){e.preventDefault();navStudentPrev();}
   else if(e.key==='ArrowDown'){e.preventDefault();navStudentNext();}
 });
+
+// ─── 리포트 영역 우클릭 컨텍스트 메뉴 ───
+document.addEventListener('DOMContentLoaded',function(){
+  const area=document.querySelector('.preview-content')||document.querySelector('.preview');
+  if(!area)return;
+  area.addEventListener('contextmenu',function(e){
+    // 입력 필드에선 기본 메뉴 유지
+    if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.isContentEditable)return;
+    e.preventDefault();
+    const onCard=!!e.target.closest('#reportCard');
+    const onPdf=!!e.target.closest('.page-slot canvas');
+    const items=[
+      {label:'📎 PDF 첨부',action:()=>inlinePdfAttach()}
+    ];
+    if(onCard||onPdf){
+      items.push({sep:true});
+      items.push({label:'📷 이미지로 저장',action:()=>_saveReportAsImage(onPdf?'pdf':'card')});
+    }
+    _showContextMenu(e.clientX,e.clientY,items);
+  });
+});
+
+// ─── 리포트/PDF를 이미지로 저장 ───
+async function _saveReportAsImage(target){
+  let el;
+  if(target==='pdf'){
+    // 현재 보이는 PDF 캔버스 저장
+    el=document.querySelector('#leftPdfCanvas')||document.querySelector('#rightPdfCanvas');
+    if(el){
+      const link=document.createElement('a');
+      link.download=`${G.selStudent||'report'}_pdf_${G.selDate||'page'}.png`;
+      link.href=el.toDataURL('image/png');
+      link.click();
+      return;
+    }
+  }
+  // 리포트 카드를 이미지로 저장
+  el=$$('reportCard');if(!el)return;
+  try{
+    const canvas=await html2canvas(el,{scale:2,useCORS:true,backgroundColor:'#fff',
+      width:794,scrollX:0,scrollY:0,windowWidth:794});
+    const link=document.createElement('a');
+    link.download=`${G.selStudent||'report'}_${G.selDate||'card'}.png`;
+    link.href=canvas.toDataURL('image/png');
+    link.click();
+  }catch(err){console.error('이미지 저장 실패:',err);}
+}
