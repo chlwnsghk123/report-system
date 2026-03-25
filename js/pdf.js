@@ -1104,13 +1104,16 @@ async function _attachSummaryForCurrent(){
   const dates=G.lessons.filter((l,i)=>i>0&&l.날짜<=todayStr).map(l=>l.날짜)
     .filter(d=>G.attend[student]?.[d]!==-1);
   if(!dates.length){alert('해당 학생의 수업 데이터가 없습니다.');return;}
-  await _attachStudentReportToView(student,dates);
+  await _attachStudentReportToView(student,dates,{btn:null,closeModal:false});
 }
 
 // 요약표를 현재 학생 PDF로 첨부
-async function _attachStudentReportToView(student,dates){
-  const btn=$$('stuRptDl');
-  const origText=btn.textContent;btn.textContent='⏳ 첨부 중...';btn.disabled=true;
+async function _attachStudentReportToView(student,dates,opts){
+  // opts.btn: 진행 표시용 버튼 (없으면 상태바 사용), opts.closeModal: 모달 닫기 여부
+  const btn=opts?.btn||$$('stuRptDl');
+  const origText=btn?btn.textContent:'';
+  if(btn){btn.textContent='⏳ 첨부 중...';btn.disabled=true;}
+  else setBar('wait','⏳ 요약표 생성 중...');
   try{
     const W=400;
     const wrap=document.createElement('div');
@@ -1138,10 +1141,18 @@ async function _attachStudentReportToView(student,dates){
     // 기존 PDF 교체
     G.studentPdfs[student]=[{bytes:pngBytes,name:'이행률요약표.png',canvases:[cv],pageCount:1,isPng:true}];
     _syncGlobalPdf();G.currentSpread=0;renderSpread();renderTabs();_savePdfData();
-    // 모달 닫기
-    $$('stuRptOverlay').style.display='none';document.body.classList.remove('modal-open');
-  }catch(e){alert('첨부 오류: '+e.message);console.error(e);}
-  btn.textContent=origText;btn.disabled=false;
+    // 모달 닫기 (모달에서 호출된 경우만)
+    if(opts?.closeModal!==false){
+      const overlay=$$('stuRptOverlay');
+      if(overlay&&overlay.style.display!=='none'){overlay.style.display='none';document.body.classList.remove('modal-open');}
+    }
+    if(!btn)setBar('ok','✅ 요약표 첨부 완료');
+  }catch(e){
+    if(btn)alert('첨부 오류: '+e.message);
+    else setBar('err','❌ 요약표 첨부 실패: '+e.message);
+    console.error(e);
+  }
+  if(btn){btn.textContent=origText;btn.disabled=false;}
 }
 
 async function _downloadStudentReportPdf(student,dates){
