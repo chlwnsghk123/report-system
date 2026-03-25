@@ -368,7 +368,9 @@ function renderTabs(){
     return;
   }
   if(sidebar)sidebar.style.display='';
-  if(inlineBtn)inlineBtn.style.display='flex';
+  // PDF가 이미 있으면 + 버튼 숨김
+  const hasPdf=G.selStudent&&(G.studentPdfs[G.selStudent]||[]).length>0;
+  if(inlineBtn)inlineBtn.style.display=hasPdf?'none':'flex';
   const list=$$('ssList');if(!list)return;
   list.innerHTML=G.students.map(n=>{
     const pdfs=G.studentPdfs[n]||[];
@@ -808,29 +810,8 @@ document.addEventListener('keydown',function(e){
   else if(e.key==='ArrowDown'){e.preventDefault();navStudentNext();}
 });
 
-// ─── 스크롤 끝 도달 시 학생 전환 ───
-document.addEventListener('DOMContentLoaded',function(){
-  const pc=document.getElementById('previewContent');
-  if(!pc)return;
-  let edgeCooldown=0; // 끝 도달 후 추가 스크롤 누적
-  pc.addEventListener('wheel',function(e){
-    if(G.currentView!=='date'||!G.selStudent)return;
-    const atTop=pc.scrollTop<=0;
-    const atBottom=pc.scrollTop+pc.clientHeight>=pc.scrollHeight-2;
-    if((e.deltaY<0&&atTop)||(e.deltaY>0&&atBottom)){
-      edgeCooldown+=Math.abs(e.deltaY);
-      // 일정량(120px≈휠 1칸) 누적되면 전환
-      if(edgeCooldown>=120){
-        edgeCooldown=0;
-        if(e.deltaY<0)navStudentPrev();
-        else navStudentNext();
-      }
-      e.preventDefault();
-    }else{
-      edgeCooldown=0;
-    }
-  },{passive:false});
-});
+// ─── 스크롤 끝 도달 시 학생 전환 (비활성화) ───
+// 스크롤로 학생 전환하는 기능 제거
 
 // ─── 리포트 영역 우클릭 컨텍스트 메뉴 ───
 document.addEventListener('DOMContentLoaded',function(){
@@ -841,43 +822,51 @@ document.addEventListener('DOMContentLoaded',function(){
     if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.isContentEditable)return;
     e.preventDefault();
     const onCard=!!e.target.closest('#reportCard');
-    const onPdf=!!e.target.closest('.page-slot canvas');
+    const onRightPdf=!!e.target.closest('#rightSlot');
     const items=[
       {label:'📄 PDF로 내보내기',action:()=>dlPdf()},
       {label:'📎 PDF 첨부',action:()=>inlinePdfAttach()}
     ];
-    if(onCard||onPdf){
+    if(onCard){
       items.push({sep:true});
-      items.push({label:'📷 이미지로 저장',action:()=>_saveReportAsImage(onPdf?'pdf':'card')});
+      items.push({label:'📷 리포트 이미지 저장',action:()=>_saveReportAsImage('card')});
+    }
+    if(onRightPdf){
+      items.push({sep:true});
+      items.push({label:'📷 시험자료 이미지 저장',action:()=>_saveReportAsImage('right-pdf')});
     }
     _showContextMenu(e.clientX,e.clientY,items);
   });
 });
 
-// ─── 리포트/PDF를 이미지로 저장 ───
+// ─── 리포트/PDF를 이미지로 저장 (html2canvas 캡처) ───
 async function _saveReportAsImage(target){
-  let el;
-  if(target==='pdf'){
-    // 현재 보이는 PDF 캔버스 저장
-    el=document.querySelector('#leftPdfCanvas')||document.querySelector('#rightPdfCanvas');
-    if(el){
+  try{
+    if(target==='right-pdf'){
+      // 오른쪽 PDF 캔버스를 캡처
+      const cv=$$('rightPdfCanvas');
+      if(!cv)return;
+      const canvas=await html2canvas(cv,{scale:2,useCORS:true,backgroundColor:'#fff',
+        width:cv.offsetWidth,height:cv.offsetHeight,scrollX:0,scrollY:0,
+        windowWidth:cv.offsetWidth,windowHeight:cv.offsetHeight});
       const link=document.createElement('a');
-      link.download=`${G.selStudent||'report'}_pdf_${G.selDate||'page'}.png`;
-      link.href=el.toDataURL('image/png');
+      link.download=`${G.selStudent||'report'}_시험자료_${G.selDate||'page'}.png`;
+      link.href=canvas.toDataURL('image/png');
       link.click();
       return;
     }
-  }
-  // 리포트 카드를 이미지로 저장
-  el=$$('reportCard');if(!el)return;
-  try{
+    // 리포트 카드를 html2canvas로 캡처
+    const el=$$('reportCard');if(!el)return;
     const canvas=await html2canvas(el,{scale:2,useCORS:true,backgroundColor:'#fff',
-      width:794,scrollX:0,scrollY:0,windowWidth:794});
+      onclone:doc=>{const c=doc.getElementById('reportCard');c.style.transform='none';c.style.margin='0';
+        doc.querySelectorAll('[contenteditable]').forEach(e=>e.style.outline='none');},
+      width:el.offsetWidth,height:el.offsetHeight,scrollX:0,scrollY:0,
+      windowWidth:el.offsetWidth,windowHeight:el.offsetHeight});
     const link=document.createElement('a');
     link.download=`${G.selStudent||'report'}_${G.selDate||'card'}.png`;
     link.href=canvas.toDataURL('image/png');
     link.click();
-  }catch(err){console.error('이미지 저장 실패:',err);}
+  }catch(err){console.error('이미지 저장 실패:',err);alert('이미지 저장 실패: '+err.message);}
 }
 
 // ─── 학생 추가 모달 ───
@@ -988,9 +977,9 @@ function openStudentSettingsModal(){
   overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
 }
 
-// 호버 메뉴 닫기 헬퍼
+// 메뉴 닫기 헬퍼
 function _closeHoverMenus(){
-  document.querySelectorAll('.tb-hover').forEach(d=>d.classList.remove('open'));
+  closeToolbarMenus();
 }
 
 // ─── 도움말 모달 ───

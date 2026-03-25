@@ -82,14 +82,7 @@ async function handlePdfInput(input){
 // 리포트 옆 인라인 + 버튼
 function inlinePdfAttach(){
   if(!G.selStudent)return;
-  // 한 명이라도 개별 PDF 있으면 → 현재 학생에게만
-  const anyHasPdf=Object.keys(G.studentPdfs).some(k=>G.studentPdfs[k]?.length>0);
-  if(anyHasPdf){
-    _pdfAttachTarget=G.selStudent;
-    $$('pdfInput').click();
-  }else{
-    _showInlineMenu();
-  }
+  _showInlineMenu();
 }
 
 function _showInlineMenu(){
@@ -97,12 +90,16 @@ function _showInlineMenu(){
   const menu=document.createElement('div');
   menu.className='pdf-attach-menu';menu.id='pdfAttachMenu';
   menu.innerHTML=`
-    <button onclick="_pdfAttachTarget='';$$('pdfInput').click();_closePdfMenu();">
+    <button onclick="_pdfAttachTarget=G.selStudent;$$('pdfInput').click();_closePdfMenu();">
       <span style="font-size:16px;">👤</span> 이 학생에게만 첨부
     </button>
     <div class="pam-sep"></div>
     <button onclick="_pdfAttachTarget='_all_';$$('pdfInput').click();_closePdfMenu();">
       <span style="font-size:16px;">👥</span> 모든 학생에게 첨부
+    </button>
+    <div class="pam-sep"></div>
+    <button onclick="_closePdfMenu();_attachSummaryForCurrent();">
+      <span style="font-size:16px;">📊</span> 이행률 요약표 첨부
     </button>`;
   document.body.appendChild(menu);
   const btn=$$('pdfAddInline');
@@ -197,26 +194,30 @@ async function restorePdfData(){
 
 function renderSpread(){
   _syncGlobalPdf();
-  const total=1+G.pdfPageCount,spreads=Math.ceil(total/2);
-  const nav=$$('pageNav');nav.style.display=G.pdfPageCount>0?'flex':'none';
-  let navHtml=`<button id="btnPrev" onclick="prevSpread()" ${G.currentSpread===0?'disabled':''}>‹</button>
-    <span class="pinfo" id="pageInfo">${G.currentSpread+1} / ${spreads}</span>
-    <button id="btnNext" onclick="nextSpread()" ${G.currentSpread>=spreads-1?'disabled':''}>›</button>`;
-  nav.innerHTML=navHtml;
+  // 페이지 네비게이션 항상 숨김 (1장 첨부만 지원)
+  const nav=$$('pageNav');nav.style.display='none';
+  G.currentSpread=0;
 
-  const li=G.currentSpread*2,ri=li+1;
   const rc=$$('reportCard'),lc=$$('leftPdfCanvas'),rs=$$('rightSlot'),rpc=$$('rightPdfCanvas');
   // 기존 X 버튼 제거
   document.querySelectorAll('.pdf-page-del').forEach(el=>el.remove());
   const stu=esc(G.selStudent||'');
-  if(li===0){rc.style.display='';lc.style.display='none';$$('leftLabel').textContent='리포트';}
-  else{rc.style.display='none';const pi=li-1;if(pi<G.pdfCanvases.length){drawPdfPrev(lc,G.pdfCanvases[pi]);lc.style.display='block';$$('leftLabel').textContent=`시험자료 ${pi+1}p`;
-    _addPdfDelBtn($$('leftSlot'),stu);}}
-  const isDual=G.pdfPageCount>0&&ri<total;
-  if(isDual){rs.style.display='';const pi=ri-1;if(pi<G.pdfCanvases.length){drawPdfPrev(rpc,G.pdfCanvases[pi]);$$('rightLabel').textContent=`시험자료 ${pi+1}p`;
-    _addPdfDelBtn(rs,stu);}}
-  else rs.style.display='none';
-  $$('spreadRow').classList.toggle('dual',isDual);
+  // 항상 리포트 표시 (왼쪽)
+  rc.style.display='';lc.style.display='none';$$('leftLabel').textContent='리포트';
+  // 오른쪽: 첨부 PDF 1장 표시
+  const hasPdf=G.pdfCanvases.length>0;
+  if(hasPdf){
+    rs.style.display='';
+    drawPdfPrev(rpc,G.pdfCanvases[0]);
+    $$('rightLabel').textContent='시험자료';
+    _addPdfDelBtn(rs,stu);
+  }else{
+    rs.style.display='none';
+  }
+  $$('spreadRow').classList.toggle('dual',hasPdf);
+  // + 버튼 표시/숨김
+  const inlineBtn=$$('pdfAddInline');
+  if(inlineBtn)inlineBtn.style.display=hasPdf?'none':'flex';
   setTimeout(updateScale,60);
 }
 function _addPdfDelBtn(slot,studentName){
@@ -1093,6 +1094,17 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
   });
 
   container.innerHTML=html;
+}
+
+// + 버튼에서 이행률 요약표 바로 첨부
+async function _attachSummaryForCurrent(){
+  const student=G.selStudent;
+  if(!student){alert('학생을 선택해주세요.');return;}
+  const todayStr=todayKST();
+  const dates=G.lessons.filter((l,i)=>i>0&&l.날짜<=todayStr).map(l=>l.날짜)
+    .filter(d=>G.attend[student]?.[d]!==-1);
+  if(!dates.length){alert('해당 학생의 수업 데이터가 없습니다.');return;}
+  await _attachStudentReportToView(student,dates);
 }
 
 // 요약표를 현재 학생 PDF로 첨부
