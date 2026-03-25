@@ -67,6 +67,9 @@
 | `navStudentPrev()` | 이전 학생으로 전환 |
 | `navStudentNext()` | 다음 학생으로 전환 |
 | `_updateStudentNav()` | 학생 전환 화살표 활성/비활성 갱신 |
+| `_showContextMenu(x,y,items)` | 커스텀 우클릭 컨텍스트 메뉴 표시 |
+| `openMascotSettingsModal(name)` | 학생별 점수대 캐릭터 설정 모달 |
+| `_saveReportAsImage(target)` | 리포트/PDF를 PNG 이미지로 저장 |
 | `openLessonModal()` | 수업설정 전체화면 모달 열기 |
 | `closeLessonModal()` | 수업설정 모달 닫기 |
 | `getLessonHwKeys(l)` | 레슨 객체의 동적 과제 키 목록 반환 |
