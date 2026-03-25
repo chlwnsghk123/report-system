@@ -852,6 +852,30 @@ document.addEventListener('keydown',function(e){
   else if(e.key==='ArrowDown'){e.preventDefault();navStudentNext();}
 });
 
+// ─── 스크롤 끝 도달 시 학생 전환 ───
+document.addEventListener('DOMContentLoaded',function(){
+  const pc=document.getElementById('previewContent');
+  if(!pc)return;
+  let edgeCooldown=0; // 끝 도달 후 추가 스크롤 누적
+  pc.addEventListener('wheel',function(e){
+    if(G.currentView!=='date'||!G.selStudent)return;
+    const atTop=pc.scrollTop<=0;
+    const atBottom=pc.scrollTop+pc.clientHeight>=pc.scrollHeight-2;
+    if((e.deltaY<0&&atTop)||(e.deltaY>0&&atBottom)){
+      edgeCooldown+=Math.abs(e.deltaY);
+      // 일정량(120px≈휠 1칸) 누적되면 전환
+      if(edgeCooldown>=120){
+        edgeCooldown=0;
+        if(e.deltaY<0)navStudentPrev();
+        else navStudentNext();
+      }
+      e.preventDefault();
+    }else{
+      edgeCooldown=0;
+    }
+  },{passive:false});
+});
+
 // ─── 리포트 영역 우클릭 컨텍스트 메뉴 ───
 document.addEventListener('DOMContentLoaded',function(){
   const area=document.querySelector('.preview-content')||document.querySelector('.preview');
