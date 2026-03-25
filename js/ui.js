@@ -381,64 +381,21 @@ function renderTabs(){
       ${hasPdf?`<span class="ss-pdf-badge">📎</span>`:''}
     </div>`;
   }).join('');
-  // 호버 메뉴 이벤트 바인딩
+  // 우클릭 컨텍스트 메뉴 바인딩
   list.querySelectorAll('.ss-item').forEach(item=>{
-    let hoverTimer=null;
-    item.addEventListener('mouseenter',()=>{
-      hoverTimer=setTimeout(()=>_showSsMenu(item),1000);
-    });
-    item.addEventListener('mouseleave',()=>{
-      clearTimeout(hoverTimer);
-      setTimeout(()=>{const m=document.querySelector('.ss-hover-menu');if(m&&!m.matches(':hover'))m.remove();},150);
-    });
-    // 클릭 시 호버 타이머 취소 + 기존 호버 메뉴 제거 (DOM 재생성 후 좌상단에 뜨는 버그 방지)
-    item.addEventListener('click',()=>{
-      clearTimeout(hoverTimer);
-      document.querySelectorAll('.ss-hover-menu').forEach(m=>m.remove());
-    });
-    // 우클릭 컨텍스트 메뉴
     item.addEventListener('contextmenu',e=>{
       e.preventDefault();
+      const name=item.dataset.student;
+      const hasPdf=(G.studentPdfs[name]||[]).length>0;
+      const pdfLabel=hasPdf?'📎 PDF 교체':'📎 PDF 첨부';
       _showContextMenu(e.clientX,e.clientY,[
-        {label:'🎨 캐릭터 설정',action:()=>{if(G.selStudent!==item.dataset.student)switchTab(item.dataset.student);openMascotSettingsModal(item.dataset.student);}}
+        {label:'📊 이행률 요약표',action:()=>{if(G.selStudent!==name)switchTab(name);openStudentReportFor(name);}},
+        {label:pdfLabel,action:()=>{if(G.selStudent!==name)switchTab(name);attachPdfForStudent(name);}},
+        {sep:true},
+        {label:'🎨 캐릭터 설정',action:()=>{if(G.selStudent!==name)switchTab(name);openMascotSettingsModal(name);}}
       ]);
     });
   });
-}
-
-function _showSsMenu(item){
-  // 기존 메뉴 제거
-  document.querySelectorAll('.ss-hover-menu').forEach(m=>m.remove());
-  const name=item.dataset.student;
-  const hasPdf=(G.studentPdfs[name]||[]).length>0;
-  const pdfLabel=hasPdf?'📎 PDF 교체':'📎 PDF 첨부';
-  const en=esc(name);
-  const menu=document.createElement('div');
-  menu.className='ss-hover-menu';
-  menu.style.display='block';
-  menu.innerHTML=`
-    <button class="ss-hm-btn" data-action="report">📊 이행률 요약표</button>
-    <div class="ss-hm-sep"></div>
-    <button class="ss-hm-btn" data-action="pdf">${pdfLabel}</button>`;
-  // 모든 버튼 클릭 시 해당 학생으로 먼저 전환 후 액션 실행
-  menu.querySelectorAll('.ss-hm-btn').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      if(G.selStudent!==name)switchTab(name);
-      const act=btn.dataset.action;
-      if(act==='report')openStudentReportFor(name);
-      else if(act==='pdf')attachPdfForStudent(name);
-      menu.remove();
-    });
-  });
-  document.body.appendChild(menu);
-  // 위치: 아이템 왼쪽에
-  const rect=item.getBoundingClientRect();
-  menu.style.top=(rect.top+rect.height/2-menu.offsetHeight/2)+'px';
-  menu.style.left=(rect.left-menu.offsetWidth-8)+'px';
-  // 화면 밖 방지
-  if(parseInt(menu.style.left)<0)menu.style.left='4px';
-  if(parseInt(menu.style.top)<0)menu.style.top='4px';
-  menu.addEventListener('mouseleave',()=>setTimeout(()=>menu.remove(),100));
 }
 
 // 학생별 이행률 요약표 바로 열기
