@@ -391,6 +391,11 @@ function renderTabs(){
       clearTimeout(hoverTimer);
       setTimeout(()=>{const m=document.querySelector('.ss-hover-menu');if(m&&!m.matches(':hover'))m.remove();},150);
     });
+    // 클릭 시 호버 타이머 취소 + 기존 호버 메뉴 제거 (DOM 재생성 후 좌상단에 뜨는 버그 방지)
+    item.addEventListener('click',()=>{
+      clearTimeout(hoverTimer);
+      document.querySelectorAll('.ss-hover-menu').forEach(m=>m.remove());
+    });
     // 우클릭 컨텍스트 메뉴
     item.addEventListener('contextmenu',e=>{
       e.preventDefault();
