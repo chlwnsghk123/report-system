@@ -493,15 +493,13 @@ body.modal-open .preview{overflow:hidden!important;}
 .stu-nav-up{transform:rotate(90deg);}
 .stu-nav-down{transform:rotate(90deg);}
 
-/* ═══ 리포트카드 전환 애니메이션 (상하 슬라이드) ═══ */
-@keyframes rcSlideDown{from{opacity:0;transform:translateY(25px)}to{opacity:1;transform:translateY(0)}}
-@keyframes rcSlideUp{from{opacity:0;transform:translateY(-25px)}to{opacity:1;transform:translateY(0)}}
-.rc.rc-slide-down{animation:rcSlideDown .25s ease-out;}
-.rc.rc-slide-up{animation:rcSlideUp .25s ease-out;}
-.rc.rc-transition{animation:rcSlideDown .25s ease-out;}
-/* 날짜 전환 페이드 */
-@keyframes rcFadeIn{from{opacity:0}to{opacity:1}}
-.rc.rc-fade{animation:rcFadeIn .3s ease-out;}
+/* ═══ 리포트 전환 애니메이션 (spread-row에 적용, scale 충돌 방지) ═══ */
+@keyframes srSlideDown{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes srSlideUp{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes srFadeIn{from{opacity:0}to{opacity:1}}
+.spread-row.sr-slide-down{animation:srSlideDown .25s ease-out;}
+.spread-row.sr-slide-up{animation:srSlideUp .25s ease-out;}
+.spread-row.sr-fade{animation:srFadeIn .3s ease-out;}
 
 /* ═══ 반응형 ═══ */
 @media screen and (max-width:1024px){
