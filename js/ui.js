@@ -160,9 +160,9 @@ function selectDate(date){
   if(!G.selStudent&&G.students.length)G.selStudent=G.students[0];
   switchView('date');
   updateAttendUI();
-  // 날짜 전환 페이드 애니메이션
-  const rc=$$('reportCard');
-  if(rc){rc.classList.remove('rc-fade');void rc.offsetWidth;rc.classList.add('rc-fade');}
+  // 날짜 전환 페이드 애니메이션 — spread-row에 적용
+  const sr2=$$('spreadRow');
+  if(sr2){sr2.classList.remove('sr-fade');void sr2.offsetWidth;sr2.classList.add('sr-fade');}
 }
 
 // ─── 수업설정: 레슨 카드 ───
@@ -453,13 +453,13 @@ function switchTab(name){
   if(G.selDate)autoFillAll();
   updateAttendUI();
   saveSession();
-  // 리포트카드 전환 애니메이션 (상하 슬라이드)
-  const rc=$$('reportCard');
-  if(rc){
-    rc.classList.remove('rc-slide-up','rc-slide-down','rc-transition');
-    void rc.offsetWidth;
+  // 리포트카드 전환 애니메이션 (상하 슬라이드) — spread-row에 적용해 scale과 충돌 방지
+  const sr=$$('spreadRow');
+  if(sr){
+    sr.classList.remove('sr-slide-up','sr-slide-down');
+    void sr.offsetWidth;
     const dir=G._stuDir||'down';
-    rc.classList.add(dir==='up'?'rc-slide-up':'rc-slide-down');
+    sr.classList.add(dir==='up'?'sr-slide-up':'sr-slide-down');
     G._stuDir=null;
   }
   _updateStudentNav();
