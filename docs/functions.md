@@ -47,6 +47,9 @@
 | `saveToExcel()` | G → 엑셀 파일 다운로드 (수업정보 + 날짜별 + 이월과제 + 설정 시트, 마지막 저장 시각 기록) |
 | `createTemplate()` | 오늘~6월까지 주 1회 날짜가 포함된 신규 템플릿 엑셀 생성·다운로드 |
 | `updateLastSavedDisplay()` | G.lastSaved → #rLastSaved 텍스트 업데이트 |
+| `removeExcelData()` | 엑셀 데이터 제거 모달 (저장 후 제거/그냥 제거/취소 3버튼) |
+| `_clearAllData()` | 모든 데이터 초기화 (G 초기화 + UI 리셋 + DB 정리) |
+| `createSampleExcel()` | 4명 학생·3개 날짜 샘플 엑셀 생성·다운로드 |
 
 ## js/ui.js
 | 함수 | 역할 |
@@ -70,6 +73,16 @@
 | `_showContextMenu(x,y,items)` | 커스텀 우클릭 컨텍스트 메뉴 표시 |
 | `openMascotSettingsModal(name)` | 학생별 점수대 캐릭터 설정 모달 |
 | `_saveReportAsImage(target)` | 리포트/PDF를 PNG 이미지로 저장 |
+| `openAddStudentModal()` | 학생 추가 모달 (쉼표 구분 다중 추가 지원) |
+| `_doAddStudents()` | 학생 추가 모달 실행 (내부 함수) |
+| `openRemoveStudentModal()` | 학생 제거 모달 (목록 + 경고 삭제) |
+| `_doRemoveStudent(idx)` | 학생 제거 실행 (관련 데이터 정리 포함) |
+| `openStudentSettingsModal()` | 학생 설정 모달 (껍데기, 준비 중) |
+| `openHelpModal()` | 도움말 모달 (아코디언 형태 기능별 설명 + 샘플 다운로드) |
+| `openBatchPdfModal()` | 일괄 PDF 날짜 선택 모달 |
+| `addDateFromNav()` | 날짜 네비 바에서 날짜 추가 + 이동 |
+| `openLessonModalFocused(date)` | 특정 날짜에 포커싱하여 수업설정 모달 열기 |
+| `_showAutoFieldTip(x,y)` | 읽기전용 필드 클릭 시 안내 툴팁 표시 |
 | `openLessonModal()` | 수업설정 전체화면 모달 열기 |
 | `closeLessonModal()` | 수업설정 모달 닫기 |
 | `getLessonHwKeys(l)` | 레슨 객체의 동적 과제 키 목록 반환 |
@@ -105,7 +118,8 @@
 | `saveAppDataNow()` | G → IndexedDB `appData` 즉시 저장 (엑셀 저장 등) |
 | `saveSession()` | 세션 상태 → IndexedDB `session` 저장 |
 | `restoreSession(s)` | IndexedDB → 세션 복원 |
-| `showGroups()` | 엑셀 로드 후 UI 요소 표시 + 날짜 자동 선택 |
+| `showGroups()` | 엑셀 로드 후 UI 요소 표시 + 날짜 자동 선택 + 제거버튼 표시 |
+| `zeroStart()` | 엑셀 없이 직접 시작 (빈 상태 UI 활성화) |
 | `autoSelectDate()` | 오늘 이후 가장 가까운 날짜 자동 선택 |
 | `renderStudentList()` | 학생 목록 UI 렌더링 |
 | `addStudent()` | 새 학생 G.students에 추가 |

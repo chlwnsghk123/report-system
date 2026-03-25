@@ -10,6 +10,7 @@ async function loadExcel(input){
     G.excelFileName=file.name;G.tabData={};
     await saveAppDataNow();showGroups();markSaved();
     setBar('ok',`✅ ${file.name}`);
+    $$('sbar').onclick=triggerLoad;
   }catch(e){setBar('err','❌ 파싱 실패: '+e.message);console.error(e);}
   input.value='';
 }
@@ -496,6 +497,125 @@ async function saveToExcel(){
     btn.disabled=false;btn.textContent='💾 저장';
     setBar('err','❌ 저장 실패: '+e.message);
   }
+}
+
+// ─── 엑셀 데이터 제거 ───
+function removeExcelData(){
+  // 3버튼 모달 생성
+  let overlay=$$('removeExcelOverlay');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.id='removeExcelOverlay';overlay.className='lm-overlay';
+    overlay.innerHTML=`<div class="lm-modal" style="max-width:400px;">
+      <div style="padding:28px;text-align:center;">
+        <div style="font-size:36px;margin-bottom:12px;">⚠️</div>
+        <div style="font-size:16px;font-weight:800;color:#111;margin-bottom:6px;">데이터 제거</div>
+        <div style="font-size:13px;color:#6b7280;margin-bottom:24px;line-height:1.6;">현재 작업 중인 모든 데이터가 삭제됩니다.<br>엑셀로 저장한 후 제거하시겠습니까?</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button class="btn-p" id="removeExcelSave" style="width:100%;padding:12px;">💾 저장 후 제거</button>
+          <button class="btn-s" id="removeExcelDirect" style="width:100%;padding:12px;color:#dc2626;border-color:#fca5a5;">🗑 그냥 제거</button>
+          <button class="btn-s" id="removeExcelCancel" style="width:100%;padding:12px;">취소</button>
+        </div>
+      </div>
+    </div>`;
+    document.body.appendChild(overlay);
+  }
+  overlay.style.display='flex';document.body.classList.add('modal-open');
+  const close=()=>{overlay.style.display='none';document.body.classList.remove('modal-open');};
+  $$('removeExcelCancel').onclick=close;
+  overlay.onclick=e=>{if(e.target===overlay)close();};
+  $$('removeExcelSave').onclick=async()=>{
+    close();
+    await saveToExcel();
+    _clearAllData();
+  };
+  $$('removeExcelDirect').onclick=()=>{
+    if(!confirm('정말 저장하지 않고 모든 데이터를 삭제하시겠습니까?'))return;
+    close();_clearAllData();
+  };
+}
+
+function _clearAllData(){
+  G.lessons=[];G.students=[];
+  G.rates={};G.scores={};G.corrects={};
+  G.wrong={};G.hwRec={};G.memos={};G.attend={};G.mascotChoices={};
+  G.selDate='';G.selStudent='';
+  G.hwItems=[];G.hwStatus=[];G.hwItemRefs=[];
+  G.hwRateManual=null;G.extraHw=[];G.reportEdits={};
+  G.tabData={};G.studentPdfs={};
+  G.pdfCanvases=[];G.pdfPageCount=0;G.currentSpread=0;
+  G.excelFileName='학습리포트_데이터.xlsx';
+  G.lastSaved='';G.unsaved=false;G.pendingPropagations=[];
+  // UI 초기화
+  $$('btnSave').style.display='none';$$('btnSave').disabled=true;
+  const pdfBtn=$$('btnPdf');if(pdfBtn)pdfBtn.style.display='none';
+  $$('btnExcelRemove').style.display='none';
+  const zeroBtn=$$('btnZeroStart');if(zeroBtn)zeroBtn.style.display='';
+  $$('sbar').className='sbar idle';
+  $$('sbar').innerHTML='📂 엑셀 파일 불러오기';
+  $$('sbar').onclick=triggerLoad;
+  // DB 정리
+  dbSet('appData',null);dbSet('session',null);dbSet('studentPdfs',null);
+  // 뷰 초기화
+  closeLessonModal();
+  $$('viewDate').style.display='none';
+  $$('dateNavBar').style.display='none';
+  $$('attendBar').style.display='none';
+  const sidebar=$$('studentSidebar');if(sidebar)sidebar.style.display='none';
+  const stuNav=$$('stuNavGroup');if(stuNav)stuNav.style.display='none';
+  markSaved();updateLastSavedDisplay();
+  setBar('idle','📂 엑셀 파일 불러오기');
+}
+
+// ─── 샘플 엑셀 생성 ───
+function createSampleExcel(){
+  const students=['김민수','이서윤','박지호','최예린'];
+  const dates=['2026-03-11','2026-03-18','2026-03-25'];
+  const wb=XLSX.utils.book_new();
+  // 수업정보 시트
+  const ws1=XLSX.utils.aoa_to_sheet([
+    ['ID','날짜','교재','단원','상세진도','과제1','과제2','과제3'],
+    [genLessonId(),dates[0],'수학의 정석','1단원 - 집합','집합의 뜻과 표현\n부분집합','교재 p.12~15 풀기','오답노트 정리',''],
+    [genLessonId(),dates[1],'수학의 정석','1단원 - 집합','합집합과 교집합\n여집합과 차집합','교재 p.16~20 풀기','오답노트 정리','워크시트 1장'],
+    [genLessonId(),dates[2],'수학의 정석','2단원 - 명제','명제와 조건\n충분조건과 필요조건','교재 p.25~30 풀기','오답노트 정리','기출문제 5문항']
+  ]);
+  dates.forEach((_,i)=>{[0,1].forEach(c=>{const cell=ws1[XLSX.utils.encode_cell({r:i+1,c})];if(cell)cell.t='s';});});
+  XLSX.utils.book_append_sheet(wb,ws1,'수업정보');
+
+  // 날짜별 시트
+  // 1회차: 데이터 없음 (첫 수업)
+  const ws_d1=XLSX.utils.aoa_to_sheet([
+    ['이름','출결','오답','과제이행률','과제1','과제2','과제3','비고'],
+    ...students.map(n=>[n,'2','','','','','',''])
+  ]);
+  XLSX.utils.book_append_sheet(wb,ws_d1,dates[0]);
+
+  // 2회차: 쌈뽕하게 채움 (이전 과제 2개에 대한 상태 + 이행률)
+  const d2Data=[
+    ['김민수','2','','90','2','2','',''],
+    ['이서윤','2','3, 7','75','2','1','',''],
+    ['박지호','2','','60','1','1','',''],
+    ['최예린','2','','100','2','2','','']
+  ];
+  const ws_d2=XLSX.utils.aoa_to_sheet([
+    ['이름','출결','오답','과제이행률','과제1','과제2','과제3','비고'],
+    ...d2Data
+  ]);
+  XLSX.utils.book_append_sheet(wb,ws_d2,dates[1]);
+
+  // 3회차: 빈 데이터
+  const ws_d3=XLSX.utils.aoa_to_sheet([
+    ['이름','출결','오답','과제이행률','과제1','과제2','과제3','비고'],
+    ...students.map(n=>[n,'','','','','','',''])
+  ]);
+  XLSX.utils.book_append_sheet(wb,ws_d3,dates[2]);
+
+  // 다운로드
+  const fname='학습리포트_샘플.xlsx';
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([XLSX.write(wb,{bookType:'xlsx',type:'array'})],{type:'application/octet-stream'}));
+  a.download=fname;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  setBar('ok','✅ 샘플 파일 다운로드 완료! 이 파일을 불러와서 사용해보세요.');
 }
 
 // ─── 템플릿 생성 ───

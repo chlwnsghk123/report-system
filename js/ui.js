@@ -97,7 +97,6 @@ function switchView(view){
 function openLessonModal(){
   G._lessonFocus=-1; // 포커싱 초기화 → 자동 nextDate 포커스
   renderLessonCards();
-  renderStudentList();
   _openModal('lessonModalOverlay');
 }
 function closeLessonModal(){
@@ -879,4 +878,258 @@ async function _saveReportAsImage(target){
     link.href=canvas.toDataURL('image/png');
     link.click();
   }catch(err){console.error('이미지 저장 실패:',err);}
+}
+
+// ─── 학생 추가 모달 ───
+function openAddStudentModal(){
+  _closeHoverMenus();
+  const exist=document.querySelector('.stu-modal-overlay[data-type="add"]');
+  if(exist)exist.remove();
+  const overlay=document.createElement('div');
+  overlay.className='stu-modal-overlay';overlay.dataset.type='add';
+  overlay.innerHTML=`<div class="stu-modal">
+    <div class="stu-modal-header">
+      <span class="stu-modal-title">➕ 학생 추가</span>
+      <button class="ms-close" onclick="this.closest('.stu-modal-overlay').remove()">✕</button>
+    </div>
+    <div class="stu-modal-body">
+      <div style="font-size:13px;color:#6b7280;">이름을 입력하세요. 쉼표(,)로 구분하면 여러 명을 한번에 추가할 수 있습니다.</div>
+      <input type="text" id="addStudentInput" placeholder="예: 김민수, 이서윤, 박지호" style="padding:12px 16px;border:1px solid #e2e5ea;border-radius:10px;font-size:14px;font-family:inherit;outline:none;width:100%;box-sizing:border-box;" autofocus>
+      <div id="addStudentMsg" style="font-size:12px;color:#9ca3af;min-height:18px;"></div>
+      <button class="btn-p" onclick="_doAddStudents()" style="width:100%;padding:12px;">추가하기</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  const input=overlay.querySelector('#addStudentInput');
+  input.addEventListener('keydown',e=>{if(e.key==='Enter')_doAddStudents();});
+  setTimeout(()=>input.focus(),100);
+}
+function _doAddStudents(){
+  const input=$$('addStudentInput');if(!input)return;
+  const val=input.value.trim();if(!val)return;
+  const names=val.split(',').map(n=>n.trim()).filter(n=>n);
+  let added=0,dupes=[];
+  names.forEach(n=>{
+    if(G.students.includes(n)){dupes.push(n);return;}
+    G.students.push(n);added++;
+  });
+  const msg=$$('addStudentMsg');
+  if(dupes.length&&msg)msg.textContent=`이미 등록됨: ${dupes.join(', ')}`;
+  if(added){
+    input.value='';
+    if(msg)msg.style.color='#16a34a';
+    if(msg)msg.textContent=`${added}명 추가 완료!`;
+    renderTabs();saveAppData();
+    // 첫 학생이면 자동 선택
+    if(!G.selStudent&&G.students.length)G.selStudent=G.students[0];
+    if(G.currentView==='date'){renderTabs();_updateStudentNav();}
+    setTimeout(()=>{if(msg){msg.textContent='';msg.style.color='#9ca3af';}},2000);
+  }
+}
+
+// ─── 학생 제거 모달 ───
+function openRemoveStudentModal(){
+  _closeHoverMenus();
+  const exist=document.querySelector('.stu-modal-overlay[data-type="remove"]');
+  if(exist)exist.remove();
+  const overlay=document.createElement('div');
+  overlay.className='stu-modal-overlay';overlay.dataset.type='remove';
+  const listHtml=G.students.length?G.students.map((n,i)=>
+    `<div class="stu-remove-item" data-idx="${i}">
+      <span class="stu-remove-name">${esc(n)}</span>
+      <button class="stu-remove-btn" onclick="_doRemoveStudent(${i})">삭제</button>
+    </div>`
+  ).join(''):'<div style="font-size:13px;color:#9ca3af;text-align:center;padding:20px;">등록된 학생이 없습니다.</div>';
+  overlay.innerHTML=`<div class="stu-modal">
+    <div class="stu-modal-header">
+      <span class="stu-modal-title">➖ 학생 제거</span>
+      <button class="ms-close" onclick="this.closest('.stu-modal-overlay').remove()">✕</button>
+    </div>
+    <div class="stu-modal-body" id="removeStudentList">${listHtml}</div>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+}
+function _doRemoveStudent(idx){
+  const name=G.students[idx];
+  if(!confirm(`⚠️ '${name}' 학생을 삭제하시겠습니까?\n\n이 학생의 모든 과제 기록, 이행률, 메모 등이 영구적으로 삭제됩니다.`))return;
+  G.students.splice(idx,1);
+  if(G.selStudent===name)G.selStudent=G.students[0]||'';
+  // 관련 데이터 정리
+  delete G.rates[name];delete G.wrong[name];delete G.attend[name];
+  delete G.mascotChoices[name];delete G.studentPdfs[name];
+  Object.keys(G.hwRec).forEach(k=>{if(k.startsWith(name+'||'))delete G.hwRec[k];});
+  Object.keys(G.memos).forEach(k=>{if(k.startsWith(name+'||'))delete G.memos[k];});
+  renderTabs();saveAppData();
+  // 모달 갱신
+  openRemoveStudentModal();
+}
+
+// ─── 학생 설정 모달 (껍데기) ───
+function openStudentSettingsModal(){
+  _closeHoverMenus();
+  const exist=document.querySelector('.stu-modal-overlay[data-type="settings"]');
+  if(exist)exist.remove();
+  const overlay=document.createElement('div');
+  overlay.className='stu-modal-overlay';overlay.dataset.type='settings';
+  overlay.innerHTML=`<div class="stu-modal">
+    <div class="stu-modal-header">
+      <span class="stu-modal-title">⚙ 학생 설정</span>
+      <button class="ms-close" onclick="this.closest('.stu-modal-overlay').remove()">✕</button>
+    </div>
+    <div class="stu-modal-body" style="text-align:center;padding:40px 24px;">
+      <div style="font-size:40px;margin-bottom:12px;">🚧</div>
+      <div style="font-size:15px;font-weight:700;color:#374151;margin-bottom:6px;">준비 중</div>
+      <div style="font-size:13px;color:#9ca3af;">학생별 상세 설정 기능이 곧 추가될 예정입니다.</div>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+}
+
+// 호버 메뉴 닫기 헬퍼
+function _closeHoverMenus(){
+  document.querySelectorAll('.tb-hover').forEach(d=>d.classList.remove('open'));
+}
+
+// ─── 도움말 모달 ───
+function openHelpModal(){
+  const exist=document.querySelector('.help-overlay');
+  if(exist)exist.remove();
+  const overlay=document.createElement('div');
+  overlay.className='help-overlay';
+  const sections=[
+    {icon:'🚀',title:'시작하기',body:'엑셀 파일을 불러오거나, <b>직접 시작하기</b>를 클릭하면 처음부터 설정할 수 있습니다.<br>이전에 저장한 엑셀 파일을 불러오면 기존 데이터를 이어서 작업합니다.'},
+    {icon:'👥',title:'학생 관리',body:'상단 <b>학생 관리</b> 메뉴에서 학생을 추가하거나 제거합니다.<br>쉼표(,)로 구분하면 여러 명을 한번에 추가할 수 있습니다.<br>학생을 제거하면 해당 학생의 모든 기록이 삭제됩니다.'},
+    {icon:'📅',title:'수업 설정',body:'<b>설정 → 수업 진도 설정</b>에서 수업 날짜, 교재, 단원, 과제를 관리합니다.<br>날짜 네비게이션의 <b>+</b> 버튼으로도 날짜를 빠르게 추가할 수 있습니다.<br>왼쪽 패널에서 우클릭하면 바로 수업 설정을 열 수 있습니다.'},
+    {icon:'✅',title:'과제 관리',body:'왼쪽 패널에서 과제 상태(완료/부분완료/미완료)를 체크합니다.<br>이행률은 직접 입력하거나 <b>자동계산</b> 버튼으로 계산됩니다.<br>학생별 추가 과제도 등록할 수 있고, 미완료 과제는 자동으로 다음 수업에 이월됩니다.'},
+    {icon:'📄',title:'리포트 확인',body:'오른쪽 미리보기에서 학생별 리포트카드를 실시간으로 확인합니다.<br>학생 사이드바에서 학생을 클릭하거나 키보드 ↑↓로 전환합니다.<br>날짜는 상단 화살표 또는 키보드 ←→로 이동합니다.'},
+    {icon:'📊',title:'리포트 모아보기',body:'<b>리포트 모아보기</b> 메뉴에서 다양한 요약 자료를 확인합니다:<br>• 📝 수업 일지 — 날짜별 수업 내용 정리<br>• 📊 이행률 요약표 — 학생별/전체 과제 이행률<br>• 📋 전체 과제 요약 — 모든 학생의 과제 상태 한눈에'},
+    {icon:'💾',title:'저장하기',body:'<b>💾 저장</b> 버튼을 누르면 엑셀 파일로 저장됩니다.<br>다음에 이 파일을 다시 불러오면 이어서 작업할 수 있습니다.<br><b>일괄 PDF</b>로 선택한 날짜의 전체 학생 리포트를 한번에 내보낼 수 있습니다.'},
+    {icon:'📥',title:'샘플 파일',body:'처음 사용하시나요? 아래 버튼으로 샘플 엑셀 파일을 다운받아 참고하세요.<br>4명의 학생과 3개의 수업 날짜가 포함된 예시 데이터입니다.'}
+  ];
+  overlay.innerHTML=`<div class="help-modal">
+    <div class="help-header">
+      <span class="help-title">❓ 도움말</span>
+      <button class="ms-close" onclick="this.closest('.help-overlay').remove()">✕</button>
+    </div>
+    <div class="help-body">
+      ${sections.map((s,i)=>`<div class="help-acc${i===0?' open':''}">
+        <div class="help-acc-head" onclick="this.parentElement.classList.toggle('open')">
+          <span class="help-acc-icon">${s.icon}</span>
+          <span>${s.title}</span>
+          <span class="help-acc-arrow">▶</span>
+        </div>
+        <div class="help-acc-body">${s.body}${s.title==='샘플 파일'?'<br><button class="help-sample-btn" onclick="createSampleExcel()">📥 샘플 엑셀 다운로드</button>':''}</div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+}
+
+// ─── 일괄 PDF 모달 (날짜 선택) ───
+function openBatchPdfModal(){
+  if(!G.lessons.length||!G.students.length){alert('수업 및 학생 데이터가 필요합니다.');return;}
+  let overlay=$$('batchPdfOverlay');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.id='batchPdfOverlay';overlay.className='lm-overlay';
+    overlay.innerHTML=`<div class="lm-modal" style="max-width:420px;">
+      <div class="lm-header"><h3>📄 일괄 PDF 내보내기</h3><button class="lm-close" id="batchPdfClose">✕</button></div>
+      <div style="padding:20px 24px;">
+        <div style="font-size:13px;color:#6b7280;margin-bottom:14px;">선택한 날짜의 모든 학생 리포트를 하나의 PDF로 내보냅니다.</div>
+        <div style="font-size:13px;font-weight:700;color:#4e5968;margin-bottom:8px;">날짜 선택</div>
+        <select id="batchPdfDate" style="width:100%;padding:10px 12px;border:1px solid #e5e8eb;border-radius:10px;font-family:inherit;font-size:14px;margin-bottom:8px;"></select>
+        <div id="batchPdfInfo" style="font-size:12px;color:#6b7280;margin-bottom:18px;"></div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn-s" id="batchPdfCancel" style="flex:1;">취소</button>
+          <button class="btn-p" id="batchPdfOk" style="flex:1;">📥 내보내기</button>
+        </div>
+      </div>
+    </div>`;
+    document.body.appendChild(overlay);
+  }
+  const opts=G.lessons.map(l=>`<option value="${l.날짜}"${l.날짜===G.selDate?' selected':''}>${fmtKo(l.날짜)}</option>`).join('');
+  $$('batchPdfDate').innerHTML=opts;
+  const updateInfo=()=>{
+    const d=$$('batchPdfDate').value;
+    const el=G.students.filter(n=>G.rates[n]?.[d]!=null);
+    $$('batchPdfInfo').textContent=`출석 ${el.length}명 · 결석 ${G.students.length-el.length}명`;
+  };
+  $$('batchPdfDate').onchange=updateInfo;
+  updateInfo();
+  overlay.style.display='flex';document.body.classList.add('modal-open');
+  const close=()=>{overlay.style.display='none';document.body.classList.remove('modal-open');};
+  $$('batchPdfClose').onclick=close;
+  $$('batchPdfCancel').onclick=close;
+  overlay.onclick=e=>{if(e.target===overlay)close();};
+  $$('batchPdfOk').onclick=()=>{
+    const date=$$('batchPdfDate').value;
+    close();
+    selectDate(date);
+    setTimeout(()=>_doBatchPdf(),200);
+  };
+}
+
+// ─── 날짜 추가 (네비 바에서) ───
+function addDateFromNav(){
+  addLesson();
+  // 마지막 추가된 날짜로 이동
+  if(G.lessons.length){
+    const last=G.lessons[G.lessons.length-1];
+    selectDate(last.날짜);
+  }
+  renderDateNav();
+}
+
+// ─── 수업 진도 설정 (포커싱된 날짜로 열기) ───
+function openLessonModalFocused(date){
+  const idx=G.lessons.findIndex(l=>l.날짜===date);
+  G._lessonFocus=idx>=0?idx:-1;
+  renderLessonCards();
+  _openModal('lessonModalOverlay');
+}
+
+// ─── 왼쪽 패널: 읽기전용 필드 툴팁 + 우클릭 ───
+document.addEventListener('DOMContentLoaded',function(){
+  // 읽기전용 자동채우기 필드에 툴팁 클래스 추가
+  const autoFields=['dateSummary','gPrevHw','gCurHw'];
+  autoFields.forEach(id=>{
+    const el=$$(id);if(!el)return;
+    el.addEventListener('click',function(e){
+      // 이미 편집 가능한 요소면 무시
+      if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='BUTTON'||e.target.isContentEditable)return;
+      if(e.target.closest('.hw-item')||e.target.closest('.hw-add-extra'))return;
+      // 툴팁 표시
+      _showAutoFieldTip(e.clientX,e.clientY);
+    });
+  });
+  // 왼쪽 패널 우클릭 → 수업 진도 설정
+  const panelBody=document.querySelector('.panel-body');
+  if(panelBody){
+    panelBody.addEventListener('contextmenu',function(e){
+      if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.isContentEditable)return;
+      e.preventDefault();
+      _showContextMenu(e.clientX,e.clientY,[
+        {label:'📋 수업 진도 설정',action:()=>{
+          const date=G.selDate||todayKST();
+          openLessonModalFocused(date);
+        }}
+      ]);
+    });
+  }
+});
+function _showAutoFieldTip(x,y){
+  const existing=document.querySelector('.auto-field-popup');
+  if(existing)existing.remove();
+  const tip=document.createElement('div');
+  tip.className='auto-field-popup';
+  tip.style.cssText=`position:fixed;left:${x}px;top:${y-36}px;background:#1e293b;color:#fff;
+    padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;z-index:10000;
+    pointer-events:none;animation:srFadeIn .15s;white-space:nowrap;`;
+  tip.textContent='수업 진도 설정에서 수정하세요';
+  document.body.appendChild(tip);
+  setTimeout(()=>tip.remove(),2000);
 }

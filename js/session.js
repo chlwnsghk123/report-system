@@ -48,8 +48,27 @@ function showGroups(){
   $$('btnSave').style.display='';
   $$('btnSave').disabled=false;
   const pdfBtn=$$('btnPdf');if(pdfBtn)pdfBtn.style.display='';
-  renderStudentList();
+  // 엑셀 제거 버튼 표시
+  const removeBtn=$$('btnExcelRemove');if(removeBtn)removeBtn.style.display='';
+  // 직접 시작하기 버튼 숨김
+  const zeroBtn=$$('btnZeroStart');if(zeroBtn)zeroBtn.style.display='none';
   autoSelectDate();
+}
+
+// ─── 직접 시작하기 (엑셀 없이) ───
+function zeroStart(){
+  // UI 활성화
+  $$('btnSave').style.display='';$$('btnSave').disabled=false;
+  const pdfBtn=$$('btnPdf');if(pdfBtn)pdfBtn.style.display='';
+  const removeBtn=$$('btnExcelRemove');if(removeBtn)removeBtn.style.display='';
+  const zeroBtn=$$('btnZeroStart');if(zeroBtn)zeroBtn.style.display='none';
+  $$('sbar').className='sbar ok';
+  $$('sbar').innerHTML='✏️ 직접 입력 모드';
+  $$('sbar').onclick=triggerLoad; // 여전히 엑셀 불러오기 가능
+  G.excelFileName='학습리포트_데이터.xlsx';
+  saveAppData();
+  // 수업설정 모달 열기 (비어있는 상태)
+  switchView('config');
 }
 
 // 오늘 이후 가장 가까운 날짜 자동 선택

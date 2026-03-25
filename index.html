@@ -43,8 +43,12 @@
         <span id="unsavedInline" class="unsaved-inline" style="display:none;">⚠ 미저장</span>
       </div>
     </div>
-    <div id="sbar" class="sbar idle" onclick="triggerLoad()">📂 엑셀 파일 불러오기</div>
+    <div class="sbar-row">
+      <div id="sbar" class="sbar idle" onclick="triggerLoad()" style="flex:1;">📂 엑셀 파일 불러오기</div>
+      <button id="btnExcelRemove" class="sbar-remove-btn" onclick="removeExcelData()" style="display:none;" title="엑셀 데이터 제거">−</button>
+    </div>
     <input type="file" id="excelInput" accept=".xlsx,.xls" style="display:none" onchange="loadExcel(this)">
+    <button id="btnZeroStart" class="btn-zero-start" onclick="zeroStart()">또는 직접 시작하기 →</button>
   </div>
 
   <!-- 뷰 탭 (숨김) -->
@@ -145,19 +149,27 @@
       <button class="tb-btn" id="btnPdf" onclick="dlPdf()" style="display:none;">📄 PDF로 내보내기</button>
       <button class="tb-btn tb-save tb-main" id="btnSave" onclick="saveToExcel()" style="display:none" disabled>💾 저장</button>
       <div class="tb-sep"></div>
-      <div class="tb-dropdown" id="tbMenu">
-        <button class="tb-btn" onclick="toggleToolbarMenu('tbMenu')">☰ 메뉴</button>
+      <div class="tb-dropdown tb-hover" id="tbStudentMenu">
+        <button class="tb-btn">👥 학생 관리</button>
         <div class="tb-menu">
-          <button onclick="dlBatchPdf();closeToolbarMenus()">📄 일괄 PDF 내보내기</button>
-          <button onclick="dlStudentReport();closeToolbarMenus()">📊 숙제 이행률 요약표 (학생별)</button>
-          <button onclick="dlGradeSummary();closeToolbarMenus()">📊 숙제 이행률 요약표 (전체)</button>
-          <button onclick="dlClassJournal();closeToolbarMenus()">📝 수업 일지</button>
+          <button onclick="openAddStudentModal()">➕ 학생 추가</button>
+          <button onclick="openRemoveStudentModal()">➖ 학생 제거</button>
           <div class="tb-menu-sep"></div>
-          <button onclick="dlSummaryPdf();closeToolbarMenus()">📋 전체 과제 요약 이미지</button>
-          <div class="tb-menu-sep"></div>
-          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.54)</button>
+          <button onclick="openStudentSettingsModal()">⚙ 학생 설정</button>
         </div>
       </div>
+      <div class="tb-dropdown tb-hover" id="tbReportMenu">
+        <button class="tb-btn">📊 리포트 모아보기</button>
+        <div class="tb-menu">
+          <button onclick="dlClassJournal()">📝 수업 일지</button>
+          <button onclick="dlStudentReport()">📊 이행률 요약표 (학생별)</button>
+          <button onclick="dlGradeSummary()">📊 이행률 요약표 (전체)</button>
+          <div class="tb-menu-sep"></div>
+          <button onclick="dlSummaryPdf()">📋 전체 과제 요약 이미지</button>
+        </div>
+      </div>
+      <button class="tb-btn" onclick="openBatchPdfModal()">📄 일괄 PDF</button>
+      <div class="tb-sep"></div>
       <div class="tb-dropdown" id="tbSettings">
         <button class="tb-btn" onclick="toggleToolbarMenu('tbSettings')">⚙ 설정</button>
         <div class="tb-menu">
@@ -165,8 +177,11 @@
           <div class="tb-menu-sep"></div>
           <div style="padding:8px 14px 6px;font-size:11px;font-weight:700;color:#8a8f9e;">리포트 테마</div>
           <button id="btnColorMode" onclick="toggleColorMode();closeToolbarMenus()">🌙 흑백 모드</button>
+          <div class="tb-menu-sep"></div>
+          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.55)</button>
         </div>
       </div>
+      <button class="tb-btn tb-help-btn" onclick="openHelpModal()" title="도움말">?</button>
     </div>
   </div>
   <div class="preview-body">
@@ -177,6 +192,7 @@
         <button class="dn-arrow" onclick="navDatePrev()">‹</button>
         <div class="dn-label" id="dnLabel" onclick="toggleDateDropdown()"></div>
         <button class="dn-arrow" onclick="navDateNext()">›</button>
+        <button class="dn-add" onclick="addDateFromNav()" title="날짜 추가">+</button>
         <div class="dn-dropdown" id="dnDropdown"></div>
       </div>
       <div class="attend-bar" id="attendBar" style="display:none;">
@@ -326,22 +342,8 @@
         <button class="lm-close" onclick="closeLessonModal();if(G.selDate)switchView('date');">✕</button>
       </div>
     </div>
-    <div class="lm-body lm-split">
-      <!-- 왼쪽: 학생 관리 -->
-      <div class="lm-sidebar">
-        <div class="lm-side-title">학생 관리</div>
-        <div id="studentListItems"></div>
-        <div style="display:flex;gap:4px;margin-top:8px;">
-          <input type="text" id="newStudentInput" placeholder="학생 이름 입력" style="flex:1;padding:8px 12px;border:1px solid #e5e8eb;border-radius:8px;font-size:13px;font-family:inherit;" onkeydown="if(event.key==='Enter')addStudent()">
-          <button onclick="addStudent()" style="padding:8px 14px;background:#3182f6;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;">추가</button>
-        </div>
-        <div style="font-size:11px;color:#9ca3af;margin-top:8px;" id="studentSummary">—</div>
-      </div>
-      <!-- 오른쪽: 수업 날짜 -->
-      <div class="lm-main">
-        <div class="lm-side-title">수업 날짜</div>
-        <div id="lessonCards" style="display:flex;flex-direction:column;gap:12px;"></div>
-      </div>
+    <div class="lm-body lm-main" style="padding:20px 24px;overflow-y:auto;">
+      <div id="lessonCards" style="display:flex;flex-direction:column;gap:12px;"></div>
     </div>
   </div>
 </div>
