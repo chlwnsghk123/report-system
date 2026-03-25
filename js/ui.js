@@ -772,11 +772,14 @@ function _showContextMenu(x,y,items){
     if(items[idx]&&items[idx].action)items[idx].action();
     _closeContextMenu();
   });
-  // 외부 클릭/ESC로 닫기
-  setTimeout(()=>{
-    document.addEventListener('click',_closeContextMenu,{once:true});
-    document.addEventListener('contextmenu',_closeContextMenu,{once:true});
-  },0);
+  // 메뉴 외부 클릭 시 닫기 (mousedown으로 다음 우클릭 전에 닫힘)
+  function onOutside(e){
+    if(!menu.contains(e.target)){
+      _closeContextMenu();
+      document.removeEventListener('mousedown',onOutside,true);
+    }
+  }
+  setTimeout(()=>document.addEventListener('mousedown',onOutside,true),0);
 }
 function _closeContextMenu(){
   document.querySelectorAll('.ctx-menu').forEach(m=>m.remove());
@@ -855,6 +858,7 @@ document.addEventListener('DOMContentLoaded',function(){
     const onCard=!!e.target.closest('#reportCard');
     const onPdf=!!e.target.closest('.page-slot canvas');
     const items=[
+      {label:'📄 PDF로 내보내기',action:()=>dlPdf()},
       {label:'📎 PDF 첨부',action:()=>inlinePdfAttach()}
     ];
     if(onCard||onPdf){
