@@ -149,26 +149,32 @@
       <button class="tb-btn" id="btnPdf" onclick="dlPdf()" style="display:none;">📄 PDF로 내보내기</button>
       <button class="tb-btn tb-save tb-main" id="btnSave" onclick="saveToExcel()" style="display:none" disabled>💾 저장</button>
       <div class="tb-sep"></div>
-      <div class="tb-dropdown tb-hover" id="tbStudentMenu">
-        <button class="tb-btn">👥 학생 관리</button>
+      <div class="tb-dropdown" id="tbMenu">
+        <button class="tb-btn" onclick="toggleToolbarMenu('tbMenu')">☰ 메뉴</button>
         <div class="tb-menu">
-          <button onclick="openAddStudentModal()">➕ 학생 추가</button>
-          <button onclick="openRemoveStudentModal()">➖ 학생 제거</button>
+          <div class="tb-sub">
+            <button class="tb-sub-trigger">👥 학생 관리 <span class="tb-arrow">›</span></button>
+            <div class="tb-sub-list">
+              <button onclick="openAddStudentModal();closeToolbarMenus()">➕ 학생 추가</button>
+              <button onclick="openRemoveStudentModal();closeToolbarMenus()">➖ 학생 제거</button>
+              <div class="tb-menu-sep"></div>
+              <button onclick="openStudentSettingsModal();closeToolbarMenus()">⚙ 학생 설정</button>
+            </div>
+          </div>
+          <div class="tb-sub">
+            <button class="tb-sub-trigger">📊 리포트 모아보기 <span class="tb-arrow">›</span></button>
+            <div class="tb-sub-list">
+              <button onclick="dlClassJournal();closeToolbarMenus()">📝 수업 일지</button>
+              <button onclick="dlStudentReport();closeToolbarMenus()">📊 이행률 요약표 (학생별)</button>
+              <button onclick="dlGradeSummary();closeToolbarMenus()">📊 이행률 요약표 (전체)</button>
+              <div class="tb-menu-sep"></div>
+              <button onclick="dlSummaryPdf();closeToolbarMenus()">📋 전체 과제 요약 이미지</button>
+            </div>
+          </div>
           <div class="tb-menu-sep"></div>
-          <button onclick="openStudentSettingsModal()">⚙ 학생 설정</button>
+          <button onclick="openBatchPdfModal();closeToolbarMenus()">📄 일괄 PDF</button>
         </div>
       </div>
-      <div class="tb-dropdown tb-hover" id="tbReportMenu">
-        <button class="tb-btn">📊 리포트 모아보기</button>
-        <div class="tb-menu">
-          <button onclick="dlClassJournal()">📝 수업 일지</button>
-          <button onclick="dlStudentReport()">📊 이행률 요약표 (학생별)</button>
-          <button onclick="dlGradeSummary()">📊 이행률 요약표 (전체)</button>
-          <div class="tb-menu-sep"></div>
-          <button onclick="dlSummaryPdf()">📋 전체 과제 요약 이미지</button>
-        </div>
-      </div>
-      <button class="tb-btn" onclick="openBatchPdfModal()">📄 일괄 PDF</button>
       <div class="tb-sep"></div>
       <div class="tb-dropdown" id="tbSettings">
         <button class="tb-btn" onclick="toggleToolbarMenu('tbSettings')">⚙ 설정</button>
@@ -178,7 +184,7 @@
           <div style="padding:8px 14px 6px;font-size:11px;font-weight:700;color:#8a8f9e;">리포트 테마</div>
           <button id="btnColorMode" onclick="toggleColorMode();closeToolbarMenus()">🌙 흑백 모드</button>
           <div class="tb-menu-sep"></div>
-          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.55)</button>
+          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.56)</button>
         </div>
       </div>
       <button class="tb-btn tb-help-btn" onclick="openHelpModal()" title="도움말">?</button>

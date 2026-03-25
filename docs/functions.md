@@ -72,7 +72,7 @@
 | `_updateStudentNav()` | 학생 전환 화살표 활성/비활성 갱신 |
 | `_showContextMenu(x,y,items)` | 커스텀 우클릭 컨텍스트 메뉴 표시 |
 | `openMascotSettingsModal(name)` | 학생별 점수대 캐릭터 설정 모달 |
-| `_saveReportAsImage(target)` | 리포트/PDF를 PNG 이미지로 저장 |
+| `_saveReportAsImage(target)` | 리포트/시험자료를 html2canvas로 캡처하여 PNG 다운로드 (target: 'card' 또는 'right-pdf') |
 | `openAddStudentModal()` | 학생 추가 모달 (쉼표 구분 다중 추가 지원) |
 | `_doAddStudents()` | 학생 추가 모달 실행 (내부 함수) |
 | `openRemoveStudentModal()` | 학생 제거 모달 (목록 + 경고 삭제) |
@@ -182,7 +182,8 @@
 | `_getStudentPdfPageCount(student)` | 학생별 PDF 총 페이지 수 반환 |
 | `_syncGlobalPdf()` | 현재 학생 기준 전역 pdfCanvases/pdfPageCount 동기화 |
 | `handlePdfInput(input)` | PDF 파일 입력 핸들러 (학생별/전체 분기) |
-| `inlinePdfAttach()` | 리포트 옆 + 버튼 핸들러 (스마트 분기: 개별 PDF 존재 시 현재 학생만, 없으면 선택 메뉴) |
+| `inlinePdfAttach()` | 리포트 옆 + 버튼 핸들러 (항상 메뉴 표시: 이 학생에게만/모든 학생에게/이행률 요약표) |
+| `_attachSummaryForCurrent()` | + 버튼에서 현재 학생의 이행률 요약표를 바로 첨부 |
 | `attachPdfForStudent(name)` | 특정 학생에게 PDF 직접 첨부 (기존 PDF 있으면 교체 모드) |
 | `openStudentReportFor(name)` | 사이드바에서 학생별 이행률 요약표 바로 열기 |
 | `_attachStudentReportToView(student,dates)` | 이행률 요약표를 PNG로 캡처하여 학생 PDF로 첨부 |

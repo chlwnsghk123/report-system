@@ -283,8 +283,10 @@ body{margin:0;padding:0;background-color:#f2f4f6;font-family:'Pretendard',sans-s
 .tb-btn:hover:not(:disabled){background:#f3f4f6;border-color:#d1d5db;}
 .tb-btn:disabled{opacity:.4;cursor:default;}
 .tb-dropdown{position:relative;}
-.tb-menu{display:none;position:absolute;top:100%;right:0;margin-top:4px;background:#fff;border:1px solid #e5e7eb;
-  border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:100;min-width:200px;padding:4px;overflow:hidden;}
+.tb-menu{display:none;position:absolute;top:calc(100% - 2px);right:0;padding-top:6px;background:#fff;border:1px solid #e5e7eb;
+  border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:100;min-width:200px;padding:4px;overflow:visible;}
+/* 호버 브릿지: 버튼→메뉴 이동 시 갭에서 호버 풀리는 문제 방지 */
+.tb-menu::before{content:'';position:absolute;bottom:100%;left:0;right:0;height:8px;}
 .tb-dropdown.open .tb-menu{display:block;}
 .tb-menu button{display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;font-size:13px;font-weight:600;
   color:#333;background:none;border:none;cursor:pointer;font-family:inherit;border-radius:7px;transition:.12s;text-align:left;}
@@ -515,6 +517,19 @@ body.modal-open .preview{overflow:hidden!important;}
 /* ═══ 호버 드롭다운 (학생관리, 리포트모아보기) ═══ */
 .tb-hover .tb-menu{display:none;left:0;right:auto;}
 .tb-hover:hover .tb-menu{display:block;}
+
+/* ═══ 서브메뉴 (메뉴 내 중첩 호버) ═══ */
+.tb-sub{position:relative;}
+.tb-sub-trigger{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:10px 14px;
+  font-size:13px;font-weight:600;color:#333;background:none;border:none;cursor:pointer;font-family:inherit;
+  border-radius:7px;transition:.12s;text-align:left;}
+.tb-sub-trigger:hover{background:#f3f4f6;}
+.tb-arrow{font-size:11px;color:#9ca3af;margin-left:auto;}
+.tb-sub-list{display:none;position:absolute;left:calc(100% + 4px);top:-4px;background:#fff;border:1px solid #e5e7eb;
+  border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:101;min-width:200px;padding:4px;white-space:nowrap;}
+.tb-sub:hover>.tb-sub-list{display:block;}
+/* 호버 브릿지: 메인→서브 이동 시 갭으로 호버 풀리는 문제 방지 */
+.tb-sub-list::before{content:'';position:absolute;right:100%;top:0;width:12px;height:100%;}
 
 /* ═══ 도움말 버튼 ═══ */
 .tb-help-btn{width:32px!important;height:32px;padding:0!important;font-size:14px!important;font-weight:800!important;
