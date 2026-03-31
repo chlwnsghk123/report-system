@@ -791,6 +791,14 @@ function _buildJournalAttendImageHtml(date){
   return html;
 }
 
+// ─── 이행률 표 임시 삭제 (저장 안 됨) ───
+let _stuRptRemoved=new Set();
+let _stuRptRerender=null;
+function _stuRptRemoveItem(key){
+  _stuRptRemoved.add(key);
+  if(_stuRptRerender)_stuRptRerender();
+}
+
 // ─── 학생별 리포트 요약 ───
 function dlStudentReport(preselect){
   if(!G.lessons.length||!G.students.length){alert('수업 및 학생 데이터가 필요합니다.');return;}
@@ -841,7 +849,7 @@ function dlStudentReport(preselect){
 
   let wingOpen=false;
   const render=()=>{
-    _renderStudentReport($$('stuRptStudent').value,$$('stuRptStart').value,$$('stuRptEnd').value,$$('stuRptPreview'));
+    _renderStudentReport($$('stuRptStudent').value,$$('stuRptStart').value,$$('stuRptEnd').value,$$('stuRptPreview'),{interactive:true,removedSet:_stuRptRemoved});
     if(wingOpen)_renderWingPanel();
     // 요약 카드 영역에 미완료 버튼 삽입
     setTimeout(()=>{
@@ -900,14 +908,15 @@ function dlStudentReport(preselect){
     const wb=$$('stuRptPreview')?.querySelector('.stu-rpt-wing-toggle');
     if(wb)wb.textContent=wingOpen?'✕ 닫기':'📋 미완료 모아보기';
   };
-  $$('stuRptStudent').onchange=render;
+  _stuRptRerender=render;
+  $$('stuRptStudent').onchange=()=>{_stuRptRemoved.clear();render();};
   $$('stuRptStart').onchange=render;
   $$('stuRptEnd').onchange=render;
   render();
 
   overlay.style.display='flex';
   document.body.classList.add('modal-open');
-  const close=()=>{overlay.style.display='none';document.body.classList.remove('modal-open');wingOpen=false;$$('stuRptWing').style.width='0';$$('stuRptWing').style.borderLeftWidth='0';$$('stuRptModal').style.maxWidth='520px';};
+  const close=()=>{overlay.style.display='none';document.body.classList.remove('modal-open');wingOpen=false;_stuRptRemoved.clear();_stuRptRerender=null;$$('stuRptWing').style.width='0';$$('stuRptWing').style.borderLeftWidth='0';$$('stuRptModal').style.maxWidth='520px';};
   $$('stuRptClose').onclick=close;
   $$('stuRptCancel').onclick=close;
   overlay.onclick=e=>{if(e.target===overlay)close();};
@@ -922,12 +931,14 @@ function dlStudentReport(preselect){
     const menu=document.createElement('div');
     menu.className='pdf-attach-menu';menu.id='pdfAttachMenu';
     menu.style.cssText='position:fixed;z-index:9999;';
+    // 현재 제거된 항목 스냅샷 저장
+    window._stuRptRemovedSnap=new Set(_stuRptRemoved);
     menu.innerHTML=`
-      <button onclick="_closePdfMenu();_downloadStudentReportPdf('${esc(student)}',[${dates.map(d=>`'${d}'`).join(',')}]);">
+      <button onclick="_closePdfMenu();_downloadStudentReportPdf('${esc(student)}',[${dates.map(d=>`'${d}'`).join(',')}],window._stuRptRemovedSnap);">
         <span style="font-size:16px;">📥</span> PDF로 다운로드
       </button>
       <div class="pam-sep"></div>
-      <button onclick="_closePdfMenu();_attachStudentReportToView('${esc(student)}',[${dates.map(d=>`'${d}'`).join(',')}]);">
+      <button onclick="_closePdfMenu();_attachStudentReportToView('${esc(student)}',[${dates.map(d=>`'${d}'`).join(',')}],{removedSet:window._stuRptRemovedSnap});">
         <span style="font-size:16px;">📌</span> 리포트에 첨부하기
       </button>`;
     document.body.appendChild(menu);
@@ -940,18 +951,20 @@ function dlStudentReport(preselect){
 
 function _renderStudentReport(student,startDate,endDate,container,opts){
   opts=opts||{};
+  const removedSet=opts.removedSet;
+  const interactive=opts.interactive;
   const dates=G.lessons.filter(l=>l.날짜>=startDate&&l.날짜<=endDate).map(l=>l.날짜)
     .filter(d=>G.attend[student]?.[d]!==-1); // 출결 -1(특수) 제외
   if(!dates.length){container.innerHTML='<div style="padding:20px;text-align:center;color:#9ca3af;">날짜 범위를 확인하세요</div>';return;}
 
-  const stLabel={2:'완료',1:'부분완료',0:'미완료'};
-  const stColor={2:'#166534',1:'#92400e',0:'#991b1b'};
-  const stBg={2:'#dcfce7',1:'#fef3c7',0:'#fee2e2'};
+  const stLabel={2:'완료',1:'부분완료',0:'미완료',-1:'미제출'};
+  const stColor={2:'#166534',1:'#92400e',0:'#991b1b',-1:'#6b7280'};
+  const stBg={2:'#dcfce7',1:'#fef3c7',0:'#fee2e2',-1:'#f3f4f6'};
   const rateColor=v=>v>=75?'#166534':v>=30?'#92400e':'#991b1b';
   const rateBg=v=>v>=75?'#dcfce7':v>=30?'#fef3c7':'#fee2e2';
 
   // 통계 계산
-  let rateSum=0,rateCount=0,totalHw=0,doneHw=0,partialHw=0,missHw=0;
+  let rateSum=0,rateCount=0,totalHw=0,doneHw=0,partialHw=0,missHw=0,unsubmittedHw=0;
   // 이월에서 해결된 ref → 최종 상태 매핑 수집
   const resolvedMap=new Map();
   dates.forEach(d=>{
@@ -974,10 +987,11 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
     const rec=G.hwRec[key];
     const items=rec?.items||[];
     const lesson=G.lessons.find(l=>l.날짜===d);
-    items.forEach(it=>{
+    items.forEach((it,origIdx)=>{
       if(isCarryForDate(it.fromDate,d))return;
-      if(isNone(it.status))return;
+      if(removedSet&&removedSet.has(`${student}||${d}||${origIdx}`))return;
       totalHw++;
+      if(isNone(it.status)){unsubmittedHw++;incompleteItems.push({text:it.text,status:-1,date:d,lesson});return;}
       if(it.status===2){doneHw++;completedHw++;}
       else if(it.status===1){
         partialHw++;
@@ -996,7 +1010,7 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
   const avgRate=rateCount>0?Math.round(rateSum/rateCount):null;
 
   const cmp=opts.compact;
-  const fs=cmp?{title:'12px',num:'16px',label:'9px',sub:'10px',pad:'10px 12px',gap:'6px',mb:'10px'}
+  const fs=cmp?{title:'11px',num:'14px',label:'8px',sub:'9px',pad:'8px 10px',gap:'5px',mb:'8px'}
     :{title:'15px',num:'20px',label:'10px',sub:'11px',pad:'16px',gap:'8px',mb:'14px'};
 
   // 요약 카드
@@ -1020,78 +1034,111 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
       <span style="color:#166534;">완료 ${doneHw}</span>
       <span style="color:#92400e;">부분완료 ${partialHw}</span>
       <span style="color:#991b1b;">미완료 ${missHw}</span>
+      ${unsubmittedHw?`<span style="color:#6b7280;">미제출 ${unsubmittedHw}</span>`:''}
     </div>`:''}
   </div>`;
 
   // 날짜별 상세
-  dates.forEach(d=>{
-    const rate=G.rates[student]?.[d];
-    const key=`${student}||${d}`;
-    const rec=G.hwRec[key];
-    const lesson=G.lessons.find(l=>l.날짜===d);
-    const items=(rec?.items||[]).filter(it=>!isCarryForDate(it.fromDate,d));
-    const hasRate=rate!=null&&!isNaN(rate);
-    const isAbsent=!hasRate;
+  const stIcons={2:'✓',1:'△',0:'✗',-1:'—'};
+  if(cmp){
+    // ── 컴팩트 테이블 모드 (PDF용, 한 페이지 맞춤) ──
+    html+=`<table style="width:100%;border-collapse:collapse;font-size:9px;font-family:Pretendard,sans-serif;">
+      <thead><tr style="background:#f1f3f5;border-bottom:1.5px solid #d1d5db;">
+        <th style="padding:3px 6px;text-align:left;font-weight:700;color:#555;white-space:nowrap;">날짜</th>
+        <th style="padding:3px 6px;text-align:center;font-weight:700;color:#555;white-space:nowrap;">이행률</th>
+        <th style="padding:3px 6px;text-align:left;font-weight:700;color:#555;">과제 현황</th>
+      </tr></thead><tbody>`;
+    dates.forEach((d,di)=>{
+      const rate=G.rates[student]?.[d];
+      const key=`${student}||${d}`;
+      const rec=G.hwRec[key];
+      const allDateItems=rec?.items||[];
+      const itemsWithIdx=allDateItems.map((it,i)=>({...it,_oi:i})).filter(it=>!isCarryForDate(it.fromDate,d));
+      const items=removedSet?itemsWithIdx.filter(it=>!removedSet.has(`${student}||${d}||${it._oi}`)):itemsWithIdx;
+      const hasRate=rate!=null&&!isNaN(rate);
+      const bg=di%2===0?'#fff':'#f9fafb';
+      const visible=items.filter(it=>{const st=isNone(it.status)?-1:it.status;return stLabel[st]!=null;});
+      const hwParts=visible.map(it=>{
+        const st=isNone(it.status)?-1:it.status;
+        return`<span style="color:${stColor[st]};white-space:nowrap;">${stIcons[st]}${esc(it.text)}</span>`;
+      }).join('&nbsp; ');
+      html+=`<tr style="background:${bg};border-bottom:1px solid #eee;">
+        <td style="padding:3px 6px;white-space:nowrap;font-weight:600;color:#333;">${shortD(d)}</td>
+        <td style="padding:3px 6px;text-align:center;">${hasRate?`<span style="padding:1px 5px;border-radius:4px;font-weight:700;font-size:9px;color:${rateColor(rate)};background:${rateBg(rate)};">${rate}%</span>`:`<span style="color:#dc2626;font-size:8px;">결석</span>`}</td>
+        <td style="padding:3px 6px;font-size:9px;line-height:1.5;">${hwParts||'<span style="color:#d1d5db;">-</span>'}</td>
+      </tr>`;
+    });
+    html+=`</tbody></table>`;
+  }else{
+    // ── 카드 모드 (미리보기용) ──
+    dates.forEach(d=>{
+      const rate=G.rates[student]?.[d];
+      const key=`${student}||${d}`;
+      const rec=G.hwRec[key];
+      const lesson=G.lessons.find(l=>l.날짜===d);
+      const allDateItems=rec?.items||[];
+      const itemsWithIdx=allDateItems.map((it,i)=>({...it,_oi:i})).filter(it=>!isCarryForDate(it.fromDate,d));
+      const items=removedSet?itemsWithIdx.filter(it=>!removedSet.has(`${student}||${d}||${it._oi}`)):itemsWithIdx;
+      const hasRate=rate!=null&&!isNaN(rate);
+      const isAbsent=!hasRate;
 
-    const dFs=cmp?{head:'8px 10px',dateSz:'11px',infoSz:'9px',rateSz:'10px',mb:'6px'}
-      :{head:'10px 14px',dateSz:'13px',infoSz:'11px',rateSz:'12px',mb:'10px'};
-    html+=`<div style="border:1px solid #d1d5db;border-radius:8px;margin-bottom:${dFs.mb};overflow:hidden;">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:${dFs.head};background:${isAbsent?'#fef2f2':'#f0f1f3'};border-bottom:1px solid #d1d5db;">
-        <div style="display:flex;align-items:center;gap:6px;">
-          <span style="font-size:${dFs.dateSz};font-weight:800;color:#222;">${fmtKo(d)}</span>
-          ${lesson?`<span style="font-size:${dFs.infoSz};color:#888;">${esc(lesson.교재||'')} ${esc(lesson.단원||'')}</span>`:''}
-        </div>
-        ${isAbsent?`<span style="font-size:${dFs.infoSz};font-weight:700;color:#dc2626;">결석</span>`
-          :`<span style="padding:1px 6px;border-radius:5px;font-size:${dFs.rateSz};font-weight:700;color:${rateColor(rate)};background:${rateBg(rate)};">${rate}%</span>`}
-      </div>`;
+      html+=`<div style="border:1px solid #d1d5db;border-radius:8px;margin-bottom:10px;overflow:hidden;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:${isAbsent?'#fef2f2':'#f0f1f3'};border-bottom:1px solid #d1d5db;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:13px;font-weight:800;color:#222;">${fmtKo(d)}</span>
+            ${lesson?`<span style="font-size:11px;color:#888;">${esc(lesson.교재||'')} ${esc(lesson.단원||'')}</span>`:''}
+          </div>
+          ${isAbsent?`<span style="font-size:11px;font-weight:700;color:#dc2626;">결석</span>`
+            :`<span style="padding:1px 6px;border-radius:5px;font-size:12px;font-weight:700;color:${rateColor(rate)};background:${rateBg(rate)};">${rate}%</span>`}
+        </div>`;
 
-    if(!isAbsent){
-      const visible=items.filter(it=>!isNone(it.status)&&stLabel[it.status]!=null);
-      const hwPad=cmp?'5px 8px':'8px 12px';
-      const hwFs=cmp?'10px':'12px';
-      const hwBs=cmp?'9px':'10px';
-      if(visible.length){
-        html+=`<div style="padding:${hwPad};display:flex;flex-direction:column;gap:2px;">`;
-        visible.forEach(it=>{
-          html+=`<div style="display:flex;align-items:center;gap:6px;padding:2px 6px;border-radius:4px;background:#fff;">
-            <span style="flex:1;font-size:${hwFs};color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.text)}</span>
-            <span style="padding:0px 5px;border-radius:3px;font-size:${hwBs};font-weight:700;color:${stColor[it.status]};background:${stBg[it.status]};flex-shrink:0;">${stLabel[it.status]}</span>
-          </div>`;
+      if(!isAbsent){
+        const visible=items.filter(it=>{const st=isNone(it.status)?-1:it.status;return stLabel[st]!=null;});
+        if(visible.length){
+          html+=`<div style="padding:8px 12px;display:flex;flex-direction:column;gap:2px;">`;
+          visible.forEach(it=>{
+            const st=isNone(it.status)?-1:it.status;
+            const showDel=interactive&&st!==2;
+            html+=`<div style="display:flex;align-items:center;gap:6px;padding:2px 6px;border-radius:4px;background:#fff;">
+              <span style="flex:1;font-size:12px;color:${st===-1?'#9ca3af':'#333'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.text)}</span>
+              <span style="padding:0px 5px;border-radius:3px;font-size:10px;font-weight:700;color:${stColor[st]};background:${stBg[st]};flex-shrink:0;">${stLabel[st]}</span>
+              ${showDel?`<button onclick="_stuRptRemoveItem('${student}||${d}||${it._oi}')" style="width:18px;height:18px;border-radius:50%;border:1px solid #fca5a5;background:#fef2f2;color:#ef4444;font-size:13px;font-weight:700;cursor:pointer;padding:0;line-height:16px;flex-shrink:0;" title="이 과제 제외">−</button>`:''}
+            </div>`;
+          });
+          html+=`</div>`;
+        }else{
+          html+=`<div style="padding:8px 12px;font-size:12px;color:#9ca3af;">과제 없음</div>`;
+        }
+        // 이월과제 비고
+        const carryStDesc={2:'완료',1:'일부 완료',0:'미완료'};
+        const allCarries=(rec?.items||[]).filter(it=>isCarryForDate(it.fromDate,d)&&it.ref&&!isNone(it.status));
+        const changedCarries=allCarries.filter(it=>{
+          const orig=_getOriginalRefStatus(student,it.ref);
+          return orig!=null&&it.status!==orig;
         });
-        html+=`</div>`;
-      }else{
-        html+=`<div style="padding:${hwPad};font-size:${hwFs};color:#9ca3af;">상태 지정된 과제 없음</div>`;
+        const cSeen=new Map();
+        changedCarries.forEach(it=>{cSeen.set(it.ref,it);});
+        const uniqueCarries=[...cSeen.values()];
+        if(uniqueCarries.length){
+          html+=`<div style="padding:6px 12px 8px;border-top:1px dashed #d1d5db;">`;
+          uniqueCarries.forEach(it=>{
+            const cd=refToCheckDate(it.ref);
+            const fd=cd?`${shortD(cd)} 출제`:'이전 수업';
+            const isDone=it.status===2;
+            const cColor=isDone?'#166534':it.status===1?'#92400e':'#991b1b';
+            const cBg=isDone?'#f0fdf4':it.status===1?'#fffbeb':'#fef2f2';
+            html+=`<div style="display:flex;align-items:center;gap:4px;padding:2px 6px;border-radius:4px;background:${cBg};margin-bottom:2px;">
+              <span style="font-size:10px;font-weight:700;color:#d97706;flex-shrink:0;">이월</span>
+              <span style="flex:1;font-size:11px;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.text)} <span style="color:#999;font-size:10px;">(${fd})</span></span>
+              <span style="font-size:10px;font-weight:700;color:${cColor};flex-shrink:0;">${carryStDesc[it.status]}</span>
+            </div>`;
+          });
+          html+=`</div>`;
+        }
       }
-      // 이월과제 비고 (원본 대비 상태가 변한 것만 + 중복 제거)
-      const carryStDesc={2:'완료',1:'일부 완료',0:'미완료'};
-      const allCarries=(rec?.items||[]).filter(it=>isCarryForDate(it.fromDate,d)&&it.ref&&!isNone(it.status));
-      const changedCarries=allCarries.filter(it=>{
-        const orig=_getOriginalRefStatus(student,it.ref);
-        return orig!=null&&it.status!==orig;
-      });
-      const cSeen=new Map();
-      changedCarries.forEach(it=>{cSeen.set(it.ref,it);});
-      const uniqueCarries=[...cSeen.values()];
-      if(uniqueCarries.length){
-        html+=`<div style="padding:6px 12px 8px;border-top:1px dashed #d1d5db;">`;
-        uniqueCarries.forEach(it=>{
-          const cd=refToCheckDate(it.ref);
-          const fd=cd?`${shortD(cd)} 출제`:'이전 수업';
-          const isDone=it.status===2;
-          const cColor=isDone?'#166534':it.status===1?'#92400e':'#991b1b';
-          const cBg=isDone?'#f0fdf4':it.status===1?'#fffbeb':'#fef2f2';
-          const cyFs=cmp?'9px':'11px';const cyBs=cmp?'8px':'10px';
-          html+=`<div style="display:flex;align-items:center;gap:4px;padding:2px 6px;border-radius:4px;background:${cBg};margin-bottom:2px;">
-            <span style="font-size:${cyBs};font-weight:700;color:#d97706;flex-shrink:0;">이월</span>
-            <span style="flex:1;font-size:${cyFs};color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.text)} <span style="color:#999;font-size:${cyBs};">(${fd})</span></span>
-            <span style="font-size:${cyBs};font-weight:700;color:${cColor};flex-shrink:0;">${carryStDesc[it.status]}</span>
-          </div>`;
-        });
-        html+=`</div>`;
-      }
-    }
-    html+=`</div>`;
-  });
+      html+=`</div>`;
+    });
+  }
 
   container.innerHTML=html;
 }
@@ -1126,7 +1173,7 @@ async function _attachStudentReportToView(student,dates,opts){
       <div style="font-size:10px;color:#888;margin-top:2px;">${shortD(dates[0])} ~ ${shortD(dates[dates.length-1])}</div>
     </div><div id="_stuRptAttach"></div>`;
     wrap.appendChild(container);
-    _renderStudentReport(student,dates[0],dates[dates.length-1],container.querySelector('#_stuRptAttach'),{compact:true});
+    _renderStudentReport(student,dates[0],dates[dates.length-1],container.querySelector('#_stuRptAttach'),{compact:true,removedSet:opts?.removedSet});
     const canvas=await html2canvas(container,{scale:2,useCORS:true,backgroundColor:'#fff',width:W,scrollX:0,scrollY:0,windowWidth:W});
     document.body.removeChild(wrap);
     // A4 캔버스 생성 (리포트카드와 동일 비율)
@@ -1155,7 +1202,7 @@ async function _attachStudentReportToView(student,dates,opts){
   if(btn){btn.textContent=origText;btn.disabled=false;}
 }
 
-async function _downloadStudentReportPdf(student,dates){
+async function _downloadStudentReportPdf(student,dates,removedSet){
   const btn=$$('stuRptDl');
   const origText=btn.textContent;btn.textContent='⏳ 생성 중...';btn.disabled=true;
   try{
@@ -1172,26 +1219,25 @@ async function _downloadStudentReportPdf(student,dates){
     </div><div id="_stuRptCapture"></div>
     <div style="text-align:center;font-size:8px;color:#ccc;padding-top:8px;">Generated by 학습리포트</div>`;
     wrap.appendChild(container);
-    _renderStudentReport(student,dates[0],dates[dates.length-1],container.querySelector('#_stuRptCapture'),{compact:true});
+    _renderStudentReport(student,dates[0],dates[dates.length-1],container.querySelector('#_stuRptCapture'),{compact:true,removedSet:removedSet});
 
     const canvas=await html2canvas(container,{scale:2,useCORS:true,backgroundColor:'#fff',
       width:W,scrollX:0,scrollY:0,windowWidth:W});
     document.body.removeChild(wrap);
 
-    // A4 PDF (세로) — 긴 이미지를 페이지 단위로 분할
+    // A4 PDF (세로) — 한 페이지에 맞춤, 넘치면 분할
     const{PDFDocument}=PDFLib;
     const pdfDoc=await PDFDocument.create();
     const pW=595.28,pH=841.89,margin=30;
     const contentW=pW-margin*2;
     const scale=contentW/canvas.width;
     const contentH=pH-margin*2;
-    const pageImgH=contentH/scale; // 캔버스 기준 한 페이지에 들어가는 높이
+    const pageImgH=contentH/scale;
 
     const totalPages=Math.ceil(canvas.height/pageImgH);
     for(let p=0;p<totalPages;p++){
       const srcY=p*pageImgH;
       const srcH=Math.min(pageImgH,canvas.height-srcY);
-      // 페이지 단위 캔버스 잘라내기
       const sliceCv=document.createElement('canvas');
       sliceCv.width=canvas.width;sliceCv.height=srcH;
       sliceCv.getContext('2d').drawImage(canvas,0,srcY,canvas.width,srcH,0,0,canvas.width,srcH);
