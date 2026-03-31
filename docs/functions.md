@@ -211,9 +211,10 @@
 | `dlClassJournal()` | 수업 일지 날짜 선택 모달 열기 |
 | `_downloadJournalImage(date)` | 수업 일지 PNG 캡처·다운로드 |
 | `_buildJournalAttendImageHtml(date)` | 수업 일지 출결 현황 HTML (이미지 다운로드용) |
+| `_stuRptRemoveItem(key)` | 이행률 표 미리보기에서 과제 항목 임시 제외 (저장 안 됨) |
 | `dlStudentReport()` | 학생별 리포트 요약 모달 열기 (학생·날짜 범위 선택) |
-| `_renderStudentReport(student,s,e,container)` | 학생별 종합 요약 + 날짜별 과제 상세 HTML 렌더링 |
-| `_downloadStudentReportPdf(student,dates)` | 학생별 리포트 요약 PDF 캡처·다운로드 (A4 멀티페이지) |
+| `_renderStudentReport(student,s,e,container,opts)` | 학생별 종합 요약 + 날짜별 과제 상세 HTML 렌더링 (compact/interactive/removedSet 옵션) |
+| `_downloadStudentReportPdf(student,dates,removedSet)` | 학생별 리포트 요약 PDF 캡처·다운로드 (컴팩트 테이블, 한 페이지 맞춤) |
 | `showUpdateModal()` | 업데이트 내역 모달 (updates.md 로드·표시) |
 
 ## js/init.js
