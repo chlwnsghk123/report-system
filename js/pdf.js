@@ -957,9 +957,9 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
     .filter(d=>G.attend[student]?.[d]!==-1); // 출결 -1(특수) 제외
   if(!dates.length){container.innerHTML='<div style="padding:20px;text-align:center;color:#9ca3af;">날짜 범위를 확인하세요</div>';return;}
 
-  const stLabel={2:'완료',1:'부분완료',0:'미완료',-1:'미제출'};
-  const stColor={2:'#166534',1:'#92400e',0:'#991b1b',-1:'#6b7280'};
-  const stBg={2:'#dcfce7',1:'#fef3c7',0:'#fee2e2',-1:'#f3f4f6'};
+  const stLabel={2:'완료',1:'부분완료',0:'미완료','-1':'미제출'};
+  const stColor={2:'#166534',1:'#92400e',0:'#991b1b','-1':'#6b7280'};
+  const stBg={2:'#dcfce7',1:'#fef3c7',0:'#fee2e2','-1':'#f3f4f6'};
   const rateColor=v=>v>=75?'#166534':v>=30?'#92400e':'#991b1b';
   const rateBg=v=>v>=75?'#dcfce7':v>=30?'#fef3c7':'#fee2e2';
 
@@ -1039,7 +1039,7 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
   </div>`;
 
   // 날짜별 상세
-  const stIcons={2:'✓',1:'△',0:'✗',-1:'—'};
+  const stIcons={2:'✓',1:'△',0:'✗','-1':'—'};
   if(cmp){
     // ── 컴팩트 테이블 모드 (PDF용, 한 페이지 맞춤) ──
     html+=`<table style="width:100%;border-collapse:collapse;font-size:9px;font-family:Pretendard,sans-serif;">
