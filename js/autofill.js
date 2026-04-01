@@ -93,11 +93,14 @@ function updateNoticeWithCarry(){
   const baseHw=hwKeys.map(k=>cur[k]||'').filter(x=>x);
   // 학생별 추가 과제
   const extraHw=(G.extraHw||[]).map(it=>it.text).filter(x=>x);
-  // 미완료 이월 (직전 수업이 아닌 과제 = 이월과제)
+  // 미완료 과제 수집 (직전 수업 + 이월 모두 포함)
   const unfinished=[];
   G.hwItems.forEach((text,i)=>{
     const st=G.hwStatus[i];
-    if(!isNone(st)&&(st===0||st===1)&&isCarryItem(G.hwItemRefs[i]?.fromDate))unfinished.push(text);
+    if(!isNone(st)&&(st===0||st===1)){
+      const isCarry=isCarryItem(G.hwItemRefs[i]?.fromDate);
+      unfinished.push({text,isCarry});
+    }
   });
   // disabled 과제 필터링
   const dis=G.hwDisabled||new Set();
@@ -105,8 +108,8 @@ function updateNoticeWithCarry(){
   const list=$$('rNoticeList');
   const baseHtml=baseHw.map(t=>{const d=dis.has(di);di++;return d?'':`<div class="next-hw-li">${esc(t)}</div>`;}).join('');
   const extraHtml=extraHw.map(t=>{const d=dis.has(di);di++;return d?'':`<div class="next-hw-li"><span class="carry-tag">(추가)</span>${esc(t)}</div>`;}).join('');
-  const carryHtml=unfinished.map(t=>
-    `<div class="next-hw-li"><span class="carry-tag">(전)</span>${esc(t)}</div>`
+  const carryHtml=unfinished.map(u=>
+    `<div class="next-hw-li"><span class="carry-tag">${u.isCarry?'(전)':'(미완)'}</span>${esc(u.text)}</div>`
   ).join('');
   const allBase=baseHw.length+extraHw.length;
   const total=allBase+unfinished.length;
@@ -128,10 +131,16 @@ function renderCurHwList(){
   const cur=getCurL();if(!cur){c.innerHTML='';return;}
   const hwKeys=getLessonHwKeys(cur);
   const hw=hwKeys.map(k=>cur[k]||'').filter(x=>x);
-  // 이월과제 수집 (직전 수업이 아닌 과제)
+  // 미완료 과제 수집 (직전 수업 미완료 + 이월과제 모두 포함)
+  const prevIncomplete=[];
   const carry=[];
   G.hwItems.forEach((text,i)=>{
-    if(isCarryItem(G.hwItemRefs[i]?.fromDate))carry.push(text);
+    const st=G.hwStatus[i];
+    if(isCarryItem(G.hwItemRefs[i]?.fromDate)){
+      carry.push(text);
+    } else if(!isNone(st)&&(st===0||st===1)){
+      prevIncomplete.push(text);
+    }
   });
   const extra=(G.extraHw||[]).map(it=>it.text).filter(x=>x);
   // Enable/Disable 상태 (G.hwDisabled: Set of disabled indices)
@@ -149,6 +158,13 @@ function renderCurHwList(){
     const dis=G.hwDisabled.has(idx);
     html+=`<div class="cur-hw-item extra${dis?' disabled':''}" onclick="toggleHwDisabled(${idx})">
       <span class="cur-hw-badge">(추가)</span><span class="cur-hw-text">${esc(t)}</span>
+      <span class="cur-hw-toggle">${dis?'OFF':'ON'}</span>
+    </div>`;idx++;
+  });
+  prevIncomplete.forEach(t=>{
+    const dis=G.hwDisabled.has(idx);
+    html+=`<div class="cur-hw-item carry${dis?' disabled':''}" onclick="toggleHwDisabled(${idx})">
+      <span class="cur-hw-badge">(미완)</span><span class="cur-hw-text">${esc(t)}</span>
       <span class="cur-hw-toggle">${dis?'OFF':'ON'}</span>
     </div>`;idx++;
   });
