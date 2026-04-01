@@ -957,14 +957,14 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
     .filter(d=>G.attend[student]?.[d]!==-1); // 출결 -1(특수) 제외
   if(!dates.length){container.innerHTML='<div style="padding:20px;text-align:center;color:#9ca3af;">날짜 범위를 확인하세요</div>';return;}
 
-  const stLabel={2:'완료',1:'부분완료',0:'미완료','-1':'미제출'};
-  const stColor={2:'#166534',1:'#92400e',0:'#991b1b','-1':'#6b7280'};
-  const stBg={2:'#dcfce7',1:'#fef3c7',0:'#fee2e2','-1':'#f3f4f6'};
+  const stLabel={2:'완료',1:'부분완료',0:'미완료'};
+  const stColor={2:'#166534',1:'#92400e',0:'#991b1b'};
+  const stBg={2:'#dcfce7',1:'#fef3c7',0:'#fee2e2'};
   const rateColor=v=>v>=75?'#166534':v>=30?'#92400e':'#991b1b';
   const rateBg=v=>v>=75?'#dcfce7':v>=30?'#fef3c7':'#fee2e2';
 
   // 통계 계산
-  let rateSum=0,rateCount=0,totalHw=0,doneHw=0,partialHw=0,missHw=0,unsubmittedHw=0;
+  let rateSum=0,rateCount=0,totalHw=0,doneHw=0,partialHw=0,missHw=0;
   // 이월에서 해결된 ref → 최종 상태 매핑 수집
   const resolvedMap=new Map();
   dates.forEach(d=>{
@@ -991,7 +991,7 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
       if(isCarryForDate(it.fromDate,d))return;
       if(removedSet&&removedSet.has(`${student}||${d}||${origIdx}`))return;
       totalHw++;
-      if(isNone(it.status)){unsubmittedHw++;incompleteItems.push({text:it.text,status:-1,date:d,lesson});return;}
+      if(isNone(it.status))return; // 미제출은 완전 제외 (카운트도 안 함)
       if(it.status===2){doneHw++;completedHw++;}
       else if(it.status===1){
         partialHw++;
@@ -1034,12 +1034,11 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
       <span style="color:#166534;">완료 ${doneHw}</span>
       <span style="color:#92400e;">부분완료 ${partialHw}</span>
       <span style="color:#991b1b;">미완료 ${missHw}</span>
-      ${unsubmittedHw?`<span style="color:#6b7280;">미제출 ${unsubmittedHw}</span>`:''}
     </div>`:''}
   </div>`;
 
   // 날짜별 상세
-  const stIcons={2:'✓',1:'△',0:'✗','-1':'—'};
+  const stIcons={2:'✓',1:'△',0:'✗'};
   if(cmp){
     // ── 컴팩트 테이블 모드 (PDF용, 한 페이지 맞춤) ──
     html+=`<table style="width:100%;border-collapse:collapse;font-size:9px;font-family:Pretendard,sans-serif;">
@@ -1057,9 +1056,9 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
       const items=removedSet?itemsWithIdx.filter(it=>!removedSet.has(`${student}||${d}||${it._oi}`)):itemsWithIdx;
       const hasRate=rate!=null&&!isNaN(rate);
       const bg=di%2===0?'#fff':'#f9fafb';
-      const visible=items.filter(it=>{const st=isNone(it.status)?-1:it.status;return stLabel[st]!=null;});
+      const visible=items.filter(it=>!isNone(it.status));
       const hwParts=visible.map(it=>{
-        const st=isNone(it.status)?-1:it.status;
+        const st=it.status;
         return`<span style="color:${stColor[st]};white-space:nowrap;">${stIcons[st]}${esc(it.text)}</span>`;
       }).join('&nbsp; ');
       html+=`<tr style="background:${bg};border-bottom:1px solid #eee;">
@@ -1093,14 +1092,14 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
         </div>`;
 
       if(!isAbsent){
-        const visible=items.filter(it=>{const st=isNone(it.status)?-1:it.status;return stLabel[st]!=null;});
+        const visible=items.filter(it=>!isNone(it.status));
         if(visible.length){
           html+=`<div style="padding:8px 12px;display:flex;flex-direction:column;gap:2px;">`;
           visible.forEach(it=>{
-            const st=isNone(it.status)?-1:it.status;
+            const st=it.status;
             const showDel=interactive&&st!==2;
             html+=`<div style="display:flex;align-items:center;gap:6px;padding:2px 6px;border-radius:4px;background:#fff;">
-              <span style="flex:1;font-size:12px;color:${st===-1?'#9ca3af':'#333'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.text)}</span>
+              <span style="flex:1;font-size:12px;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.text)}</span>
               <span style="padding:0px 5px;border-radius:3px;font-size:10px;font-weight:700;color:${stColor[st]};background:${stBg[st]};flex-shrink:0;">${stLabel[st]}</span>
               ${showDel?`<button onclick="_stuRptRemoveItem('${student}||${d}||${it._oi}')" style="width:18px;height:18px;border-radius:50%;border:1px solid #fca5a5;background:#fef2f2;color:#ef4444;font-size:13px;font-weight:700;cursor:pointer;padding:0;line-height:16px;flex-shrink:0;" title="이 과제 제외">−</button>`:''}
             </div>`;
@@ -1162,18 +1161,47 @@ async function _attachStudentReportToView(student,dates,opts){
   if(btn){btn.textContent='⏳ 첨부 중...';btn.disabled=true;}
   else setBar('wait','⏳ 요약표 생성 중...');
   try{
-    const W=400;
+    const W=460;
     const wrap=document.createElement('div');
     wrap.style.cssText='position:fixed;left:-9999px;top:0;';
     document.body.appendChild(wrap);
     const container=document.createElement('div');
-    container.style.cssText=`width:${W}px;background:#fff;padding:20px 24px;box-sizing:border-box;font-family:Pretendard,sans-serif;`;
-    container.innerHTML=`<div style="text-align:center;margin-bottom:6px;">
-      <div style="font-size:14px;font-weight:800;color:#111;">숙제 이행률 요약표</div>
+    container.style.cssText=`width:${W}px;background:#fff;padding:16px 20px;box-sizing:border-box;font-family:Pretendard,sans-serif;`;
+    container.innerHTML=`<div style="text-align:center;margin-bottom:8px;">
+      <div style="font-size:15px;font-weight:800;color:#111;">숙제 이행률 요약표</div>
       <div style="font-size:10px;color:#888;margin-top:2px;">${shortD(dates[0])} ~ ${shortD(dates[dates.length-1])}</div>
     </div><div id="_stuRptAttach"></div>`;
     wrap.appendChild(container);
-    _renderStudentReport(student,dates[0],dates[dates.length-1],container.querySelector('#_stuRptAttach'),{compact:true,removedSet:opts?.removedSet});
+    // 카드 모드로 렌더링 (미리보기와 동일한 모습)
+    _renderStudentReport(student,dates[0],dates[dates.length-1],container.querySelector('#_stuRptAttach'),{removedSet:opts?.removedSet});
+    // 미완료 과제 섹션 추가
+    const resolvedMap=new Map();
+    dates.forEach(d=>{const rec=G.hwRec[`${student}||${d}`];(rec?.items||[]).forEach(it=>{
+      if(isCarryForDate(it.fromDate,d)&&it.ref&&!isNone(it.status)){const pv=resolvedMap.get(it.ref);if(pv==null||it.status>pv)resolvedMap.set(it.ref,it.status);}
+    });});
+    const inc=[];
+    dates.forEach(d=>{const rec=G.hwRec[`${student}||${d}`];
+      (rec?.items||[]).forEach(it=>{
+        if(isCarryForDate(it.fromDate,d)||isNone(it.status))return;
+        if(it.status===1){const r=resolvedMap.get(it.ref);if(!(r!=null&&r>=1))inc.push({text:it.text,status:1,date:d});}
+        else if(it.status===0){const r=resolvedMap.get(it.ref);if(r===2||r===1){}else inc.push({text:it.text,status:0,date:d});}
+      });
+    });
+    if(inc.length){
+      const stL={0:'미완료',1:'부분완료'};const stC={0:'#991b1b',1:'#92400e'};const stB={0:'#fee2e2',1:'#fef3c7'};
+      let incHtml=`<div style="margin-top:10px;border:1.5px solid #fca5a5;border-radius:8px;padding:10px 12px;background:#fff;">
+        <div style="font-size:12px;font-weight:800;color:#991b1b;margin-bottom:6px;">미완료 과제 <span style="padding:1px 7px;border-radius:8px;font-size:10px;background:#ef4444;color:#fff;">${inc.length}</span></div>`;
+      let ld='';
+      inc.forEach(it=>{
+        if(it.date!==ld){incHtml+=`<div style="font-size:9px;font-weight:700;color:#9ca3af;margin-top:${ld?'6':'0'}px;padding:1px 0;">${shortD(it.date)}</div>`;ld=it.date;}
+        incHtml+=`<div style="display:flex;align-items:center;gap:6px;padding:3px 8px;border-radius:5px;background:${stB[it.status]};margin-bottom:2px;">
+          <span style="font-size:10px;font-weight:700;color:${stC[it.status]};flex-shrink:0;">${stL[it.status]}</span>
+          <span style="font-size:11px;color:#333;">${esc(it.text)}</span>
+        </div>`;
+      });
+      incHtml+=`</div>`;
+      container.querySelector('#_stuRptAttach').insertAdjacentHTML('beforeend',incHtml);
+    }
     const canvas=await html2canvas(container,{scale:2,useCORS:true,backgroundColor:'#fff',width:W,scrollX:0,scrollY:0,windowWidth:W});
     document.body.removeChild(wrap);
     // A4 캔버스 생성 (리포트카드와 동일 비율)
@@ -1206,47 +1234,69 @@ async function _downloadStudentReportPdf(student,dates,removedSet){
   const btn=$$('stuRptDl');
   const origText=btn.textContent;btn.textContent='⏳ 생성 중...';btn.disabled=true;
   try{
-    const W=400;
+    const W=460;
     const wrap=document.createElement('div');
     wrap.style.cssText='position:fixed;left:-9999px;top:0;';
     document.body.appendChild(wrap);
 
     const container=document.createElement('div');
-    container.style.cssText=`width:${W}px;background:#fff;padding:20px 24px;box-sizing:border-box;font-family:Pretendard,sans-serif;`;
-    container.innerHTML=`<div style="text-align:center;margin-bottom:6px;">
-      <div style="font-size:14px;font-weight:800;color:#111;">숙제 이행률 요약표</div>
+    container.style.cssText=`width:${W}px;background:#fff;padding:16px 20px;box-sizing:border-box;font-family:Pretendard,sans-serif;`;
+    container.innerHTML=`<div style="text-align:center;margin-bottom:8px;">
+      <div style="font-size:15px;font-weight:800;color:#111;">숙제 이행률 요약표</div>
       <div style="font-size:10px;color:#888;margin-top:2px;">${shortD(dates[0])} ~ ${shortD(dates[dates.length-1])}</div>
-    </div><div id="_stuRptCapture"></div>
-    <div style="text-align:center;font-size:8px;color:#ccc;padding-top:8px;">Generated by 학습리포트</div>`;
+    </div><div id="_stuRptCapture"></div>`;
     wrap.appendChild(container);
-    _renderStudentReport(student,dates[0],dates[dates.length-1],container.querySelector('#_stuRptCapture'),{compact:true,removedSet:removedSet});
+    // 카드 모드로 렌더링 (미리보기와 동일한 모습)
+    _renderStudentReport(student,dates[0],dates[dates.length-1],container.querySelector('#_stuRptCapture'),{removedSet:removedSet});
+    // 미완료 과제 섹션 추가 (wing panel과 동일 내용)
+    const resolvedMap=new Map();
+    dates.forEach(d=>{const rec=G.hwRec[`${student}||${d}`];(rec?.items||[]).forEach(it=>{
+      if(isCarryForDate(it.fromDate,d)&&it.ref&&!isNone(it.status)){const pv=resolvedMap.get(it.ref);if(pv==null||it.status>pv)resolvedMap.set(it.ref,it.status);}
+    });});
+    const inc=[];
+    dates.forEach(d=>{const rec=G.hwRec[`${student}||${d}`];const les=G.lessons.find(l=>l.날짜===d);
+      (rec?.items||[]).forEach(it=>{
+        if(isCarryForDate(it.fromDate,d)||isNone(it.status))return;
+        if(it.status===1){const r=resolvedMap.get(it.ref);if(!(r!=null&&r>=1))inc.push({text:it.text,status:1,date:d,lesson:les});}
+        else if(it.status===0){const r=resolvedMap.get(it.ref);if(r===2||r===1){}else inc.push({text:it.text,status:0,date:d,lesson:les});}
+      });
+    });
+    if(inc.length){
+      const stL={0:'미완료',1:'부분완료'};const stC={0:'#991b1b',1:'#92400e'};const stB={0:'#fee2e2',1:'#fef3c7'};
+      let incHtml=`<div style="margin-top:10px;border:1.5px solid #fca5a5;border-radius:8px;padding:10px 12px;background:#fff;">
+        <div style="font-size:12px;font-weight:800;color:#991b1b;margin-bottom:6px;">미완료 과제 <span style="padding:1px 7px;border-radius:8px;font-size:10px;background:#ef4444;color:#fff;">${inc.length}</span></div>`;
+      let ld='';
+      inc.forEach(it=>{
+        if(it.date!==ld){incHtml+=`<div style="font-size:9px;font-weight:700;color:#9ca3af;margin-top:${ld?'6':'0'}px;padding:1px 0;">${shortD(it.date)}</div>`;ld=it.date;}
+        incHtml+=`<div style="display:flex;align-items:center;gap:6px;padding:3px 8px;border-radius:5px;background:${stB[it.status]};margin-bottom:2px;">
+          <span style="font-size:10px;font-weight:700;color:${stC[it.status]};flex-shrink:0;">${stL[it.status]}</span>
+          <span style="font-size:11px;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.text)}</span>
+        </div>`;
+      });
+      incHtml+=`</div>`;
+      container.querySelector('#_stuRptCapture').insertAdjacentHTML('beforeend',incHtml);
+    }
+    container.insertAdjacentHTML('beforeend',`<div style="text-align:center;font-size:8px;color:#ccc;padding-top:6px;">Generated by 학습리포트</div>`);
 
     const canvas=await html2canvas(container,{scale:2,useCORS:true,backgroundColor:'#fff',
       width:W,scrollX:0,scrollY:0,windowWidth:W});
     document.body.removeChild(wrap);
 
-    // A4 PDF (세로) — 한 페이지에 맞춤, 넘치면 분할
+    // A4 PDF (세로) — 한 페이지에 맞춤
     const{PDFDocument}=PDFLib;
     const pdfDoc=await PDFDocument.create();
     const pW=595.28,pH=841.89,margin=30;
     const contentW=pW-margin*2;
-    const scale=contentW/canvas.width;
     const contentH=pH-margin*2;
-    const pageImgH=contentH/scale;
-
-    const totalPages=Math.ceil(canvas.height/pageImgH);
-    for(let p=0;p<totalPages;p++){
-      const srcY=p*pageImgH;
-      const srcH=Math.min(pageImgH,canvas.height-srcY);
-      const sliceCv=document.createElement('canvas');
-      sliceCv.width=canvas.width;sliceCv.height=srcH;
-      sliceCv.getContext('2d').drawImage(canvas,0,srcY,canvas.width,srcH,0,0,canvas.width,srcH);
-      const pngBytes=dataUrlToBytes(sliceCv.toDataURL('image/png'));
-      const pngImg=await pdfDoc.embedPng(pngBytes);
-      const dw=contentW,dh=srcH*scale;
-      const page=pdfDoc.addPage([pW,pH]);
-      page.drawImage(pngImg,{x:margin,y:pH-margin-dh,width:dw,height:dh});
-    }
+    // 전체를 한 페이지에 맞추도록 축소
+    const scaleW=contentW/canvas.width;
+    const scaleH=contentH/canvas.height;
+    const scale=Math.min(scaleW,scaleH,1);
+    const dw=canvas.width*scale,dh=canvas.height*scale;
+    const pngBytes=dataUrlToBytes(canvas.toDataURL('image/png'));
+    const pngImg=await pdfDoc.embedPng(pngBytes);
+    const page=pdfDoc.addPage([pW,pH]);
+    page.drawImage(pngImg,{x:margin,y:pH-margin-dh,width:dw,height:dh});
 
     const a=document.createElement('a');
     a.href=URL.createObjectURL(new Blob([await pdfDoc.save()],{type:'application/pdf'}));
