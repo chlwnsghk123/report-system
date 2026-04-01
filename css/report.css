@@ -28,12 +28,12 @@
 .rc.color-mode .cd.active{fill:#dc2626;}
 .rc.color-mode .clbl{fill:#dc2626;}
 .rc.color-mode .clbl.past{fill:#fca5a5;}
-/* 진도: 배경 흰색, 포인트 녹색 */
+/* 진도: 배경 흰색, 현재 진도만 빨간 포인트 */
 .rc.color-mode .prog-card{background:#fff;}
-.rc.color-mode .prog-card.current{border-left-color:#15803d;background:#fff;}
-.rc.color-mode .prog-card.current .prog-label{color:#15803d;}
+.rc.color-mode .prog-card.current{border-left-color:#dc2626;background:#fff;}
+.rc.color-mode .prog-card.current .prog-label{color:#dc2626;}
 .rc.color-mode .prog-card.prev{border-left-color:#d1d5db;}
-.rc.color-mode .prog-book{background:#dcfce7;color:#15803d;}
+.rc.color-mode .prog-book{background:#e5e5e5;color:#333;}
 /* 저번 과제: 배경 흰색, 상태 색만 확실히 */
 .rc.color-mode .hw-li{background:#fff;}
 .rc.color-mode .hw-li.s2{background:#fff;border-left:3px solid #22c55e;}
