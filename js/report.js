@@ -17,13 +17,16 @@ function updateRateFace(){
   const imgs=MASCOT_IMGS[tier];
   if(!imgs||!imgs.length){el.innerHTML='';el.style.display='none';return;}
   el.style.display='';
-  // 학생별·점수대별 저장된 마스코트 확인
+  // 학생별·점수대별 저장된 마스코트 확인 (선택한 경우에만 표시)
   let idx;
   const saved=G.mascotChoices[G.selStudent];
   if(saved&&saved[tier]!=null&&saved[tier]<imgs.length){
     idx=saved[tier];
   }else{
-    idx=Math.floor(Math.random()*imgs.length);
+    // 선택하지 않은 경우 표시하지 않음
+    el.innerHTML='';el.style.display='none';
+    G.selectedMascot=null;
+    return;
   }
   G.selectedMascot={tier,idx};
   el.dataset.mascotIdx=idx;

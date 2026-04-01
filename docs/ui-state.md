@@ -90,7 +90,7 @@ G = {
   totalQ: 5,
 
   // 토글 상태
-  showMini: false, showComment: false,
+  showMini: false, showComment: false, colorMode: false,
 
   // 마스코트 선택
   mascotChoices: {},   // (레거시) DB 호환용, 실사용 안 함
@@ -124,5 +124,5 @@ G = {
 
 ## IndexedDB
 - DB: `reportApp4`, Store: `data`
-- 키: `'appData'`(lessons/students/rates/scores/corrects/wrong/hwRec/memos/attend/tabData/fileName/mascotChoices), `'session'`(selDate·selStudent·showMini·showComment·currentView), `'studentPdfs'`(학생별 PDF bytes/name/pageCount/isPng)
+- 키: `'appData'`(lessons/students/rates/scores/corrects/wrong/hwRec/memos/attend/tabData/fileName/mascotChoices), `'session'`(selDate·selStudent·showMini·showComment·colorMode·currentView), `'studentPdfs'`(학생별 PDF bytes/name/pageCount/isPng)
 - 참고: IndexedDB에 저장되는 키는 `fileName` (G.excelFileName 값을 저장)

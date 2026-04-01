@@ -150,7 +150,7 @@ rebuildGraph()
 
 ```
 PDF 첨부 흐름:
-  showPdfAttachMenu() → "이 학생" / "모든 학생" 선택
+  inlinePdfAttach() → _showInlineMenu() → "이 학생" / "모든 학생" / "이행률 요약표" 선택
   → handlePdfInput() → _processPdfFile(file)
     → 첫 페이지만 추출 (pdfjsLib로 렌더, 상5%·하6% 크롭)
     → PNG bytes로 저장 (용량 최적화)

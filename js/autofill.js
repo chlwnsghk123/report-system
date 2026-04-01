@@ -109,14 +109,14 @@ function updateNoticeWithCarry(){
   const baseHtml=baseHw.map(t=>{const d=dis.has(di);di++;return d?'':`<div class="next-hw-li">${esc(t)}</div>`;}).join('');
   const extraHtml=extraHw.map(t=>{const d=dis.has(di);di++;return d?'':`<div class="next-hw-li"><span class="carry-tag">(추가)</span>${esc(t)}</div>`;}).join('');
   const carryHtml=unfinished.map(u=>
-    `<div class="next-hw-li"><span class="carry-tag">${u.isCarry?'(전)':'(미완)'}</span>${esc(u.text)}</div>`
+    `<div class="next-hw-li"><span class="carry-tag">(전)</span>${esc(u.text)}</div>`
   ).join('');
   const allBase=baseHw.length+extraHw.length;
   const total=allBase+unfinished.length;
   if(total>3&&unfinished.length>0){
     list.className='next-hw-list compact';
     list.innerHTML=`<div class="hw-col"><div class="hw-col-label">본과제</div>${baseHtml}${extraHtml}</div>`
-      +`<div class="hw-col"><div class="hw-col-label">미완료</div>${carryHtml}</div>`;
+      +`<div class="hw-col"><div class="hw-col-label">이월과제</div>${carryHtml}</div>`;
   }else{
     list.className='next-hw-list';
     list.innerHTML=baseHtml+extraHtml+carryHtml;
@@ -164,7 +164,7 @@ function renderCurHwList(){
   prevIncomplete.forEach(t=>{
     const dis=G.hwDisabled.has(idx);
     html+=`<div class="cur-hw-item carry${dis?' disabled':''}" onclick="toggleHwDisabled(${idx})">
-      <span class="cur-hw-badge">(미완)</span><span class="cur-hw-text">${esc(t)}</span>
+      <span class="cur-hw-badge">(전)</span><span class="cur-hw-text">${esc(t)}</span>
       <span class="cur-hw-toggle">${dis?'OFF':'ON'}</span>
     </div>`;idx++;
   });
