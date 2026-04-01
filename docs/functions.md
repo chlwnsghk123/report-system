@@ -4,6 +4,8 @@
 | 함수/상수 | 역할 |
 |---|---|
 | `$$` | `document.getElementById` 단축 헬퍼 |
+| `isNone(s)` | 상태값 판별 (`''`, `-1`, `null`, `undefined` → 없음) |
+| `genLessonId()` | 10자리 난수 수업 ID 생성 |
 | `G` | 전역 상태 객체 |
 | `DB`, `STORE` | IndexedDB 이름 상수 |
 
@@ -109,7 +111,14 @@
 | `_openModal(id)` | 모달 열기 공통 (배경 스크롤 잠금) |
 | `_closeModal(id)` | 모달 닫기 공통 (스크롤 복원) |
 | `_showModalToast(modalId,msg)` | 모달 내 토스트 메시지 표시 |
+| `toggleColorMode()` | 다크/라이트(흑백/컬러) 모드 토글 |
 | `toggleSec(type)` | 미니테스트/코멘트 토글 |
+| `_updateZoomLabel()` | 줌 퍼센트 라벨 갱신 |
+| `_closeContextMenu()` | 커스텀 컨텍스트 메뉴 닫기 |
+| `_closeHoverMenus()` | 학생 사이드바 호버 메뉴 닫기 |
+| `_autoGrowTextarea(el)` | 텍스트에리어 높이 자동 확장 |
+| `focusLessonCard(idx)` | 수업설정 모달에서 특정 레슨 카드에 포커싱 |
+| `openStudentReportFor(name)` | 사이드바에서 학생별 이행률 요약표 바로 열기 |
 
 ## js/session.js
 | 함수 | 역할 |
@@ -143,6 +152,7 @@
 | `renderExtraHwEditor()` | 패널 학생별 추가 과제 에디터 렌더 (수정/삭제 가능) |
 | `autoFillCommon()` | 날짜 기준 공통 필드 자동채우기 |
 | `getPrevExtraHw(student,date)` | 이전 날짜의 학생별 추가과제 텍스트 배열 반환 |
+| `_prevDateFor(date)` | 특정 날짜 기준 직전 수업 날짜 반환 |
 | `autoFillAll()` | 학생+날짜 기준 전체 자동채우기 (hwRec.items 우선 사용, 없으면 직접 구성) |
 
 ## js/report.js
@@ -157,6 +167,7 @@
 | `addExtraHw()` | 이번 주차 추가 과제 항목 추가 (G.extraHw) |
 | `removeExtraHw(idx)` | 이번 주차 추가 과제 항목 삭제 |
 | `updateExtraHwText(idx,val)` | 이번 주차 추가 과제 텍스트 수정 |
+| `autoCalcRate()` | 과제 상태에서 이행률 자동 계산 (완료=100%, 부분=50%, 미완료=0%) |
 | `autoCalcRate()` | 과제 상태에서 이행률 자동 계산 (완료=100%, 부분=50%, 미완료=0%) |
 | `onRateManual()` | 이행률 수동입력 핸들러 |
 | `hwBtnLabel(s)` | 상태 → 버튼 라벨 문자열 반환 |
@@ -183,15 +194,18 @@
 | `_syncGlobalPdf()` | 현재 학생 기준 전역 pdfCanvases/pdfPageCount 동기화 |
 | `handlePdfInput(input)` | PDF 파일 입력 핸들러 (학생별/전체 분기) |
 | `inlinePdfAttach()` | 리포트 옆 + 버튼 핸들러 (항상 메뉴 표시: 이 학생에게만/모든 학생에게/이행률 요약표) |
+| `_showInlineMenu()` | PDF 첨부 인라인 메뉴 표시 (내부 함수) |
+| `_closePdfMenu()` | PDF 첨부 메뉴 닫기 (내부 함수) |
+| `_closePdfMenuOnClick(e)` | 외부 클릭 시 PDF 메뉴 닫기 (내부 함수) |
 | `_attachSummaryForCurrent()` | + 버튼에서 현재 학생의 이행률 요약표를 바로 첨부 |
 | `attachPdfForStudent(name)` | 특정 학생에게 PDF 직접 첨부 (기존 PDF 있으면 교체 모드) |
-| `openStudentReportFor(name)` | 사이드바에서 학생별 이행률 요약표 바로 열기 |
 | `_attachStudentReportToView(student,dates)` | 이행률 요약표를 PNG로 캡처하여 학생 PDF로 첨부 |
 | `removeStudentPdf(student,idx)` | 학생별 PDF 개별 삭제 (confirm) |
 | `removeAllStudentPdfs(student)` | 학생별 PDF 전체 삭제 (confirm) |
 | `_savePdfData()` | 학생별 PDF bytes → IndexedDB 저장 |
 | `restorePdfData()` | IndexedDB → 학생별 PDF 복원 (PNG/레거시 PDF 지원) |
 | `renderSpread()` | 현재 spread 페이지 표시 업데이트 |
+| `_addPdfDelBtn(slot,studentName)` | PDF 슬롯에 삭제 버튼 추가 (내부 함수) |
 | `drawPdfPrev(tgt,src)` | PDF 캔버스 → 미리보기 캔버스 그리기 |
 | `prevSpread()` | 이전 spread 이동 |
 | `nextSpread()` | 다음 spread 이동 |
