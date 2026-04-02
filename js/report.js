@@ -212,6 +212,8 @@ function cycleHwStatus(i){
   // 좌패널에서 변경 → 리포트 override 제거
   delete G.reportEdits.rHwList;
   delete G.reportEdits.rNoticeList;
+  // 이월/저번주차 과제 상태에 따라 이번주차 과제 ON/OFF 자동 동기화
+  autoSyncHwDisabled();
   updateHwDisplay();updateHwBadge();rebuildGraph();
   updateNoticeWithCarry();
   syncHwRecItems(G.selStudent,G.selDate);

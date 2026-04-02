@@ -86,6 +86,30 @@ function _prevDateFor(date){
   return idx>0?G.lessons[idx-1].날짜:null;
 }
 
+// ─── 저번주차/이월 과제 상태에 따라 이번주차 과제 이월 항목 자동 ON/OFF ───
+function autoSyncHwDisabled(){
+  const cur=getCurL();if(!cur)return;
+  const hwKeys=getLessonHwKeys(cur);
+  const hw=hwKeys.map(k=>cur[k]||'').filter(x=>x);
+  const extra=(G.extraHw||[]).map(it=>it.text).filter(x=>x);
+  if(!G.hwDisabled)G.hwDisabled=new Set();
+  let idx=hw.length+extra.length;
+  // prevIncomplete (직전 수업 미완료)
+  G.hwItems.forEach((_,i)=>{
+    if(isCarryItem(G.hwItemRefs[i]?.fromDate))return;
+    const st=G.hwStatus[i];
+    if(!isNone(st)&&(st===0||st===1)){G.hwDisabled.delete(idx);idx++;}
+  });
+  // carry (이월 과제): 완료/없음→OFF, 미완료/부분완료→ON
+  G.hwItems.forEach((_,i)=>{
+    if(!isCarryItem(G.hwItemRefs[i]?.fromDate))return;
+    const st=G.hwStatus[i];
+    if(st===2||isNone(st))G.hwDisabled.add(idx);
+    else G.hwDisabled.delete(idx);
+    idx++;
+  });
+}
+
 // ─── 이번 주차 과제 + 추가과제 + 미완료 캐리 반영 (리포트카드) ───
 function updateNoticeWithCarry(){
   const cur=getCurL();if(!cur)return;
@@ -93,27 +117,29 @@ function updateNoticeWithCarry(){
   const baseHw=hwKeys.map(k=>cur[k]||'').filter(x=>x);
   // 학생별 추가 과제
   const extraHw=(G.extraHw||[]).map(it=>it.text).filter(x=>x);
-  // 미완료 과제 수집 (직전 수업 + 이월 모두 포함)
-  const unfinished=[];
+  // renderCurHwList와 동일 순서로 구성 (인덱스 일치)
+  const prevIncomplete=[];
+  const carryItems=[];
   G.hwItems.forEach((text,i)=>{
     const st=G.hwStatus[i];
-    if(!isNone(st)&&(st===0||st===1)){
-      const isCarry=isCarryItem(G.hwItemRefs[i]?.fromDate);
-      unfinished.push({text,isCarry});
+    if(isCarryItem(G.hwItemRefs[i]?.fromDate)){
+      carryItems.push({text,st});
+    } else if(!isNone(st)&&(st===0||st===1)){
+      prevIncomplete.push({text});
     }
   });
-  // disabled 과제 필터링
+  // disabled 과제 필터링 (모든 항목에 적용)
   const dis=G.hwDisabled||new Set();
   let di=0;
   const list=$$('rNoticeList');
-  const baseHtml=baseHw.map(t=>{const d=dis.has(di);di++;return d?'':`<div class="next-hw-li">${esc(t)}</div>`;}).join('');
-  const extraHtml=extraHw.map(t=>{const d=dis.has(di);di++;return d?'':`<div class="next-hw-li"><span class="carry-tag">(추가)</span>${esc(t)}</div>`;}).join('');
-  const carryHtml=unfinished.map(u=>
-    `<div class="next-hw-li"><span class="carry-tag">(전)</span>${esc(u.text)}</div>`
-  ).join('');
-  const allBase=baseHw.length+extraHw.length;
-  const total=allBase+unfinished.length;
-  if(total>3&&unfinished.length>0){
+  let baseCount=0;
+  const baseHtml=baseHw.map(t=>{const d=dis.has(di);di++;if(d)return '';baseCount++;return `<div class="next-hw-li">${esc(t)}</div>`;}).join('');
+  const extraHtml=extraHw.map(t=>{const d=dis.has(di);di++;if(d)return '';baseCount++;return `<div class="next-hw-li"><span class="carry-tag">(추가)</span>${esc(t)}</div>`;}).join('');
+  let carryCount=0;let carryHtml='';
+  prevIncomplete.forEach(u=>{const d=dis.has(di);di++;if(!d){carryCount++;carryHtml+=`<div class="next-hw-li"><span class="carry-tag">(전)</span>${esc(u.text)}</div>`;}});
+  carryItems.forEach(u=>{const d=dis.has(di);di++;if(!d&&!isNone(u.st)&&(u.st===0||u.st===1)){carryCount++;carryHtml+=`<div class="next-hw-li"><span class="carry-tag">(전)</span>${esc(u.text)}</div>`;}});
+  const total=baseCount+carryCount;
+  if(total>3&&carryCount>0){
     list.className='next-hw-list compact';
     list.innerHTML=`<div class="hw-col"><div class="hw-col-label">본과제</div>${baseHtml}${extraHtml}</div>`
       +`<div class="hw-col"><div class="hw-col-label">이월과제</div>${carryHtml}</div>`;

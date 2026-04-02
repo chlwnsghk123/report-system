@@ -146,7 +146,8 @@
 | `buildAllCarryover()` | 엑셀 로드 후 전체 날짜·학생 순회하며 미완료/부분완료 항목의 이월 레코드 일괄 생성 |
 | `flushPropagations()` | G.pendingPropagations 큐의 보류된 이월 전파를 일괄 적용 (세션 전환/저장 시 호출) |
 | `computeCarryover(student,date)` | 직전 날짜 hwRec에서 미완료/부분완료 항목 수집 → 캐리오버 배열 반환 |
-| `updateNoticeWithCarry()` | 이번 주차 과제 + 추가과제 + 미완료 캐리오버 → 리포트카드 반영 |
+| `autoSyncHwDisabled()` | 저번주차/이월 과제 상태에 따라 이번주차 과제 이월 항목 자동 ON/OFF 동기화 |
+| `updateNoticeWithCarry()` | 이번 주차 과제 + 추가과제 + 미완료 캐리오버 → 리포트카드 반영 (disabled 항목 전체 필터링) |
 | `renderCurHwList()` | 패널 이번 주차 과제 목록 렌더 (레슨+추가+이월, Enable/Disable 토글) |
 | `toggleHwDisabled(idx)` | 이번 주차 과제 Enable/Disable 토글 |
 | `renderExtraHwEditor()` | 패널 학생별 추가 과제 에디터 렌더 (수정/삭제 가능) |
