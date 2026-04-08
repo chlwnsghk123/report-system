@@ -200,7 +200,7 @@ function renderLessonCards(){
     // 값이 있는 과제만 표시
     const hwKeys=getLessonHwKeys(l);
     const visibleHw=hwKeys.filter(k=>(l[k]||'').trim());
-    const showKeys=visibleHw.length?visibleHw:[hwKeys[0]]; // 최소 1개
+    const showKeys=isFocused?hwKeys:(visibleHw.length?visibleHw:[hwKeys[0]]); // 포커싱 시 전체, 아닐 때 최소 1개
     const hwHtml=showKeys.map((k,hi)=>{
       const realIdx=hwKeys.indexOf(k);
       return`<div class="lc-hw-row">
@@ -283,6 +283,7 @@ function addLessonHw(idx){
   const keys=getLessonHwKeys(l);
   const newKey=`과제${keys.length+1}`;
   l[newKey]='';
+  G._lessonFocus=idx; // 카드 포커싱하여 빈 과제 필드도 표시
   renderLessonCards();saveAppData();
 }
 function removeLessonHw(idx,hwIdx){
