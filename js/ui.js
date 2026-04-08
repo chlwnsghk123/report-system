@@ -102,6 +102,12 @@ function openLessonModal(){
 function closeLessonModal(){
   G._lessonFocus=-1; // 포커싱 초기화
   _closeModal('lessonModalOverlay');
+  // 수업설정 변경 후 과제 목록 재구성을 위해 캐시 무효화
+  G.tabData={};
+  for(const key of Object.keys(G.hwRec)){
+    const rec=G.hwRec[key];
+    if(rec)delete rec.items;
+  }
 }
 
 // ─── 뷰 탭 (상단) ───

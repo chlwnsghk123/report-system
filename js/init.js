@@ -96,7 +96,12 @@ window.onload=async()=>{
   initCE();initReportListeners();
   loadMascotImages();
   initPanelResize();
-  // PDF 데이터 복원
-  await restorePdfData();
+  // PDF 데이터 초기화 (매 로드 시 리셋)
+  G.studentPdfs={};
+  try{await dbSet('studentPdfs',null);}catch(e){}
   // 항상 새로 시작 — 이전 세션 자동 복원 없음
+  // 미저장 상태에서 사이트 닫기 경고
+  window.addEventListener('beforeunload',e=>{
+    if(G.unsaved){e.preventDefault();}
+  });
 };
