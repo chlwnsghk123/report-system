@@ -281,46 +281,46 @@ function autoFillAll(){
     $$('inputComment').value='';fp('commentBody','inputComment');
     $$('inputWrong').value=G.wrong[G.selStudent]?.[G.selDate]||'';
     updateWrongTags($$('inputWrong').value);
-    // hwRec에 이미 items가 구성되어 있으면 그대로 사용 (parseWB에서 구축)
+    // hwRec.items는 캐시이지만, 직전 수업의 base 과제가 추가/변경되었을 수 있으므로
+    // 항상 prev hw + computeCarryover로 재구성하고 기존 status는 ref로 매칭하여 보존
     const key=G.selDate?`${G.selStudent}||${G.selDate}`:null;
     const hwR=key?G.hwRec[key]:null;
-    if(hwR&&hwR.items&&hwR.items.length){
-      G.hwItems=hwR.items.map(it=>it.text);
-      G.hwItemRefs=hwR.items.map(it=>({ref:it.ref||'',fromDate:it.fromDate||''}));
-      G.hwStatus=hwR.items.map(it=>it.status??-1);
-    }else{
-      // hwRec에 items가 없으면 직접 구성
-      const prev=getPrevL();
-      let allItems=[];
-      if(prev){
-        const prevHwKeys=getLessonHwKeys(prev);
-        prevHwKeys.forEach(k=>{
-          const text=prev[k]||'';if(!text)return;
-          allItems.push({text,ref:`${prev.id}-${k}`,fromDate:prev.날짜});
-        });
-      }
-      const prevExtra=getPrevExtraHw(G.selStudent,G.selDate);
-      const prev2=getPrevL();
-      prevExtra.forEach((text,ei)=>{
-        if(!text)return;
-        allItems.push({text,ref:prev2?`${prev2.id}-추가과제${ei+1}`:'',fromDate:prev2?.날짜||''});
-      });
-      // 캐리오버 항목 (직전 날짜에서 미완료인 것)
-      const carryItems=computeCarryover(G.selStudent,G.selDate);
-      carryItems.forEach(c=>allItems.push({text:c.text,ref:c.ref,fromDate:c.fromDate}));
-      G.hwItems=allItems.map(it=>it.text);
-      G.hwItemRefs=allItems.map(it=>({ref:it.ref,fromDate:it.fromDate}));
-      // 레거시 상태 로드
-      G.hwStatus=allItems.map((_,i)=>{
-        const st=hwR?.[`과제${i+1}_상태`];
-        return st!=null?stFromExcel(st):-1;
+    const existingStatus=new Map();
+    if(hwR?.items){
+      hwR.items.forEach(it=>{if(it.ref)existingStatus.set(it.ref,it.status??-1);});
+    }
+    const prev=getPrevL();
+    let allItems=[];
+    if(prev){
+      const prevHwKeys=getLessonHwKeys(prev);
+      prevHwKeys.forEach(k=>{
+        const text=prev[k]||'';if(!text)return;
+        allItems.push({text,ref:`${prev.id}-${k}`,fromDate:prev.날짜});
       });
     }
+    const prevExtra=getPrevExtraHw(G.selStudent,G.selDate);
+    prevExtra.forEach((text,ei)=>{
+      if(!text)return;
+      allItems.push({text,ref:prev?`${prev.id}-추가과제${ei+1}`:'',fromDate:prev?.날짜||''});
+    });
+    // 캐리오버 항목 (직전 날짜에서 미완료인 것) — 중복 ref 제외
+    const carryItems=computeCarryover(G.selStudent,G.selDate);
+    carryItems.forEach(c=>{
+      if(c.ref&&allItems.some(it=>it.ref===c.ref))return;
+      allItems.push({text:c.text,ref:c.ref,fromDate:c.fromDate});
+    });
+    G.hwItems=allItems.map(it=>it.text);
+    G.hwItemRefs=allItems.map(it=>({ref:it.ref,fromDate:it.fromDate}));
+    G.hwStatus=allItems.map(it=>{
+      if(it.ref&&existingStatus.has(it.ref))return existingStatus.get(it.ref);
+      return -1;
+    });
     // 이번 날짜의 학생별 추가 과제 로드
     G.extraHw=(hwR?.extraHw||[]).map(it=>({...it}));
     setAuto('inputRate',G.rates[G.selStudent]?.[G.selDate]??'');G.hwRateManual=null;
     renderHwEditor();updateHwDisplay();
     renderExtraHwEditor();updateNoticeWithCarry();
+    syncHwRecItems(G.selStudent,G.selDate);
   }
   const rv=$$('inputRate').value;
   const isFirst=G.lessons.length>0&&G.selDate===G.lessons[0].날짜;
