@@ -218,6 +218,18 @@ function parseWB(wb){
         ref=isDate?'':refOrDate;
         fromDate=isDate?refOrDate:'';
       }
+      // ─── 마이그레이션: 구 형식 추가과제 ref → 신 형식 (텍스트 기반) ───
+      // "L001-추가과제2" → "L001@x@심화문제집"
+      // 학생의 extraHw에서 텍스트를 찾아서 ref에 박아 넣음
+      const legacy=parseHwRef(ref);
+      if(legacy?.type==='extra-legacy'){
+        const srcLesson=G.lessons.find(l=>l.id===legacy.lessonId);
+        if(srcLesson){
+          const srcRec=G.hwRec[`${name}||${srcLesson.날짜}`];
+          const t=srcRec?.extraHw?.[legacy.ei]?.text;
+          if(t)ref=buildExtraRef(legacy.lessonId,t);
+        }
+      }
       const key=`${name}||${checkDate}`;
       const rec=G.hwRec[key]=G.hwRec[key]||{이행률:null};
       rec.items=rec.items||[];
@@ -225,21 +237,18 @@ function parseWB(wb){
     });
   }
 
-  // ─── ref → 과제 텍스트 해석 헬퍼 ───
+  // ─── ref → 과제 텍스트 해석 헬퍼 (신/구 형식 모두 지원) ───
   function _resolveRefText(ref,studentName){
-    if(!ref)return'';
-    const dashIdx=ref.lastIndexOf('-');
-    if(dashIdx<0)return'';
-    const lessonId=ref.slice(0,dashIdx);
-    const hwKey=ref.slice(dashIdx+1);
-    const srcLesson=G.lessons.find(l=>l.id===lessonId);
+    const p=parseHwRef(ref);
+    if(!p)return'';
+    const srcLesson=G.lessons.find(l=>l.id===p.lessonId);
     if(!srcLesson)return'';
-    if(hwKey.startsWith('추가과제')){
-      const ei=parseInt(hwKey.replace('추가과제',''))-1;
+    if(p.type==='extra')return p.text;
+    if(p.type==='extra-legacy'){
       const srcRec=G.hwRec[`${studentName}||${srcLesson.날짜}`];
-      return srcRec?.extraHw?.[ei]?.text||'';
+      return srcRec?.extraHw?.[p.ei]?.text||'';
     }
-    return srcLesson[hwKey]||'';
+    return srcLesson[p.hwKey]||'';
   }
 
   // ─── hwRec items 배열 재구성 (base + carry 병합) ───
@@ -259,27 +268,24 @@ function parseWB(wb){
         const ref=`${prevLesson.id}-${k}`;
         return{text,status,ref,fromDate:prevLesson.날짜};
       }).filter(it=>it.text);
-      // 이전 날짜의 학생별 추가과제도 base로 포함
+      // 이전 날짜의 학생별 추가과제도 base로 포함 (신 형식 ref: 텍스트 기반)
       const prevDateKey=`${name}||${prevLesson.날짜}`;
       const prevRec=G.hwRec[prevDateKey];
       if(prevRec?.extraHw){
         const extraBaseStart=baseItems.length;
         prevRec.extraHw.forEach((ex,ei)=>{
           const status=stFromExcel(rec[`과제${extraBaseStart+ei+1}_상태`]??'');
-          const ref=`${prevLesson.id}-추가과제${ei+1}`;
+          const ref=buildExtraRef(prevLesson.id,ex.text);
           baseItems.push({text:ex.text,status,ref,fromDate:prevLesson.날짜});
         });
       }
       const carryItems=(rec.items||[]).filter(it=>isCarryForDate(it.fromDate,date));
-      // carry 텍스트가 없으면 ref에서 해석
+      // carry 텍스트가 없으면 ref에서 해석, fromDate도 ref에서 복원
       carryItems.forEach(it=>{
-        if(!it.text&&it.ref){
-          it.text=_resolveRefText(it.ref,name);
-          // ref에서 fromDate도 채움
-          if(!it.fromDate&&it.ref){
-            const di=it.ref.lastIndexOf('-');
-            if(di>0){const lid=it.ref.slice(0,di);const sl=G.lessons.find(l=>l.id===lid);if(sl)it.fromDate=sl.날짜;}
-          }
+        if(!it.text&&it.ref)it.text=_resolveRefText(it.ref,name);
+        if(!it.fromDate&&it.ref){
+          const p=parseHwRef(it.ref);
+          if(p){const sl=G.lessons.find(l=>l.id===p.lessonId);if(sl)it.fromDate=sl.날짜;}
         }
       });
       rec.items=[...baseItems,...carryItems];

@@ -144,6 +144,9 @@ function renderHwEditor(){
 function addExtraHw(){
   const input=$$('extraHwInput');if(!input)return;
   const text=input.value.trim();if(!text)return;
+  // 같은 학생의 같은 회차에 동일 텍스트 추가과제 중복 방지 (silent dedupe)
+  // ref가 텍스트 기반이라 중복이 생기면 ref 충돌이 발생함
+  if((G.extraHw||[]).some(it=>it.text===text)){input.value='';return;}
   G.extraHw.push({text});
   input.value='';
   renderExtraHwEditor();updateNoticeWithCarry();

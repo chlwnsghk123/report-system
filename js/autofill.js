@@ -1,17 +1,17 @@
 // ─── ref → 텍스트·출제일 해석 (이월 전파용) ───
+// 신 형식 추가과제는 ref 자체에 텍스트가 박혀있어 student 인자 없이도 해석됨
+// 구 형식 추가과제(extra-legacy)만 student의 hwRec.extraHw 조회 필요
 function _resolveCarryRef(ref,student){
-  if(!ref)return{text:'',fromDate:''};
-  const di=ref.lastIndexOf('-');
-  if(di<0)return{text:'',fromDate:''};
-  const lessonId=ref.slice(0,di),hwKey=ref.slice(di+1);
-  const src=G.lessons.find(l=>l.id===lessonId);
+  const p=parseHwRef(ref);
+  if(!p)return{text:'',fromDate:''};
+  const src=G.lessons.find(l=>l.id===p.lessonId);
   if(!src)return{text:'',fromDate:''};
-  if(hwKey.startsWith('추가과제')){
-    const ei=parseInt(hwKey.replace('추가과제',''))-1;
+  if(p.type==='extra')return{text:p.text,fromDate:src.날짜};
+  if(p.type==='extra-legacy'){
     const rec=G.hwRec[`${student}||${src.날짜}`];
-    return{text:rec?.extraHw?.[ei]?.text||'',fromDate:src.날짜};
+    return{text:rec?.extraHw?.[p.ei]?.text||'',fromDate:src.날짜};
   }
-  return{text:src[hwKey]||'',fromDate:src.날짜};
+  return{text:src[p.hwKey]||'',fromDate:src.날짜};
 }
 
 // ─── 이월 전파: status 변경 시 미래 날짜 hwRec 갱신 ───
@@ -299,9 +299,10 @@ function autoFillAll(){
       });
     }
     const prevExtra=getPrevExtraHw(G.selStudent,G.selDate);
-    prevExtra.forEach((text,ei)=>{
+    prevExtra.forEach(text=>{
       if(!text)return;
-      allItems.push({text,ref:prev?`${prev.id}-추가과제${ei+1}`:'',fromDate:prev?.날짜||''});
+      // 신 형식: 텍스트 기반 ref (인덱스 흔들림 없음)
+      allItems.push({text,ref:prev?buildExtraRef(prev.id,text):'',fromDate:prev?.날짜||''});
     });
     // 캐리오버 항목 (직전 날짜에서 미완료인 것) — 중복 ref 제외
     const carryItems=computeCarryover(G.selStudent,G.selDate);
