@@ -108,6 +108,8 @@ function closeLessonModal(){
     const rec=G.hwRec[key];
     if(rec)delete rec.items;
   }
+  // 무효화 후 즉시 재빌드 — prev items가 사라지면 이월 carry가 누락됨
+  if(G.lessons.length)rebuildAllHwItems();
 }
 
 // ─── 뷰 탭 (상단) ───
