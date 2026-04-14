@@ -311,8 +311,12 @@ function autoFillAll(){
     });
     G.hwItems=allItems.map(it=>it.text);
     G.hwItemRefs=allItems.map(it=>({ref:it.ref,fromDate:it.fromDate}));
-    G.hwStatus=allItems.map(it=>{
+    G.hwStatus=allItems.map((it,i)=>{
+      // 1순위: rec.items의 ref 매칭으로 status 복원
       if(it.ref&&existingStatus.has(it.ref))return existingStatus.get(it.ref);
+      // 2순위: 레거시 과제N_상태 (rec.items가 무효화된 경우 — 수업설정 모달 닫은 직후 등)
+      const st=hwR?.[`과제${i+1}_상태`];
+      if(st!=null)return stFromExcel(st);
       return -1;
     });
     // 이번 날짜의 학생별 추가 과제 로드
