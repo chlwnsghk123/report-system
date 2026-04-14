@@ -872,17 +872,12 @@ function dlStudentReport(preselect){
     const student=$$('stuRptStudent').value;
     const s=$$('stuRptStart').value,e=$$('stuRptEnd').value;
     const dates=G.lessons.filter(l=>l.날짜>=s&&l.날짜<=e).map(l=>l.날짜).filter(d=>G.attend[student]?.[d]!==-1);
-    // 미완료 수집 (resolvedMap과 동일 로직)
-    const rMap=new Map();
-    dates.forEach(d=>{const rec=G.hwRec[`${student}||${d}`];(rec?.items||[]).forEach(it=>{
-      if(isCarryForDate(it.fromDate,d)&&it.ref&&!isNone(it.status)){const pv=rMap.get(it.ref);if(pv==null||it.status>pv)rMap.set(it.ref,it.status);}
-    });});
+    // 미완료 수집 — 모든 미완료/부분완료 과제를 그대로 표시
     const inc=[];
     dates.forEach(d=>{const rec=G.hwRec[`${student}||${d}`];const les=G.lessons.find(l=>l.날짜===d);
       (rec?.items||[]).forEach(it=>{
         if(isCarryForDate(it.fromDate,d)||isNone(it.status))return;
-        if(it.status===1){const r=rMap.get(it.ref);if(!(r!=null&&r>=1))inc.push({text:it.text,status:1,date:d,lesson:les});}
-        else if(it.status===0){const r=rMap.get(it.ref);if(r===2||r===1){}else inc.push({text:it.text,status:0,date:d,lesson:les});}
+        if(it.status===0||it.status===1)inc.push({text:it.text,status:it.status,date:d,lesson:les});
       });
     });
     const wc=$$('stuRptWingContent');
@@ -963,21 +958,8 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
   const rateColor=v=>v>=75?'#166534':v>=30?'#92400e':'#991b1b';
   const rateBg=v=>v>=75?'#dcfce7':v>=30?'#fef3c7':'#fee2e2';
 
-  // 통계 계산
+  // 통계 계산 — 모든 미완료/부분완료/완료를 단순 카운트 (이월 해결 보정 없음)
   let rateSum=0,rateCount=0,totalHw=0,doneHw=0,partialHw=0,missHw=0;
-  // 이월에서 해결된 ref → 최종 상태 매핑 수집
-  const resolvedMap=new Map();
-  dates.forEach(d=>{
-    const key=`${student}||${d}`;
-    const rec=G.hwRec[key];
-    (rec?.items||[]).forEach(it=>{
-      if(isCarryForDate(it.fromDate,d)&&it.ref&&!isNone(it.status)){
-        const prev=resolvedMap.get(it.ref);
-        if(prev==null||it.status>prev)resolvedMap.set(it.ref,it.status);
-      }
-    });
-  });
-  // 완료한 과제 수: 한 번에 완료(2) + 한 번에 부분완료(1) + 이월 통해 부분완료 이상
   let completedHw=0;
   const incompleteItems=[]; // 미완료 과제 수집
   dates.forEach(d=>{
@@ -993,18 +975,8 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
       totalHw++;
       if(isNone(it.status))return; // 미제출은 완전 제외 (카운트도 안 함)
       if(it.status===2){doneHw++;completedHw++;}
-      else if(it.status===1){
-        partialHw++;
-        const resolved=resolvedMap.get(it.ref);
-        if(resolved!=null&&resolved>=1)completedHw++;
-        else incompleteItems.push({text:it.text,status:1,date:d,lesson});
-      }
-      else if(it.status===0){
-        const resolved=resolvedMap.get(it.ref);
-        if(resolved===2){doneHw++;completedHw++;}
-        else if(resolved===1){partialHw++;completedHw++;}
-        else{missHw++;incompleteItems.push({text:it.text,status:0,date:d,lesson});}
-      }
+      else if(it.status===1){partialHw++;incompleteItems.push({text:it.text,status:1,date:d,lesson});}
+      else if(it.status===0){missHw++;incompleteItems.push({text:it.text,status:0,date:d,lesson});}
     });
   });
   const avgRate=rateCount>0?Math.round(rateSum/rateCount):null;
@@ -1174,17 +1146,12 @@ async function _attachStudentReportToView(student,dates,opts){
     wrap.appendChild(container);
     // 카드 모드로 렌더링 (미리보기와 동일한 모습)
     _renderStudentReport(student,dates[0],dates[dates.length-1],container.querySelector('#_stuRptAttach'),{removedSet:opts?.removedSet});
-    // 미완료 과제 섹션 추가
-    const resolvedMap=new Map();
-    dates.forEach(d=>{const rec=G.hwRec[`${student}||${d}`];(rec?.items||[]).forEach(it=>{
-      if(isCarryForDate(it.fromDate,d)&&it.ref&&!isNone(it.status)){const pv=resolvedMap.get(it.ref);if(pv==null||it.status>pv)resolvedMap.set(it.ref,it.status);}
-    });});
+    // 미완료 과제 섹션 추가 — 모든 미완료/부분완료 과제를 그대로 표시
     const inc=[];
     dates.forEach(d=>{const rec=G.hwRec[`${student}||${d}`];
       (rec?.items||[]).forEach(it=>{
         if(isCarryForDate(it.fromDate,d)||isNone(it.status))return;
-        if(it.status===1){const r=resolvedMap.get(it.ref);if(!(r!=null&&r>=1))inc.push({text:it.text,status:1,date:d});}
-        else if(it.status===0){const r=resolvedMap.get(it.ref);if(r===2||r===1){}else inc.push({text:it.text,status:0,date:d});}
+        if(it.status===0||it.status===1)inc.push({text:it.text,status:it.status,date:d});
       });
     });
     if(inc.length){
@@ -1248,17 +1215,12 @@ async function _downloadStudentReportPdf(student,dates,removedSet){
     wrap.appendChild(container);
     // 카드 모드로 렌더링 (미리보기와 동일한 모습)
     _renderStudentReport(student,dates[0],dates[dates.length-1],container.querySelector('#_stuRptCapture'),{removedSet:removedSet});
-    // 미완료 과제 섹션 추가 (wing panel과 동일 내용)
-    const resolvedMap=new Map();
-    dates.forEach(d=>{const rec=G.hwRec[`${student}||${d}`];(rec?.items||[]).forEach(it=>{
-      if(isCarryForDate(it.fromDate,d)&&it.ref&&!isNone(it.status)){const pv=resolvedMap.get(it.ref);if(pv==null||it.status>pv)resolvedMap.set(it.ref,it.status);}
-    });});
+    // 미완료 과제 섹션 추가 (wing panel과 동일 내용) — 모든 미완료/부분완료를 그대로 표시
     const inc=[];
     dates.forEach(d=>{const rec=G.hwRec[`${student}||${d}`];const les=G.lessons.find(l=>l.날짜===d);
       (rec?.items||[]).forEach(it=>{
         if(isCarryForDate(it.fromDate,d)||isNone(it.status))return;
-        if(it.status===1){const r=resolvedMap.get(it.ref);if(!(r!=null&&r>=1))inc.push({text:it.text,status:1,date:d,lesson:les});}
-        else if(it.status===0){const r=resolvedMap.get(it.ref);if(r===2||r===1){}else inc.push({text:it.text,status:0,date:d,lesson:les});}
+        if(it.status===0||it.status===1)inc.push({text:it.text,status:it.status,date:d,lesson:les});
       });
     });
     if(inc.length){
