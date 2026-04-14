@@ -237,21 +237,36 @@ function parseWB(wb){
     });
   }
 
-  // ─── ref → 과제 텍스트 해석 헬퍼 (신/구 형식 모두 지원) ───
-  function _resolveRefText(ref,studentName){
-    const p=parseHwRef(ref);
-    if(!p)return'';
-    const srcLesson=G.lessons.find(l=>l.id===p.lessonId);
-    if(!srcLesson)return'';
-    if(p.type==='extra')return p.text;
-    if(p.type==='extra-legacy'){
-      const srcRec=G.hwRec[`${studentName}||${srcLesson.날짜}`];
-      return srcRec?.extraHw?.[p.ei]?.text||'';
-    }
-    return srcLesson[p.hwKey]||'';
-  }
+  // ─── hwRec items 배열 재구성 (base + carry 병합) + 이월 전파 ───
+  rebuildAllHwItems();
 
-  // ─── hwRec items 배열 재구성 (base + carry 병합) ───
+  // ─── 설정 시트 파싱 ───
+  const wsCfg=wb.Sheets['설정'];
+  if(wsCfg){
+    const cfgRows=XLSX.utils.sheet_to_json(wsCfg,{header:1,defval:'',raw:false});
+    let section='';
+    cfgRows.forEach(r=>{
+      const col0=String(r[0]||'').trim();
+      if(col0.startsWith('▼')){section=col0;return;}
+      if(section==='▼ 스티커'){
+        const name=col0;
+        const tier=String(r[1]||'').trim();
+        const idx=parseInt(r[2]);
+        if(name&&tier&&!isNaN(idx)){G.mascotChoices[name]=G.mascotChoices[name]||{};G.mascotChoices[name][tier]=idx;}
+      }
+      if(section==='▼ 마지막저장'&&col0==='lastSaved'){
+        G.lastSaved=String(r[1]||'').trim();
+      }
+    });
+  }
+  updateLastSavedDisplay();
+}
+
+// ─── 모든 학생·날짜의 hwRec.items 재구성 + 이월 전파 ───
+// parseWB 직후, 그리고 closeLessonModal(items 캐시 무효화) 직후에 호출.
+// closeLessonModal이 rec.items를 delete하면 prev의 items도 사라져서
+// computeCarryover가 빈 배열을 반환하게 되어 carry 항목이 화면에서 누락되는 문제를 방지.
+function rebuildAllHwItems(){
   G.lessons.forEach((les,idx)=>{
     if(idx===0)return;
     const date=les.날짜;
@@ -259,7 +274,6 @@ function parseWB(wb){
     const prevHwKeys=getLessonHwKeys(prevLesson);
     G.students.forEach(name=>{
       const key=`${name}||${date}`;
-      // rec이 없으면 생성 (items 항상 보장)
       let rec=G.hwRec[key];
       if(!rec){rec={이행률:null};G.hwRec[key]=rec;}
       const baseItems=prevHwKeys.map((k,i)=>{
@@ -282,39 +296,16 @@ function parseWB(wb){
       const carryItems=(rec.items||[]).filter(it=>isCarryForDate(it.fromDate,date));
       // carry 텍스트가 없으면 ref에서 해석, fromDate도 ref에서 복원
       carryItems.forEach(it=>{
-        if(!it.text&&it.ref)it.text=_resolveRefText(it.ref,name);
-        if(!it.fromDate&&it.ref){
-          const p=parseHwRef(it.ref);
-          if(p){const sl=G.lessons.find(l=>l.id===p.lessonId);if(sl)it.fromDate=sl.날짜;}
+        if(!it.text&&it.ref){
+          const r=_resolveCarryRef(it.ref,name);
+          it.text=r.text;
+          if(!it.fromDate)it.fromDate=r.fromDate;
         }
       });
       rec.items=[...baseItems,...carryItems];
     });
   });
-
-  // ─── 전체 이월 전파 (미완료/부분완료 → 다음 날짜에 이월 레코드 생성) ───
   buildAllCarryover();
-
-  // ─── 설정 시트 파싱 ───
-  const wsCfg=wb.Sheets['설정'];
-  if(wsCfg){
-    const cfgRows=XLSX.utils.sheet_to_json(wsCfg,{header:1,defval:'',raw:false});
-    let section='';
-    cfgRows.forEach(r=>{
-      const col0=String(r[0]||'').trim();
-      if(col0.startsWith('▼')){section=col0;return;}
-      if(section==='▼ 스티커'){
-        const name=col0;
-        const tier=String(r[1]||'').trim();
-        const idx=parseInt(r[2]);
-        if(name&&tier&&!isNaN(idx)){G.mascotChoices[name]=G.mascotChoices[name]||{};G.mascotChoices[name][tier]=idx;}
-      }
-      if(section==='▼ 마지막저장'&&col0==='lastSaved'){
-        G.lastSaved=String(r[1]||'').trim();
-      }
-    });
-  }
-  updateLastSavedDisplay();
 }
 
 function updateLastSavedDisplay(){
