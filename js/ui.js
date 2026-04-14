@@ -516,13 +516,11 @@ function _getCarryAutoText(student,date){
 }
 
 // ref로 원본 과제의 최초 상태 조회
-// ref = "lessonId-과제1" → 해당 수업 다음 날짜의 base 항목에서 상태를 찾음
+// 신/구 형식 ref 모두 지원, 해당 수업 다음 날짜의 base 항목에서 상태를 찾음
 function _getOriginalRefStatus(student,ref){
-  if(!ref)return null;
-  const dashIdx=ref.lastIndexOf('-');
-  if(dashIdx<0)return null;
-  const lessonId=ref.slice(0,dashIdx);
-  const srcLesson=G.lessons.find(l=>l.id===lessonId);
+  const p=parseHwRef(ref);
+  if(!p)return null;
+  const srcLesson=G.lessons.find(l=>l.id===p.lessonId);
   if(!srcLesson)return null;
   const srcIdx=G.lessons.indexOf(srcLesson);
   if(srcIdx<0||srcIdx>=G.lessons.length-1)return null;

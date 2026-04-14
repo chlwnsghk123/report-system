@@ -36,12 +36,31 @@ function isCarryForDate(fromDate,date){
   return fromDate!==G.lessons[idx-1].날짜;
 }
 
+// ─── ref 파싱 헬퍼 (신/구 형식 통합) ───
+// 신 형식 추가과제: "{lessonId}@x@{text}"  — 텍스트 기반, 인덱스 흔들림 없음
+// 구 형식 추가과제: "{lessonId}-추가과제{N}" — 마이그레이션 대상
+// base 과제:       "{lessonId}-과제{N}"
+// 반환: {type:'extra'|'extra-legacy'|'base', lessonId, text?, hwKey?, ei?}
+function parseHwRef(ref){
+  if(!ref)return null;
+  const xIdx=ref.indexOf('@x@');
+  if(xIdx>=0)return{type:'extra',lessonId:ref.slice(0,xIdx),text:ref.slice(xIdx+3)};
+  const di=ref.lastIndexOf('-');
+  if(di<0)return null;
+  const lessonId=ref.slice(0,di),hwKey=ref.slice(di+1);
+  if(hwKey.startsWith('추가과제')){
+    return{type:'extra-legacy',lessonId,hwKey,ei:parseInt(hwKey.replace('추가과제',''))-1};
+  }
+  return{type:'base',lessonId,hwKey};
+}
+
+// 추가과제 신 형식 ref 생성
+function buildExtraRef(lessonId,text){return`${lessonId}@x@${text}`;}
+
 // ref → 체크 날짜 (원본 수업 다음 수업일 = 숙제 확인일)
 function refToCheckDate(ref){
-  if(!ref)return'';
-  const di=ref.lastIndexOf('-');if(di<0)return'';
-  const lid=ref.slice(0,di);
-  const sl=G.lessons.find(l=>l.id===lid);if(!sl)return'';
+  const p=parseHwRef(ref);if(!p)return'';
+  const sl=G.lessons.find(l=>l.id===p.lessonId);if(!sl)return'';
   const si=G.lessons.indexOf(sl);
   return(si>=0&&si<G.lessons.length-1)?G.lessons[si+1].날짜:'';
 }
