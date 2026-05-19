@@ -26,6 +26,7 @@ const G={
   mascotChoices:{},selectedMascot:null,lastSaved:'',
   currentView:'config',dateTabOffset:0,unsaved:false,
   pendingPropagations:[],
+  hwDisabled:{},  // {"학생||날짜": Set(OFF된 과제 ref)} — 이번 주차 과제 ON/OFF
 };
 
 // ─── IndexedDB 상수 ───

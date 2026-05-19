@@ -539,6 +539,7 @@ function _clearAllData(){
   G.selDate='';G.selStudent='';
   G.hwItems=[];G.hwStatus=[];G.hwItemRefs=[];
   G.hwRateManual=null;G.extraHw=[];G.reportEdits={};
+  G.hwDisabled={};
   G.tabData={};G.studentPdfs={};
   G.pdfCanvases=[];G.pdfPageCount=0;G.currentSpread=0;
   G.excelFileName='학습리포트_데이터.xlsx';
