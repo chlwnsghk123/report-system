@@ -86,58 +86,76 @@ function _prevDateFor(date){
   return idx>0?G.lessons[idx-1].날짜:null;
 }
 
-// ─── 저번주차/이월 과제 상태에 따라 이번주차 과제 이월 항목 자동 ON/OFF ───
-function autoSyncHwDisabled(){
-  const cur=getCurL();if(!cur)return;
-  const hwKeys=getLessonHwKeys(cur);
-  const hw=hwKeys.map(k=>cur[k]||'').filter(x=>x);
-  const extra=(G.extraHw||[]).map(it=>it.text).filter(x=>x);
-  if(!G.hwDisabled)G.hwDisabled=new Set();
-  let idx=hw.length+extra.length;
-  // prevIncomplete (직전 수업 미완료)
-  G.hwItems.forEach((_,i)=>{
-    if(isCarryItem(G.hwItemRefs[i]?.fromDate))return;
-    const st=G.hwStatus[i];
-    if(!isNone(st)&&(st===0||st===1)){G.hwDisabled.delete(idx);idx++;}
+// ─── 이번 주차 과제 ON/OFF 헬퍼 ───
+// 학생·날짜별로 OFF된 과제 ref 집합을 반환 (없으면 생성).
+// 전역 단일 Set이 아니라 학생·날짜별로 분리되어 다른 회차로 이동해도 유지됨.
+function _hwDisabledSet(){
+  if(!G.hwDisabled||typeof G.hwDisabled!=='object'||G.hwDisabled instanceof Set)G.hwDisabled={};
+  const key=`${G.selStudent||''}||${G.selDate||''}`;
+  if(!(G.hwDisabled[key] instanceof Set))G.hwDisabled[key]=new Set();
+  return G.hwDisabled[key];
+}
+
+// 이번 주차 과제 목록 구성 — renderCurHwList·updateNoticeWithCarry·autoSyncHwDisabled 공용.
+// 각 항목은 안정적인 ref를 가져 인덱스 흔들림 없이 ON/OFF를 추적할 수 있음.
+// 반환: [{text, ref, kind:'base'|'extra'|'carry', st}]
+function _curHwOnOffItems(){
+  const cur=getCurL();
+  if(!cur)return[];
+  const out=[];
+  // 1. 이번 수업 본과제
+  getLessonHwKeys(cur).forEach(k=>{
+    const text=(cur[k]||'').trim();
+    if(text)out.push({text,ref:`${cur.id}-${k}`,kind:'base',st:-1});
   });
-  // carry (이월 과제): 완료/없음→OFF, 미완료/부분완료→ON
-  G.hwItems.forEach((_,i)=>{
-    if(!isCarryItem(G.hwItemRefs[i]?.fromDate))return;
+  // 2. 이번 주차 추가 과제
+  (G.extraHw||[]).forEach(it=>{
+    const text=(it.text||'').trim();
+    if(text)out.push({text,ref:buildExtraRef(cur.id,text),kind:'extra',st:-1});
+  });
+  // 3. 직전 수업 미완료 + 이월 과제 (모두 (전) 표시)
+  G.hwItems.forEach((text,i)=>{
+    const carry=isCarryItem(G.hwItemRefs[i]?.fromDate);
     const st=G.hwStatus[i];
-    if(st===2||isNone(st))G.hwDisabled.add(idx);
-    else G.hwDisabled.delete(idx);
-    idx++;
+    const ref=G.hwItemRefs[i]?.ref;
+    if(carry){
+      out.push({text,ref:ref||`carry#${i}`,kind:'carry',st});
+    }else if(!isNone(st)&&(st===0||st===1)){
+      out.push({text,ref:ref||`prev#${i}`,kind:'carry',st});
+    }
+  });
+  return out;
+}
+
+// ─── 저번주차/이월 과제 상태에 따라 이번주차 이월 항목 자동 ON/OFF ───
+function autoSyncHwDisabled(){
+  const dis=_hwDisabledSet();
+  _curHwOnOffItems().forEach(it=>{
+    if(it.kind!=='carry')return; // 본과제·추가과제는 수동 토글만
+    // 완료/없음 → OFF, 미완료/부분완료 → ON
+    if(it.st===2||isNone(it.st))dis.add(it.ref);
+    else dis.delete(it.ref);
   });
 }
 
 // ─── 이번 주차 과제 + 추가과제 + 미완료 캐리 반영 (리포트카드) ───
 function updateNoticeWithCarry(){
   const cur=getCurL();if(!cur)return;
-  const hwKeys=getLessonHwKeys(cur);
-  const baseHw=hwKeys.map(k=>cur[k]||'').filter(x=>x);
-  // 학생별 추가 과제
-  const extraHw=(G.extraHw||[]).map(it=>it.text).filter(x=>x);
-  // renderCurHwList와 동일 순서로 구성 (인덱스 일치)
-  const prevIncomplete=[];
-  const carryItems=[];
-  G.hwItems.forEach((text,i)=>{
-    const st=G.hwStatus[i];
-    if(isCarryItem(G.hwItemRefs[i]?.fromDate)){
-      carryItems.push({text,st});
-    } else if(!isNone(st)&&(st===0||st===1)){
-      prevIncomplete.push({text});
+  const dis=_hwDisabledSet();
+  const list=$$('rNoticeList');
+  let baseHtml='',extraHtml='',carryHtml='';
+  let baseCount=0,carryCount=0;
+  _curHwOnOffItems().forEach(it=>{
+    if(dis.has(it.ref))return; // OFF → 리포트에서 제외
+    if(it.kind==='base'){
+      baseHtml+=`<div class="next-hw-li">${esc(it.text)}</div>`;baseCount++;
+    }else if(it.kind==='extra'){
+      extraHtml+=`<div class="next-hw-li"><span class="carry-tag">(추가)</span>${esc(it.text)}</div>`;baseCount++;
+    }else if(it.st===0||it.st===1){
+      // 이월/직전미완료: 미완료·부분완료만 이번 주차 과제로 노출
+      carryHtml+=`<div class="next-hw-li"><span class="carry-tag">(전)</span>${esc(it.text)}</div>`;carryCount++;
     }
   });
-  // disabled 과제 필터링 (모든 항목에 적용)
-  const dis=G.hwDisabled||new Set();
-  let di=0;
-  const list=$$('rNoticeList');
-  let baseCount=0;
-  const baseHtml=baseHw.map(t=>{const d=dis.has(di);di++;if(d)return '';baseCount++;return `<div class="next-hw-li">${esc(t)}</div>`;}).join('');
-  const extraHtml=extraHw.map(t=>{const d=dis.has(di);di++;if(d)return '';baseCount++;return `<div class="next-hw-li"><span class="carry-tag">(추가)</span>${esc(t)}</div>`;}).join('');
-  let carryCount=0;let carryHtml='';
-  prevIncomplete.forEach(u=>{const d=dis.has(di);di++;if(!d){carryCount++;carryHtml+=`<div class="next-hw-li"><span class="carry-tag">(전)</span>${esc(u.text)}</div>`;}});
-  carryItems.forEach(u=>{const d=dis.has(di);di++;if(!d&&!isNone(u.st)&&(u.st===0||u.st===1)){carryCount++;carryHtml+=`<div class="next-hw-li"><span class="carry-tag">(전)</span>${esc(u.text)}</div>`;}});
   const total=baseCount+carryCount;
   if(total>3&&carryCount>0){
     list.className='next-hw-list compact';
@@ -155,60 +173,26 @@ function updateNoticeWithCarry(){
 function renderCurHwList(){
   const c=$$('curHwList');if(!c)return;
   const cur=getCurL();if(!cur){c.innerHTML='';return;}
-  const hwKeys=getLessonHwKeys(cur);
-  const hw=hwKeys.map(k=>cur[k]||'').filter(x=>x);
-  // 미완료 과제 수집 (직전 수업 미완료 + 이월과제 모두 포함)
-  const prevIncomplete=[];
-  const carry=[];
-  G.hwItems.forEach((text,i)=>{
-    const st=G.hwStatus[i];
-    if(isCarryItem(G.hwItemRefs[i]?.fromDate)){
-      carry.push(text);
-    } else if(!isNone(st)&&(st===0||st===1)){
-      prevIncomplete.push(text);
-    }
-  });
-  const extra=(G.extraHw||[]).map(it=>it.text).filter(x=>x);
-  // Enable/Disable 상태 (G.hwDisabled: Set of disabled indices)
-  if(!G.hwDisabled)G.hwDisabled=new Set();
-  let html='';
-  let idx=0;
-  hw.forEach(t=>{
-    const dis=G.hwDisabled.has(idx);
-    html+=`<div class="cur-hw-item${dis?' disabled':''}" onclick="toggleHwDisabled(${idx})">
-      <span class="cur-hw-text">${esc(t)}</span>
-      <span class="cur-hw-toggle">${dis?'OFF':'ON'}</span>
-    </div>`;idx++;
-  });
-  extra.forEach(t=>{
-    const dis=G.hwDisabled.has(idx);
-    html+=`<div class="cur-hw-item extra${dis?' disabled':''}" onclick="toggleHwDisabled(${idx})">
-      <span class="cur-hw-badge">(추가)</span><span class="cur-hw-text">${esc(t)}</span>
-      <span class="cur-hw-toggle">${dis?'OFF':'ON'}</span>
-    </div>`;idx++;
-  });
-  prevIncomplete.forEach(t=>{
-    const dis=G.hwDisabled.has(idx);
-    html+=`<div class="cur-hw-item carry${dis?' disabled':''}" onclick="toggleHwDisabled(${idx})">
-      <span class="cur-hw-badge">(전)</span><span class="cur-hw-text">${esc(t)}</span>
-      <span class="cur-hw-toggle">${dis?'OFF':'ON'}</span>
-    </div>`;idx++;
-  });
-  carry.forEach(t=>{
-    const dis=G.hwDisabled.has(idx);
-    html+=`<div class="cur-hw-item carry${dis?' disabled':''}" onclick="toggleHwDisabled(${idx})">
-      <span class="cur-hw-badge">(전)</span><span class="cur-hw-text">${esc(t)}</span>
-      <span class="cur-hw-toggle">${dis?'OFF':'ON'}</span>
-    </div>`;idx++;
-  });
-  c.innerHTML=html;
+  const dis=_hwDisabledSet();
+  c.innerHTML=_curHwOnOffItems().map((it,i)=>{
+    const off=dis.has(it.ref);
+    const cls=it.kind==='extra'?'cur-hw-item extra':it.kind==='carry'?'cur-hw-item carry':'cur-hw-item';
+    const badge=it.kind==='extra'?'<span class="cur-hw-badge">(추가)</span>'
+               :it.kind==='carry'?'<span class="cur-hw-badge">(전)</span>':'';
+    return`<div class="${cls}${off?' disabled':''}" onclick="toggleHwDisabled(${i})">
+      ${badge}<span class="cur-hw-text">${esc(it.text)}</span>
+      <span class="cur-hw-toggle">${off?'OFF':'ON'}</span>
+    </div>`;
+  }).join('');
 }
 
-// 이번 주차 과제 Enable/Disable 토글
+// 이번 주차 과제 Enable/Disable 토글 (인덱스는 즉시 안정적인 ref로 해석)
 function toggleHwDisabled(idx){
-  if(!G.hwDisabled)G.hwDisabled=new Set();
-  if(G.hwDisabled.has(idx))G.hwDisabled.delete(idx);
-  else G.hwDisabled.add(idx);
+  const it=_curHwOnOffItems()[idx];
+  if(!it)return;
+  const dis=_hwDisabledSet();
+  if(dis.has(it.ref))dis.delete(it.ref);
+  else dis.add(it.ref);
   renderCurHwList();
   updateNoticeWithCarry();
   saveAppData();

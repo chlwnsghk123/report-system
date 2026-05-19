@@ -148,10 +148,12 @@
 | `buildAllCarryover()` | 엑셀 로드 후 전체 날짜·학생 순회하며 미완료/부분완료 항목의 이월 레코드 일괄 생성 |
 | `flushPropagations()` | G.pendingPropagations 큐의 보류된 이월 전파를 일괄 적용 (세션 전환/저장 시 호출) |
 | `computeCarryover(student,date)` | 직전 날짜 hwRec에서 미완료/부분완료 항목 수집 → 캐리오버 배열 반환 |
-| `autoSyncHwDisabled()` | 저번주차/이월 과제 상태에 따라 이번주차 과제 이월 항목 자동 ON/OFF 동기화 |
-| `updateNoticeWithCarry()` | 이번 주차 과제 + 추가과제 + 미완료 캐리오버 → 리포트카드 반영 (disabled 항목 전체 필터링) |
+| `_hwDisabledSet()` | 현재 학생·날짜의 OFF된 과제 ref Set 반환 (`G.hwDisabled["학생||날짜"]`, 없으면 생성) |
+| `_curHwOnOffItems()` | 이번 주차 과제 목록 구성 → `[{text,ref,kind,st}]` (renderCurHwList·updateNoticeWithCarry·autoSyncHwDisabled 공용, ref 기반) |
+| `autoSyncHwDisabled()` | 이월/직전미완료 과제 상태에 따라 이번주차 이월 항목 자동 ON/OFF (ref 기반) |
+| `updateNoticeWithCarry()` | 이번 주차 과제 + 추가과제 + 미완료 캐리오버 → 리포트카드 반영 (OFF 항목 ref로 필터링) |
 | `renderCurHwList()` | 패널 이번 주차 과제 목록 렌더 (레슨+추가+이월, Enable/Disable 토글) |
-| `toggleHwDisabled(idx)` | 이번 주차 과제 Enable/Disable 토글 |
+| `toggleHwDisabled(idx)` | 이번 주차 과제 Enable/Disable 토글 (인덱스를 ref로 해석하여 학생·날짜별 저장) |
 | `renderExtraHwEditor()` | 패널 학생별 추가 과제 에디터 렌더 (수정/삭제 가능) |
 | `autoFillCommon()` | 날짜 기준 공통 필드 자동채우기 |
 | `getPrevExtraHw(student,date)` | 이전 날짜의 학생별 추가과제 텍스트 배열 반환 |
