@@ -102,13 +102,11 @@ function openLessonModal(){
 function closeLessonModal(){
   G._lessonFocus=-1; // 포커싱 초기화
   _closeModal('lessonModalOverlay');
-  // 수업설정 변경 후 과제 목록 재구성을 위해 캐시 무효화
+  // 수업설정 변경 후 과제 목록 재구성을 위해 tabData 캐시만 무효화.
+  // rec.items는 삭제하지 않음 — 삭제하면 rebuildAllHwItems가 이월과제를
+  // buildAllCarryover로 재생성하면서 체크 상태(status)를 -1로 리셋해 유실됨.
+  // rebuildAllHwItems는 baseItems만 새로 만들고 carryItems는 기존 상태를 보존함.
   G.tabData={};
-  for(const key of Object.keys(G.hwRec)){
-    const rec=G.hwRec[key];
-    if(rec)delete rec.items;
-  }
-  // 무효화 후 즉시 재빌드 — prev items가 사라지면 이월 carry가 누락됨
   if(G.lessons.length)rebuildAllHwItems();
 }
 
