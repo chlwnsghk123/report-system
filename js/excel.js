@@ -84,7 +84,7 @@ function parseWB(wb){
     }
   }
 
-  G.students=[];G.scores={};G.corrects={};G.wrong={};G.hwRec={};G.rates={};G.memos={};G.attend={};G.mascotChoices={};
+  G.students=[];G.scores={};G.corrects={};G.wrong={};G.hwRec={};G.rates={};G.memos={};G.attend={};G.mascotChoices={};G.hwDisabled={};
 
   const hasDateSheets=wb.SheetNames.some(n=>/^\d{4}-\d{2}-\d{2}$/.test(n));
 
@@ -254,6 +254,14 @@ function parseWB(wb){
         const idx=parseInt(r[2]);
         if(name&&tier&&!isNaN(idx)){G.mascotChoices[name]=G.mascotChoices[name]||{};G.mascotChoices[name][tier]=idx;}
       }
+      if(section==='▼ 과제OFF'){
+        // 이번 주차 과제 OFF 상태 복원 (col0="학생||날짜", col1=ref)
+        const key=col0,ref=String(r[1]||'').trim();
+        if(key&&ref){
+          if(!(G.hwDisabled[key] instanceof Set))G.hwDisabled[key]=new Set();
+          G.hwDisabled[key].add(ref);
+        }
+      }
       if(section==='▼ 마지막저장'&&col0==='lastSaved'){
         G.lastSaved=String(r[1]||'').trim();
       }
@@ -384,11 +392,8 @@ async function saveToExcel(){
       ...G.students.map(n=>{
         const key=`${n}||${date}`,rec=G.hwRec[key];
         let rate=rec?.이행률!=null?rec.이행률:G.rates[n]?.[date]??null;
-        // 출결 값 (이행률 있는데 결석이면 → 출석으로 보정)
-        let att=G.attend[n]?.[date];
-        if(rate!=null&&!isNaN(rate)&&rate!==-1&&(att===0||att==null)){
-          att=2;G.attend[n]=G.attend[n]||{};G.attend[n][date]=2;
-        }
+        // 출결은 실제로 선택한 값만 저장 (이행률로 결석↔출석을 보정하지 않음)
+        const att=G.attend[n]?.[date];
         const attVal=att!=null?att:'';
         const hwVals=Array.from({length:hwCount},(_,i)=>
           stToExcel(rec?.[`과제${i+1}_상태`]??-1));
@@ -473,6 +478,15 @@ async function saveToExcel(){
         cfgAoa.push([name,tier,String(idx)]);
       });
     });
+  }
+  // 이번 주차 과제 ON/OFF 상태 (col0="학생||날짜", col1=ref)
+  const offRows=[];
+  Object.entries(G.hwDisabled||{}).forEach(([key,set])=>{
+    if(set instanceof Set&&set.size){set.forEach(ref=>{if(ref)offRows.push([key,ref,'']);});}
+  });
+  if(offRows.length){
+    cfgAoa.push(['▼ 과제OFF','','']);
+    offRows.forEach(r=>cfgAoa.push(r));
   }
   // 마지막 저장 시각
   G.lastSaved=nowKSTStr();

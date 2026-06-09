@@ -19,6 +19,7 @@ css/
 js/
   state.js          G 객체, 상수(DB/STORE), $$ 헬퍼
   utils.js          getCurL/getPrevL/getNextL, setAuto, rmAuto, setBar, shortD, fmtKo, esc
+  domain.js         도메인 계층(순수 규칙): 출결 판정(attOf·isAbsent·isPresent·isReportEligible·attendCategory), 과제 ON/OFF(hwOffSet·isHwOff) — docs/architecture.md
   db.js             openDB, dbSet, dbGet
   excel.js          triggerLoad, loadExcel, toDS, normalizeRate, stFromExcel, stToExcel, parseWB, saveToExcel, createTemplate
   ui.js             updateScale, initCE, fp, switchView, openLessonModal, closeLessonModal, selectDate, getLessonHwKeys, renderLessonCards, updateLessonField, syncLessonToReport, addLessonHw, removeLessonHw, addLesson, removeLesson, renderDateSummary, renderDateSidebar, renderDateNav, navDatePrev, navDateNext, toggleDateDropdown, renderTabs, switchTab, saveTabData, syncHwRecItems, restoreTabData, _getCarryAutoText, openMemo, closeMemo, saveMemo, updateMemoBtn, _openModal, _closeModal, _showModalToast, toggleSec
@@ -55,6 +56,8 @@ docs/               참조 문서 (필요 시만 읽기)
 | "그래프", "이행률 차트", "꺾은선" | `js/report.js` |
 | "과제 버튼", "완료/부분완료/미완료", "순환" | `js/report.js` |
 | "점수 계산", "맞힌 수", "오답 태그" | `js/autofill.js` + `js/report.js` |
+| "출석/결석 기준", "출결 판정", "결석 표시" | `js/domain.js` (규칙) + `js/report.js`·`js/pdf.js` (표시) |
+| "이번 주차 과제 ON/OFF", "숙제 켜고 끄기" | `js/domain.js`·`js/autofill.js`·`js/report.js` + `js/excel.js` (영속) |
 | "미니 테스트" 표시/숨김, 토글 | `js/ui.js` + `index.html` |
 | "코멘트" 표시/숨김, 토글 | `js/ui.js` + `index.html` |
 | "탭 전환", "학생 선택" 동작 | `js/ui.js` |
@@ -140,6 +143,7 @@ docs/               참조 문서 (필요 시만 읽기)
 ## 참조 문서 (필요 시만 읽기)
 | 작업 유형 | 읽을 파일 |
 |---|---|
+| 아키텍처·계층 구조·리팩토링 방향 | `docs/architecture.md` |
 | UI 기능 → 파일 상세 매핑 | `docs/feature-map.md` |
 | UI 구조·상태 객체 G | `docs/ui-state.md` |
 | 함수 목록·역할 | `docs/functions.md` |

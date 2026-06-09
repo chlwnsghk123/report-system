@@ -30,6 +30,19 @@
 | `todayKST()` | 한국 시간 기준 오늘 날짜 (YYYY-MM-DD) |
 | `nowKSTStr()` | 한국 시간 기준 현재 일시 (YYYY-MM-DD HH:MM:SS) |
 
+## js/domain.js (도메인 계층)
+DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 부수효과 없음. (설계 배경: `docs/architecture.md`)
+| 함수 | 역할 |
+|---|---|
+| `attOf(student,date)` | 학생·날짜의 원본 출결값 반환 (2/1/0/-1/undefined) |
+| `isAbsent(student,date)` | **명시적으로 '결석' 선택**한 경우만 결석 판정 (이행률로 추정 안 함) |
+| `isPresent(student,date)` | 출석(2)·지각(1) 선택 시 true |
+| `isExcluded(student,date)` | 특수/제외(-1) 여부 |
+| `isReportEligible(student,date)` | 리포트/PDF 생성 대상 — 결석·제외가 아니면 true |
+| `attendCategory(student,date)` | 출결 분류 문자열 (`present`/`late`/`absent`/`excluded`/`none`) |
+| `hwOffSet(student,date)` | 해당 학생·날짜의 OFF된 과제 ref 집합(Set) 반환 (읽기 전용, 없으면 빈 Set) |
+| `isHwOff(student,date,ref)` | 특정 과제(ref)가 OFF 되었는지 여부 |
+
 ## js/db.js
 | 함수 | 역할 |
 |---|---|
@@ -46,9 +59,9 @@
 | `normalizeRate(v)` | 이행률 정규화: %문자열·소수·정수 → 0~100 숫자 |
 | `stFromExcel(v)` | 엑셀 상태(○/△/X/0/1/2) → 한글(완료/부분완료/미완료) 변환 |
 | `stToExcel(v)` | 한글 상태 → 엑셀 숫자('2'/'1'/'0'/공란) 변환 |
-| `parseWB(wb)` | 워크북 파싱 → G 전체 채움 (신구 형식 자동 감지, 설정 시트 포함) |
+| `parseWB(wb)` | 워크북 파싱 → G 전체 채움 (신구 형식 자동 감지, 설정 시트의 `▼ 과제OFF` 복원 포함) |
 | `_resolveRefText(ref,studentName)` | 이월과제 ref → 원본 과제 텍스트 해석 (parseWB 내부 함수) |
-| `saveToExcel()` | G → 엑셀 파일 다운로드 (수업정보 + 날짜별 + 이월과제 + 설정 시트, 마지막 저장 시각 기록) |
+| `saveToExcel()` | G → 엑셀 파일 다운로드 (수업정보 + 날짜별 + 이월과제 + 설정 시트). 설정 시트에 과제 ON/OFF(`▼ 과제OFF`)·마지막 저장 시각 기록. 출결은 선택값 그대로 저장(이행률 보정 없음) |
 | `createTemplate()` | 오늘~6월까지 주 1회 날짜가 포함된 신규 템플릿 엑셀 생성·다운로드 |
 | `updateLastSavedDisplay()` | G.lastSaved → #rLastSaved 텍스트 업데이트 |
 | `removeExcelData()` | 엑셀 데이터 제거 모달 (저장 후 제거/그냥 제거/취소 3버튼) |
@@ -153,7 +166,7 @@
 | `autoSyncHwDisabled()` | 이월/직전미완료 과제 상태에 따라 이번주차 이월 항목 자동 ON/OFF (ref 기반) |
 | `updateNoticeWithCarry()` | 이번 주차 과제 + 추가과제 + 미완료 캐리오버 → 리포트카드 반영 (OFF 항목 ref로 필터링) |
 | `renderCurHwList()` | 패널 이번 주차 과제 목록 렌더 (레슨+추가+이월, Enable/Disable 토글) |
-| `toggleHwDisabled(idx)` | 이번 주차 과제 Enable/Disable 토글 (인덱스를 ref로 해석하여 학생·날짜별 저장) |
+| `toggleHwDisabled(idx)` | 이번 주차 과제 Enable/Disable 토글 (인덱스를 ref로 해석하여 학생·날짜별 저장, 엑셀 영속화) |
 | `renderExtraHwEditor()` | 패널 학생별 추가 과제 에디터 렌더 (수정/삭제 가능) |
 | `autoFillCommon()` | 날짜 기준 공통 필드 자동채우기 |
 | `getPrevExtraHw(student,date)` | 이전 날짜의 학생별 추가과제 텍스트 배열 반환 |
@@ -173,21 +186,20 @@
 | `removeExtraHw(idx)` | 이번 주차 추가 과제 항목 삭제 |
 | `updateExtraHwText(idx,val)` | 이번 주차 추가 과제 텍스트 수정 |
 | `autoCalcRate()` | 과제 상태에서 이행률 자동 계산 (완료=100%, 부분=50%, 미완료=0%) |
-| `autoCalcRate()` | 과제 상태에서 이행률 자동 계산 (완료=100%, 부분=50%, 미완료=0%) |
-| `onRateManual()` | 이행률 수동입력 핸들러 |
+| `onRateManual()` | 이행률 수동입력 핸들러 (출결은 더 이상 자동 변경하지 않음) |
+| `renderHwEditor()` | 저번 주차 과제 체크 에디터 렌더 — 직전 주차 OFF 과제(`isHwOff`)는 제외 |
 | `hwBtnLabel(s)` | 상태 → 버튼 라벨 문자열 반환 |
 | `cycleHwStatus(i)` | 과제 상태 순환 (없음→완료→부분→미완료→없음) |
 | `updateHeaderDate(cur,next)` | 리포트 날짜 헤더 업데이트 |
-| `updateHwDisplay()` | 저번 과제 리포트 UI 업데이트 |
+| `updateHwDisplay()` | 저번 과제 리포트 UI 업데이트 (직전 주차 OFF 과제 제외) |
 | `updateHwBadge()` | 과제 뱃지 업데이트 (현재 미구현) |
 | `updateNoticeList(text)` | 이번 과제 목록 리포트 UI 업데이트 |
 | `updateCommentSign()` | 강사 서명 업데이트 |
 | `updateWrongTags(tagStr)` | 오답 번호 태그 UI 업데이트 |
 | `applyReportEdits()` | 리포트카드 contenteditable 직접편집 오버라이드 적용 |
 | `initReportListeners()` | 리포트카드 편집 리스너 (현재 비활성화 — 안정성 확보) |
-| `setAttend(val)` | 출결 상태 설정 (2=출석,1=지각,0=결석) |
-| `updateAttendUI()` | 출결 토글 버튼 UI 갱신 |
-| `autoAttendOnRate()` | 이행률 변경 시 결석→출석 자동전환 |
+| `setAttend(val)` | 출결 상태 설정 (2=출석,1=지각,0=결석, 같은 버튼 재클릭 시 해제) |
+| `updateAttendUI()` | 출결 토글 버튼 UI 갱신 — 실제로 선택한 값만 활성화(미선택은 비활성) |
 
 ## js/pdf.js
 | 함수 | 역할 |

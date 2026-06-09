@@ -313,12 +313,13 @@ async function _doSummaryImage(){
         items=hwKeys.map((k,i)=>({text:prevLesson[k]||'',status:rec?.[`과제${i+1}_상태`]||'',ref:`${prevLesson.id}-${k}`,fromDate:prevLesson.날짜})).filter(it=>it.text);
       }
       const hasRate=rate!=null&&!isNaN(rate);
-      // 헤더
+      const absent=isAbsent(name,date); // 실제 선택한 출결만 기준
+      // 헤더 (결석이면 이행률 % 표기는 숨김)
       let html=`<div style="border-bottom:1.5px solid #000;padding-bottom:8px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-end;">
         <div style="font-size:22px;font-weight:800;color:#000;">${esc(name)} <span style="font-size:14px;font-weight:400;color:#555;">학생</span></div>
-        ${hasRate?`<div style="font-size:24px;font-weight:900;color:${rate>=75?'#1b7340':rate>=30?'#b45309':'#dc2626'};line-height:1;">${rate}%</div>`:''}
+        ${(!absent&&hasRate)?`<div style="font-size:24px;font-weight:900;color:${rate>=75?'#1b7340':rate>=30?'#b45309':'#dc2626'};line-height:1;">${rate}%</div>`:''}
       </div>`;
-      if(!hasRate){
+      if(absent){
         html+=`<div style="padding:8px 0;"><span style="font-size:18px;font-weight:800;color:#dc2626;">결석</span></div>`;
       }else{
         const visible=items.filter(it=>!isNone(it.status)&&stLabel[it.status]);
@@ -407,8 +408,8 @@ function dataUrlToBytes(u){
 // ─── 기능1: 일괄 PDF 내보내기 ───
 function dlBatchPdf(){
   if(!G.selDate||!G.students.length){alert('날짜와 학생 데이터가 필요합니다.');return;}
-  // 결석 제외 학생 수 계산
-  const eligible=G.students.filter(n=>G.rates[n]?.[G.selDate]!=null);
+  // 실제 선택한 출결 기준 — 결석/제외만 빼고 생성
+  const eligible=G.students.filter(n=>isReportEligible(n,G.selDate));
   if(!eligible.length){alert('해당 날짜에 출석한 학생이 없습니다.');return;}
   showConfirmModal(
     '일괄 PDF를 생성하시겠습니까?',
@@ -425,7 +426,7 @@ async function _doBatchPdf(){
     saveTabData();
     const origStudent=G.selStudent;
     const date=G.selDate;
-    const eligible=G.students.filter(n=>G.rates[n]?.[date]!=null);
+    const eligible=G.students.filter(n=>isReportEligible(n,date));
 
     // 미리보기 깜빡임 방지
     preview.style.opacity='0';
@@ -570,13 +571,16 @@ function _renderGradeTable(dates,container){
         return;
       }
       const rate=G.rates[name]?.[d];
-      if(rate!=null&&rate>=0){
+      if(att===0){
+        // 실제로 결석을 선택한 경우 — 이행률보다 우선하여 '결석' 표시 (평균 집계 제외)
+        html+=`<td style="padding:6px 6px;text-align:center;border-bottom:1px solid #f0f0f0;color:#dc2626;font-size:11px;">결석</td>`;
+      }else if(rate!=null&&rate>=0){
         rateSum+=rate;rateCount++;
         html+=`<td style="padding:6px 6px;text-align:center;border-bottom:1px solid #f0f0f0;">
           <div style="display:inline-block;padding:2px 8px;border-radius:6px;font-weight:700;color:${rateColor(rate)};background:${rateBg(rate)};font-size:12px;">${rate}%</div>
         </td>`;
       }else{
-        html+=`<td style="padding:6px 6px;text-align:center;border-bottom:1px solid #f0f0f0;color:#d1d5db;font-size:11px;">결석</td>`;
+        html+=`<td style="padding:6px 6px;text-align:center;border-bottom:1px solid #f0f0f0;color:#d1d5db;font-size:11px;">-</td>`;
       }
     });
     const avg=rateCount>0?Math.round(rateSum/rateCount):null;
@@ -622,18 +626,13 @@ async function _downloadGradeImage(dates){
 // ─── 기능3: 수업 일지 이미지 ───
 // ─── 수업 일지 출결 현황 HTML ───
 function _buildJournalAttendHtml(date){
-  const today=todayKST();
   const present=[],late=[],absent=[];
   G.students.forEach(n=>{
     const v=G.attend[n]?.[date];
-    if(v===-1)return; // 특수(제외)
     if(v===2)present.push(n);
     else if(v===1)late.push(n);
     else if(v===0)absent.push(n);
-    else{
-      // 공란: 과거면 결석, 미래면 미정
-      if(date<=today)absent.push(n);
-    }
+    // 그 외(미선택·특수)는 분류하지 않음 — 실제 선택한 출결만 표시
   });
   if(!present.length&&!late.length&&!absent.length)return'';
   const pair=(arr,icon,color)=>{
@@ -757,15 +756,13 @@ async function _downloadJournalImage(date){
 }
 
 function _buildJournalAttendImageHtml(date){
-  const today=todayKST();
   const present=[],late=[],absent=[];
   G.students.forEach(n=>{
     const v=G.attend[n]?.[date];
-    if(v===-1)return;
     if(v===2)present.push(n);
     else if(v===1)late.push(n);
     else if(v===0)absent.push(n);
-    else{if(date<=today)absent.push(n);}
+    // 그 외(미선택·특수)는 분류하지 않음 — 실제 선택한 출결만 표시
   });
   if(!present.length&&!late.length&&!absent.length)return'';
   const bg=c=>c==='#16a34a'?'#f0fdf4':c==='#ca8a04'?'#fefce8':'#fef2f2';
@@ -1027,6 +1024,7 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
       const itemsWithIdx=allDateItems.map((it,i)=>({...it,_oi:i})).filter(it=>!isCarryForDate(it.fromDate,d));
       const items=removedSet?itemsWithIdx.filter(it=>!removedSet.has(`${student}||${d}||${it._oi}`)):itemsWithIdx;
       const hasRate=rate!=null&&!isNaN(rate);
+      const absent=isAbsent(student,d); // 실제 선택한 출결만 기준
       const bg=di%2===0?'#fff':'#f9fafb';
       const visible=items.filter(it=>!isNone(it.status));
       const hwParts=visible.map(it=>{
@@ -1035,7 +1033,7 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
       }).join('&nbsp; ');
       html+=`<tr style="background:${bg};border-bottom:1px solid #eee;">
         <td style="padding:3px 6px;white-space:nowrap;font-weight:600;color:#333;">${shortD(d)}</td>
-        <td style="padding:3px 6px;text-align:center;">${hasRate?`<span style="padding:1px 5px;border-radius:4px;font-weight:700;font-size:9px;color:${rateColor(rate)};background:${rateBg(rate)};">${rate}%</span>`:`<span style="color:#dc2626;font-size:8px;">결석</span>`}</td>
+        <td style="padding:3px 6px;text-align:center;">${absent?`<span style="color:#dc2626;font-size:8px;">결석</span>`:hasRate?`<span style="padding:1px 5px;border-radius:4px;font-weight:700;font-size:9px;color:${rateColor(rate)};background:${rateBg(rate)};">${rate}%</span>`:`<span style="color:#d1d5db;font-size:8px;">-</span>`}</td>
         <td style="padding:3px 6px;font-size:9px;line-height:1.5;">${hwParts||'<span style="color:#d1d5db;">-</span>'}</td>
       </tr>`;
     });
@@ -1051,19 +1049,20 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
       const itemsWithIdx=allDateItems.map((it,i)=>({...it,_oi:i})).filter(it=>!isCarryForDate(it.fromDate,d));
       const items=removedSet?itemsWithIdx.filter(it=>!removedSet.has(`${student}||${d}||${it._oi}`)):itemsWithIdx;
       const hasRate=rate!=null&&!isNaN(rate);
-      const isAbsent=!hasRate;
+      const absent=isAbsent(student,d); // 실제 선택한 출결만 기준
 
       html+=`<div style="border:1px solid #d1d5db;border-radius:8px;margin-bottom:10px;overflow:hidden;">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:${isAbsent?'#fef2f2':'#f0f1f3'};border-bottom:1px solid #d1d5db;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:${absent?'#fef2f2':'#f0f1f3'};border-bottom:1px solid #d1d5db;">
           <div style="display:flex;align-items:center;gap:6px;">
             <span style="font-size:13px;font-weight:800;color:#222;">${fmtKo(d)}</span>
             ${lesson?`<span style="font-size:11px;color:#888;">${esc(lesson.교재||'')} ${esc(lesson.단원||'')}</span>`:''}
           </div>
-          ${isAbsent?`<span style="font-size:11px;font-weight:700;color:#dc2626;">결석</span>`
-            :`<span style="padding:1px 6px;border-radius:5px;font-size:12px;font-weight:700;color:${rateColor(rate)};background:${rateBg(rate)};">${rate}%</span>`}
+          ${absent?`<span style="font-size:11px;font-weight:700;color:#dc2626;">결석</span>`
+            :hasRate?`<span style="padding:1px 6px;border-radius:5px;font-size:12px;font-weight:700;color:${rateColor(rate)};background:${rateBg(rate)};">${rate}%</span>`
+            :`<span style="font-size:11px;font-weight:700;color:#9ca3af;">-</span>`}
         </div>`;
 
-      if(!isAbsent){
+      if(!absent){
         const visible=items.filter(it=>!isNone(it.status));
         if(visible.length){
           html+=`<div style="padding:8px 12px;display:flex;flex-direction:column;gap:2px;">`;

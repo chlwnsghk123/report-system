@@ -27,6 +27,7 @@ css/
 js/
   state.js              G 전역 객체, DB/STORE 상수, $$ 헬퍼
   utils.js              수업 탐색(getCurL/getPrevL/getNextL), 입력 유틸, 날짜 포맷
+  domain.js             도메인 계층(순수 규칙): 출결 판정·과제 ON/OFF 규칙 (docs/architecture.md)
   db.js                 IndexedDB CRUD (openDB, dbSet, dbGet)
   excel.js              엑셀 파싱·저장·템플릿 생성 (이월과제 시트 포함)
   ui.js                 뷰 전환, 수업설정 모달, 수업카드, 과제 동적 추가/삭제, 학생탭, 토글
