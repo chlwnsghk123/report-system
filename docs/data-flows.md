@@ -246,10 +246,12 @@ toggleHwDisabled(idx)
 
 ```
 dlJournalReport()  [메뉴 > 리포트 모아보기 > 📓 수업 일지표]
-  → 모달: 날짜 선택 + 다음 수업 계획 + 학생별 코멘트(출석 학생) 입력
+  → 모달: 날짜 선택 + 오늘 진도/과제(기본=레슨, 수정 가능) + 다음 수업 계획 + 학생별 코멘트(출석 학생)
   → 입력값은 날짜별 저장:
+      G.journalInfo["날짜"] = {book,chapter,detail,hwText}(진도·과제 편집값),
       G.journalNote["학생||날짜"] = 코멘트, G.journalPlan["날짜"] = 계획 → saveAppData
-  → 영속화: 엑셀 설정 시트 ▼ 수업일지코멘트 / ▼ 수업일지계획 (parseWB에서 복원)
+  → 영속화: 엑셀 설정 시트 ▼ 수업일지진도 / ▼ 수업일지코멘트 / ▼ 수업일지계획 (parseWB에서 복원)
+  → 진도·과제 표시: G.journalInfo[날짜] 있으면 사용, 없으면 레슨(G.lessons) 기본값
 
 PDF 생성: _renderJournalPdf(date)
   → _buildJournalReportPages(date): 페이지 HTML 배열

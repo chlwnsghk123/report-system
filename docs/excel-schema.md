@@ -163,6 +163,7 @@
 | `▼ 과제OFF` | A: `학생||날짜`, B: 과제 ref | 이번 주차 과제 ON/OFF 중 **OFF**된 항목 (`G.hwDisabled`). OFF 과제는 다음 주차 체크목록에서도 제외 |
 | `▼ 수업일지코멘트` | A: `학생||날짜`, B: 코멘트 | 수업 일지표 학생별 코멘트 (`G.journalNote`) |
 | `▼ 수업일지계획` | A: 날짜, B: 계획 | 수업 일지표 '다음 수업 계획' (`G.journalPlan`) |
+| `▼ 수업일지진도` | A: 날짜, B: 필드(book/chapter/detail/hw), C: 값 | 수업 일지표 오늘 진도·과제 편집값 (`G.journalInfo`, 없으면 레슨 기본값 사용) |
 | `▼ 마지막저장` | A: `lastSaved`, B: 날짜시간 문자열 | 마지막 엑셀 저장 시각 (`YYYY-MM-DD HH:MM:SS`, KST) |
 
 ---

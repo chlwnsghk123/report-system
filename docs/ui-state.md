@@ -87,6 +87,7 @@ G = {
                       //   엑셀 설정 시트(▼ 과제OFF)에 영속화. OFF 과제는 다음 주차 체크목록에서도 제외(js/domain.js: hwOffSet)
   journalNote: {},    // 수업 일지표 학생별 코멘트 {"학생||날짜":"코멘트"} — 엑셀 설정 시트(▼ 수업일지코멘트)에 영속화
   journalPlan: {},    // 수업 일지표 다음 수업 계획 {"날짜":"계획"} — 엑셀 설정 시트(▼ 수업일지계획)에 영속화
+  journalInfo: {},    // 수업 일지표 오늘 진도·과제 편집값 {"날짜":{book,chapter,detail,hwText}} — 없으면 레슨 기본값, 설정 시트(▼ 수업일지진도)에 영속화
   hwRateManual: null, // null=엑셀 데이터 사용, 숫자=수동입력
   reportEdits: {},    // 리포트카드 contenteditable 직접편집 오버라이드 (키: 요소ID, 값: innerHTML)
 
@@ -128,6 +129,6 @@ G = {
 
 ## IndexedDB
 - DB: `reportApp4`, Store: `data`
-- 키: `'appData'`(lessons/students/rates/scores/corrects/wrong/hwRec/memos/attend/tabData/fileName/mascotChoices/hwDisabled/journalNote/journalPlan), `'session'`(selDate·selStudent·showMini·showComment·colorMode·currentView), `'studentPdfs'`(학생별 PDF bytes/name/pageCount/isPng)
+- 키: `'appData'`(lessons/students/rates/scores/corrects/wrong/hwRec/memos/attend/tabData/fileName/mascotChoices/hwDisabled/journalNote/journalPlan/journalInfo), `'session'`(selDate·selStudent·showMini·showComment·colorMode·currentView), `'studentPdfs'`(학생별 PDF bytes/name/pageCount/isPng)
 - 참고: IndexedDB에 저장되는 키는 `fileName` (G.excelFileName 값을 저장)
 - 참고: `appData`는 현재 백업용(쓰기 전용)이며 새로고침 시 자동 복원하지 않음 — 실질 영속화는 **엑셀 파일**. (architecture.md P5 참고)

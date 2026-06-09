@@ -29,6 +29,7 @@ const G={
   hwDisabled:{},  // {"학생||날짜": Set(OFF된 과제 ref)} — 이번 주차 과제 ON/OFF
   journalNote:{}, // {"학생||날짜": "코멘트"} — 수업 일지표 학생별 코멘트 (날짜별 저장)
   journalPlan:{}, // {"날짜": "다음 수업 계획"} — 수업 일지표 다음 수업 계획
+  journalInfo:{}, // {"날짜": {book,chapter,detail,hwText}} — 수업 일지표 오늘 진도·과제 편집값 (없으면 레슨 기본값)
 };
 
 // ─── IndexedDB 상수 ───
