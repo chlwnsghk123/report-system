@@ -774,6 +774,14 @@ function dlJournalReport(){
         <div style="font-size:13px;font-weight:700;color:#4e5968;margin-bottom:8px;">날짜</div>
         <select id="jrDate" style="width:100%;padding:10px 12px;border:1px solid #e5e8eb;border-radius:10px;font-family:inherit;font-size:14px;"></select>
         <div id="jrRange" style="font-size:12px;color:#8a8f99;margin:8px 2px 16px;"></div>
+        <div style="font-size:13px;font-weight:700;color:#4e5968;margin-bottom:8px;">오늘 진도 <span style="font-weight:500;color:#9aa0a8;">(기본값: 수업 정보, 수정 가능)</span></div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <input id="jrBook" placeholder="교재" style="flex:1;min-width:0;padding:9px 12px;border:1px solid #e5e8eb;border-radius:10px;font-family:inherit;font-size:14px;box-sizing:border-box;">
+          <input id="jrChap" placeholder="단원" style="flex:1;min-width:0;padding:9px 12px;border:1px solid #e5e8eb;border-radius:10px;font-family:inherit;font-size:14px;box-sizing:border-box;">
+        </div>
+        <textarea id="jrDetail" rows="2" placeholder="상세 진도" style="width:100%;padding:9px 12px;border:1px solid #e5e8eb;border-radius:10px;font-family:inherit;font-size:14px;box-sizing:border-box;resize:vertical;margin-bottom:14px;"></textarea>
+        <div style="font-size:13px;font-weight:700;color:#4e5968;margin-bottom:8px;">과제 <span style="font-weight:500;color:#9aa0a8;">(한 줄에 하나)</span></div>
+        <textarea id="jrHw" rows="3" placeholder="과제를 한 줄에 하나씩 입력" style="width:100%;padding:9px 12px;border:1px solid #e5e8eb;border-radius:10px;font-family:inherit;font-size:14px;box-sizing:border-box;resize:vertical;margin-bottom:14px;"></textarea>
         <div style="font-size:13px;font-weight:700;color:#4e5968;margin-bottom:8px;">다음 수업 계획</div>
         <textarea id="jrPlan" rows="2" placeholder="예) 경우의 수 — 순열·조합 마무리" style="width:100%;padding:10px 12px;border:1px solid #e5e8eb;border-radius:10px;font-family:inherit;font-size:14px;box-sizing:border-box;resize:vertical;"></textarea>
         <div style="font-size:13px;font-weight:700;color:#4e5968;margin:16px 0 8px;">학생별 코멘트 <span style="font-weight:500;color:#9aa0a8;">(출석 학생, 날짜별 저장)</span></div>
@@ -800,6 +808,14 @@ function _renderJournalInputs(date){
   const overlay=$$('jrModalOverlay');if(!overlay)return;
   const dts=_journalReportDates(date);
   $$('jrRange').textContent=dts.length?`이행률 집계 ${shortD(dts[0])} ~ ${shortD(dts[dts.length-1])} (최근 ${dts.length}회차)`:'';
+  // 오늘 진도·과제: 저장된 편집값 우선, 없으면 수업 정보(레슨) 기본값
+  const info=G.journalInfo[date]||{};
+  const les=G.lessons.find(l=>l.날짜===date);
+  const defHws=les?getLessonHwKeys(les).map(k=>les[k]||'').filter(x=>x):[];
+  $$('jrBook').value=info.book!=null?info.book:(les?.교재||'');
+  $$('jrChap').value=info.chapter!=null?info.chapter:(les?.단원||'');
+  $$('jrDetail').value=info.detail!=null?info.detail:(les?.상세진도||'');
+  $$('jrHw').value=info.hwText!=null?info.hwText:defHws.join('\n');
   $$('jrPlan').value=G.journalPlan[date]||'';
   const eligible=G.students.filter(n=>isReportEligible(n,date));
   overlay._jrStudents=eligible;
@@ -815,6 +831,13 @@ function _renderJournalInputs(date){
 function _saveJournalInputs(date){
   if(!date)return;
   const overlay=$$('jrModalOverlay');if(!overlay)return;
+  // 오늘 진도·과제 편집값 저장 (날짜별)
+  G.journalInfo[date]={
+    book:($$('jrBook')?.value||'').trim(),
+    chapter:($$('jrChap')?.value||'').trim(),
+    detail:($$('jrDetail')?.value||'').replace(/\r/g,'').trim(),
+    hwText:($$('jrHw')?.value||'').replace(/\r/g,'')
+  };
   const plan=($$('jrPlan')?.value||'').trim();
   if(plan)G.journalPlan[date]=plan;else delete G.journalPlan[date];
   (overlay._jrStudents||[]).forEach((n,i)=>{
@@ -841,8 +864,14 @@ function _buildJournalReportPages(date){
   const secLabel=(t,sub)=>`<div style="display:flex;align-items:center;gap:8px;margin:0 0 14px;"><span style="width:5px;height:18px;background:#16a34a;border-radius:3px;"></span><span style="font-size:17px;font-weight:800;color:#111;">${t}</span>${sub?`<span style="font-size:12px;color:#9aa0a8;font-weight:600;">${sub}</span>`:''}</div>`;
 
   // 1쪽: 헤더 + 수업정보 + 출결 + 이행률표
-  const hwKeys=les?getLessonHwKeys(les):[];
-  const hws=les?hwKeys.map(k=>les[k]||'').filter(x=>x):[];
+  // 오늘 진도·과제: 저장된 편집값 우선, 없으면 레슨 기본값
+  const info=G.journalInfo[date]||{};
+  const book=info.book!=null?info.book:(les?.교재||'');
+  const chapter=info.chapter!=null?info.chapter:(les?.단원||'');
+  const detail=info.detail!=null?info.detail:(les?.상세진도||'');
+  const hws=info.hwText!=null
+    ? info.hwText.split('\n').map(s=>s.trim()).filter(Boolean)
+    : (les?getLessonHwKeys(les).map(k=>les[k]||'').filter(x=>x):[]);
   const headerHtml=`
     <div style="margin-bottom:8px;font-size:12px;font-weight:800;letter-spacing:3px;color:#16a34a;">LEARNING REPORT</div>
     <div style="display:flex;justify-content:space-between;align-items:flex-end;">
@@ -857,7 +886,7 @@ function _buildJournalReportPages(date){
     <div style="display:flex;gap:16px;margin-bottom:26px;">
       <div style="flex:1;border:1px solid #e7e9ec;border-radius:14px;padding:18px 20px;">
         <div style="font-size:12px;color:#9aa0a8;font-weight:700;margin-bottom:10px;">오늘 진도</div>
-        ${[['교재',les?.교재],['단원',les?.단원],['상세',les?.상세진도]].map(([k,v],i)=>`
+        ${[['교재',book],['단원',chapter],['상세',detail]].map(([k,v],i)=>`
           <div style="display:flex;gap:14px;padding:7px 0;${i<2?'border-bottom:1px dashed #eef0f2;':''}">
             <span style="font-size:13px;color:#aab0b8;min-width:34px;">${k}</span>
             <span style="font-size:15px;font-weight:700;color:#222;white-space:pre-line;">${esc(v||'-')}</span>
