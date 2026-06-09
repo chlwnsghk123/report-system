@@ -241,3 +241,22 @@ toggleHwDisabled(idx)
   renderHwEditor()/updateHwDisplay()가 직전 주차에서 OFF된 과제(isHwOff)를 체크목록에서 제외
   → "이번 주차에 OFF한 과제는 다음 주차 숙제로 나타나지 않음"
 ```
+
+## 12. 수업 일지표 (이행률 + 코멘트, 멀티페이지 PDF)
+
+```
+dlJournalReport()  [메뉴 > 리포트 모아보기 > 📓 수업 일지표]
+  → 모달: 날짜 선택 + 다음 수업 계획 + 학생별 코멘트(출석 학생) 입력
+  → 입력값은 날짜별 저장:
+      G.journalNote["학생||날짜"] = 코멘트, G.journalPlan["날짜"] = 계획 → saveAppData
+  → 영속화: 엑셀 설정 시트 ▼ 수업일지코멘트 / ▼ 수업일지계획 (parseWB에서 복원)
+
+PDF 생성: _renderJournalPdf(date)
+  → _buildJournalReportPages(date): 페이지 HTML 배열
+      1쪽: 헤더 + 수업정보(진도·과제) + 출결현황(attend 기준) + 숙제 이행률표(최근 6회차)
+      2쪽~: 학생별 코멘트 카드(6명/쪽) + 마지막 쪽에 '다음 수업 계획'
+  → 각 페이지 html2canvas → pdf-lib A4 세로 페이지에 맞춰 배치
+  → 파일명: 수업일지표_{날짜}.pdf
+  집계 기간 = _journalReportDates(date): 선택 날짜 포함 직전 최대 6회차
+  이행률 등급(표·평균): 70%+ 양호 / 40~69% 보통 / 40%미만 미흡, 결석은 attend로만 판정
+```

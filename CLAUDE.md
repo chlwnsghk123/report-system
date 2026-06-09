@@ -58,6 +58,7 @@ docs/               참조 문서 (필요 시만 읽기)
 | "점수 계산", "맞힌 수", "오답 태그" | `js/autofill.js` + `js/report.js` |
 | "출석/결석 기준", "출결 판정", "결석 표시" | `js/domain.js` (규칙) + `js/report.js`·`js/pdf.js` (표시) |
 | "이번 주차 과제 ON/OFF", "숙제 켜고 끄기" | `js/domain.js`·`js/autofill.js`·`js/report.js` + `js/excel.js` (영속) |
+| "수업 일지표", "수업일지 PDF", "코멘트 입력 일지" | `js/pdf.js` (dlJournalReport) + `index.html` (메뉴) + `js/excel.js`·`js/state.js` (코멘트 저장) |
 | "미니 테스트" 표시/숨김, 토글 | `js/ui.js` + `index.html` |
 | "코멘트" 표시/숨김, 토글 | `js/ui.js` + `index.html` |
 | "탭 전환", "학생 선택" 동작 | `js/ui.js` |

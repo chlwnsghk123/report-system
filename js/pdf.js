@@ -755,6 +755,244 @@ async function _downloadJournalImage(date){
   },'image/png');
 }
 
+// ─── 기능: 수업 일지표 (이행률 + 학생별 코멘트, A4 세로 멀티페이지 PDF) ───
+// 집계 기간: 선택 날짜 포함 직전 최대 6회차
+function _journalReportDates(date){
+  return G.lessons.filter(l=>l.날짜<=date).map(l=>l.날짜).slice(-6);
+}
+
+// 입력 모달 (날짜 + 다음 수업 계획 + 학생별 코멘트, 날짜별 저장)
+function dlJournalReport(){
+  if(!G.lessons.length||!G.students.length){alert('수업·학생 데이터가 필요합니다.');return;}
+  let overlay=$$('jrModalOverlay');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.id='jrModalOverlay';overlay.className='lm-overlay';
+    overlay.innerHTML=`<div class="lm-modal" style="max-width:540px;">
+      <div class="lm-header"><h3>📓 수업 일지표</h3><button class="lm-close" id="jrClose">✕</button></div>
+      <div style="padding:18px 22px;max-height:74vh;overflow:auto;">
+        <div style="font-size:13px;font-weight:700;color:#4e5968;margin-bottom:8px;">날짜</div>
+        <select id="jrDate" style="width:100%;padding:10px 12px;border:1px solid #e5e8eb;border-radius:10px;font-family:inherit;font-size:14px;"></select>
+        <div id="jrRange" style="font-size:12px;color:#8a8f99;margin:8px 2px 16px;"></div>
+        <div style="font-size:13px;font-weight:700;color:#4e5968;margin-bottom:8px;">다음 수업 계획</div>
+        <textarea id="jrPlan" rows="2" placeholder="예) 경우의 수 — 순열·조합 마무리" style="width:100%;padding:10px 12px;border:1px solid #e5e8eb;border-radius:10px;font-family:inherit;font-size:14px;box-sizing:border-box;resize:vertical;"></textarea>
+        <div style="font-size:13px;font-weight:700;color:#4e5968;margin:16px 0 8px;">학생별 코멘트 <span style="font-weight:500;color:#9aa0a8;">(출석 학생, 날짜별 저장)</span></div>
+        <div id="jrNotes"></div>
+        <button class="btn-p" id="jrDl" style="width:100%;margin-top:18px;">📥 PDF 다운로드</button>
+      </div>
+    </div>`;
+    document.body.appendChild(overlay);
+  }
+  const sel=$$('jrDate');
+  sel.innerHTML=G.lessons.map(l=>`<option value="${l.날짜}"${l.날짜===G.selDate?' selected':''}>${fmtKo(l.날짜)}</option>`).join('');
+  const cur=sel.value||G.selDate||G.lessons[G.lessons.length-1].날짜;
+  sel.value=cur;overlay.dataset.curDate=cur;
+  _renderJournalInputs(cur);
+  sel.onchange=()=>{const old=overlay.dataset.curDate;if(old)_saveJournalInputs(old);overlay.dataset.curDate=sel.value;_renderJournalInputs(sel.value);};
+  overlay.style.display='flex';document.body.classList.add('modal-open');
+  const close=()=>{_saveJournalInputs(overlay.dataset.curDate);overlay.style.display='none';document.body.classList.remove('modal-open');};
+  $$('jrClose').onclick=close;
+  overlay.onclick=e=>{if(e.target===overlay)close();};
+  $$('jrDl').onclick=async()=>{const d=overlay.dataset.curDate;_saveJournalInputs(d);await _renderJournalPdf(d);};
+}
+
+function _renderJournalInputs(date){
+  const overlay=$$('jrModalOverlay');if(!overlay)return;
+  const dts=_journalReportDates(date);
+  $$('jrRange').textContent=dts.length?`이행률 집계 ${shortD(dts[0])} ~ ${shortD(dts[dts.length-1])} (최근 ${dts.length}회차)`:'';
+  $$('jrPlan').value=G.journalPlan[date]||'';
+  const eligible=G.students.filter(n=>isReportEligible(n,date));
+  overlay._jrStudents=eligible;
+  const box=$$('jrNotes');
+  if(!eligible.length){box.innerHTML='<div style="font-size:13px;color:#9aa0a8;padding:6px 2px;">코멘트 대상(출석) 학생이 없습니다. 출결을 먼저 선택해 주세요.</div>';return;}
+  box.innerHTML=eligible.map((n,i)=>`
+    <div style="margin-bottom:12px;">
+      <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:5px;">${esc(n)}</div>
+      <textarea id="jrNote_${i}" rows="2" placeholder="코멘트 입력" style="width:100%;padding:9px 12px;border:1px solid #e5e8eb;border-radius:10px;font-family:inherit;font-size:13px;box-sizing:border-box;resize:vertical;">${esc(G.journalNote[`${n}||${date}`]||'')}</textarea>
+    </div>`).join('');
+}
+
+function _saveJournalInputs(date){
+  if(!date)return;
+  const overlay=$$('jrModalOverlay');if(!overlay)return;
+  const plan=($$('jrPlan')?.value||'').trim();
+  if(plan)G.journalPlan[date]=plan;else delete G.journalPlan[date];
+  (overlay._jrStudents||[]).forEach((n,i)=>{
+    const el=$$(`jrNote_${i}`);if(!el)return;
+    const v=el.value.trim(),k=`${n}||${date}`;
+    if(v)G.journalNote[k]=v;else delete G.journalNote[k];
+  });
+  saveAppData();
+}
+
+// 페이지 HTML 배열 생성 (각 항목 = A4 한 쪽)
+function _buildJournalReportPages(date){
+  const les=G.lessons.find(l=>l.날짜===date);
+  const dates=_journalReportDates(date);
+  const first=dates[0]||date,last=dates[dates.length-1]||date;
+  // 범례 색 (양호70%+/보통40-69%/미흡40%미만)
+  const jc=v=>v>=70?'#16a34a':v>=40?'#ca8a04':'#dc2626';
+  const jbg=v=>v>=70?'#dcfce7':v>=40?'#fef9c3':'#fee2e2';
+  const avgRate=n=>{const rs=dates.map(d=>G.rates[n]?.[d]).filter(v=>v!=null&&!isNaN(v)&&v>=0);return rs.length?Math.round(rs.reduce((a,b)=>a+b,0)/rs.length):null;};
+  // 보고 날짜 출결 분류
+  const present=[],absent=[];
+  G.students.forEach(n=>{if(isAbsent(n,date))absent.push(n);else if(!isExcluded(n,date))present.push(n);});
+  const nameList=arr=>arr.length?arr.map(esc).join('  '):'-';
+  const secLabel=(t,sub)=>`<div style="display:flex;align-items:center;gap:8px;margin:0 0 14px;"><span style="width:5px;height:18px;background:#16a34a;border-radius:3px;"></span><span style="font-size:17px;font-weight:800;color:#111;">${t}</span>${sub?`<span style="font-size:12px;color:#9aa0a8;font-weight:600;">${sub}</span>`:''}</div>`;
+
+  // 1쪽: 헤더 + 수업정보 + 출결 + 이행률표
+  const hwKeys=les?getLessonHwKeys(les):[];
+  const hws=les?hwKeys.map(k=>les[k]||'').filter(x=>x):[];
+  const headerHtml=`
+    <div style="margin-bottom:8px;font-size:12px;font-weight:800;letter-spacing:3px;color:#16a34a;">LEARNING REPORT</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+      <div style="font-size:32px;font-weight:800;color:#111;">수업 일지 &amp; 숙제 이행률</div>
+      <div style="text-align:right;">
+        <div style="font-size:16px;font-weight:800;color:#111;">${fmtKo(date)}</div>
+        <div style="font-size:12px;color:#8a8f99;margin-top:2px;">이행률 집계 ${shortD(first)} ~ ${shortD(last)}</div>
+      </div>
+    </div>
+    <div style="height:5px;background:linear-gradient(90deg,#16a34a 0 22%,#e6e9ec 22% 100%);border-radius:3px;margin:14px 0 26px;"></div>`;
+  const infoHtml=`${secLabel('수업 정보')}
+    <div style="display:flex;gap:16px;margin-bottom:26px;">
+      <div style="flex:1;border:1px solid #e7e9ec;border-radius:14px;padding:18px 20px;">
+        <div style="font-size:12px;color:#9aa0a8;font-weight:700;margin-bottom:10px;">오늘 진도</div>
+        ${[['교재',les?.교재],['단원',les?.단원],['상세',les?.상세진도]].map(([k,v],i)=>`
+          <div style="display:flex;gap:14px;padding:7px 0;${i<2?'border-bottom:1px dashed #eef0f2;':''}">
+            <span style="font-size:13px;color:#aab0b8;min-width:34px;">${k}</span>
+            <span style="font-size:15px;font-weight:700;color:#222;white-space:pre-line;">${esc(v||'-')}</span>
+          </div>`).join('')}
+      </div>
+      <div style="flex:1;border:1px solid #e7e9ec;border-radius:14px;padding:18px 20px;background:#fafbfc;">
+        <div style="font-size:12px;color:#9aa0a8;font-weight:700;margin-bottom:10px;">과제</div>
+        ${hws.length?hws.map((h,i)=>`
+          <div style="display:flex;gap:12px;align-items:center;padding:7px 0;${i<hws.length-1?'border-bottom:1px dashed #eef0f2;':''}">
+            <span style="width:22px;height:22px;border-radius:7px;background:#dcfce7;color:#16a34a;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${i+1}</span>
+            <span style="font-size:15px;font-weight:700;color:#222;">${esc(h)}</span>
+          </div>`).join(''):'<div style="font-size:14px;color:#c0c4cb;padding:7px 0;">등록된 과제 없음</div>'}
+      </div>
+    </div>`;
+  const attHtml=`${secLabel('출결 현황','총 '+G.students.length+'명')}
+    <div style="display:flex;gap:16px;margin-bottom:26px;">
+      <div style="flex:1;background:#f3fbf5;border:1px solid #cdeed6;border-radius:14px;padding:16px 20px;display:flex;gap:16px;align-items:flex-start;">
+        <div style="font-size:30px;font-weight:800;color:#16a34a;line-height:1;">${present.length}</div>
+        <div><div style="font-size:13px;font-weight:800;color:#16a34a;margin-bottom:4px;">출석</div><div style="font-size:13px;color:#445;line-height:1.6;">${nameList(present)}</div></div>
+      </div>
+      <div style="flex:1;background:#fef4f4;border:1px solid #f6d4d4;border-radius:14px;padding:16px 20px;display:flex;gap:16px;align-items:flex-start;">
+        <div style="font-size:30px;font-weight:800;color:#dc2626;line-height:1;">${absent.length}</div>
+        <div><div style="font-size:13px;font-weight:800;color:#dc2626;margin-bottom:4px;">결석</div><div style="font-size:13px;color:#445;line-height:1.6;">${nameList(absent)}</div></div>
+      </div>
+    </div>`;
+  const cellWrap=inner=>`<td style="padding:9px 6px;text-align:center;border-top:1px solid #f0f2f4;">${inner}</td>`;
+  const cell=(n,d)=>{
+    if(isAbsent(n,d))return cellWrap('<span style="display:inline-block;padding:3px 10px;border-radius:11px;background:#f1f3f5;color:#9aa0a8;font-size:12px;font-weight:700;">결석</span>');
+    const r=G.rates[n]?.[d];
+    if(r!=null&&!isNaN(r))return cellWrap(`<span style="display:inline-block;padding:3px 10px;border-radius:11px;background:${jbg(r)};color:${jc(r)};font-size:12px;font-weight:800;">${r}%</span>`);
+    return cellWrap('<span style="color:#cfd3d9;font-size:12px;">-</span>');
+  };
+  const rows=G.students.map((n,si)=>{
+    const avg=avgRate(n);
+    return `<tr style="background:${si%2?'#fafbfc':'#fff'};">
+      <td style="padding:11px 14px;font-weight:800;color:#222;font-size:14px;white-space:nowrap;border-top:1px solid #f0f2f4;">${esc(n)}</td>
+      ${dates.map(d=>cell(n,d)).join('')}
+      <td style="padding:11px 14px;text-align:right;border-top:1px solid #f0f2f4;min-width:96px;">
+        ${avg!=null?`<div style="font-size:18px;font-weight:800;color:${jc(avg)};line-height:1.1;">${avg}%</div><div style="height:5px;background:#eef0f2;border-radius:3px;margin-top:5px;overflow:hidden;"><div style="width:${avg}%;height:100%;background:${jc(avg)};"></div></div>`:'<div style="font-size:16px;color:#cfd3d9;line-height:1.1;">—</div><div style="font-size:10px;color:#c0c4cb;margin-top:3px;">데이터 없음</div>'}
+      </td>
+    </tr>`;
+  }).join('');
+  const rateHtml=`${secLabel('숙제 이행률',shortD(first)+' ~ '+shortD(last))}
+    <div style="border:1px solid #e7e9ec;border-radius:14px;overflow:hidden;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:#f7f8fa;">
+          <th style="padding:12px 14px;text-align:left;font-size:12px;font-weight:800;color:#8a909a;">학생</th>
+          ${dates.map(d=>`<th style="padding:12px 6px;text-align:center;font-size:12px;font-weight:700;color:#9aa0a8;white-space:nowrap;">${shortD(d)}</th>`).join('')}
+          <th style="padding:12px 14px;text-align:right;font-size:12px;font-weight:800;color:#8a909a;">기간 평균</th>
+        </tr></thead><tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:18px;margin-top:14px;font-size:12px;color:#7a808a;">
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#16a34a;margin-right:5px;"></span>양호 · 70% 이상</span>
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#ca8a04;margin-right:5px;"></span>보통 · 40-69%</span>
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#dc2626;margin-right:5px;"></span>미흡 · 40% 미만</span>
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#cdd2d8;margin-right:5px;"></span>결석</span>
+    </div>`;
+
+  // 코멘트 카드
+  const catMap={present:['출석','#16a34a','#dcfce7'],late:['지각','#ca8a04','#fef9c3'],absent:['결석','#dc2626','#fee2e2'],excluded:['제외','#6b7280','#f1f3f5'],none:['—','#9aa0a8','#f1f3f5']};
+  const badge=n=>{const[t,c,b]=catMap[attendCategory(n,date)]||catMap.none;return `<span style="padding:3px 12px;border-radius:9px;background:${b};color:${c};font-size:12px;font-weight:800;">${t}</span>`;};
+  const commentCard=n=>{
+    const avg=avgRate(n),note=G.journalNote[`${n}||${date}`]||'';
+    return `<div style="border:1px solid #e7e9ec;border-radius:14px;padding:18px 22px;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f0f2f4;padding-bottom:12px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:9px;"><span style="width:5px;height:18px;background:#16a34a;border-radius:3px;"></span><span style="font-size:17px;font-weight:800;color:#111;">${esc(n)}</span></div>
+        <div style="display:flex;align-items:center;gap:8px;">${badge(n)}<span style="padding:3px 12px;border-radius:9px;background:${avg!=null?jbg(avg):'#f1f3f5'};color:${avg!=null?jc(avg):'#9aa0a8'};font-size:12px;font-weight:800;">기간평균 ${avg!=null?avg+'%':'—'}</span></div>
+      </div>
+      <div style="font-size:14px;color:#333;line-height:1.7;white-space:pre-line;min-height:22px;">${note?esc(note):'<span style="color:#c0c4cb;">코멘트 미입력</span>'}</div>
+    </div>`;
+  };
+  const planText=G.journalPlan[date]||'';
+  const planHtml=`<div style="background:#f3fbf5;border:1px solid #cdeed6;border-radius:14px;padding:18px 22px;margin-top:6px;">
+    <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px;"><span style="width:5px;height:18px;background:#16a34a;border-radius:3px;"></span><span style="font-size:16px;font-weight:800;color:#111;">다음 수업 계획</span></div>
+    <div style="font-size:15px;font-weight:700;color:#1a7d3a;line-height:1.6;white-space:pre-line;">${planText?'→  '+esc(planText):'<span style="color:#9bbfa6;font-weight:500;">미입력</span>'}</div>
+  </div>`;
+
+  // 페이지 조립
+  const inners=[headerHtml+infoHtml+attHtml+rateHtml];
+  const chunks=[];
+  for(let i=0;i<present.length;i+=6)chunks.push(present.slice(i,i+6));
+  if(!chunks.length)chunks.push([]);
+  chunks.forEach((grp,ci)=>{
+    let inner=secLabel('학생별 코멘트',present.length+'명');
+    inner+=grp.length?grp.map(commentCard).join(''):'<div style="font-size:13px;color:#9aa0a8;padding:6px 2px 18px;">출석 학생이 없습니다.</div>';
+    if(ci===chunks.length-1)inner+=planHtml;
+    inners.push(inner);
+  });
+  const total=inners.length;
+  const gen=todayKST().replace(/-/g,'.');
+  return inners.map((inner,i)=>`<div style="width:794px;min-height:1052px;background:#fff;padding:48px 52px 64px;box-sizing:border-box;position:relative;font-family:Pretendard,'Apple SD Gothic Neo',sans-serif;color:#111;">
+    ${inner}
+    <div style="position:absolute;left:52px;right:52px;bottom:26px;display:flex;justify-content:space-between;font-size:11px;color:#b0b4bb;border-top:1px solid #eef0f2;padding-top:10px;">
+      <span>학습 리포트 · 생성일 ${gen}</span><span>페이지 ${i+1} / ${total}</span>
+    </div>
+  </div>`);
+}
+
+async function _journalCanvas(html){
+  const wrap=document.createElement('div');
+  wrap.style.cssText='position:fixed;left:-9999px;top:0;';
+  const container=document.createElement('div');
+  container.innerHTML=html;
+  wrap.appendChild(container);document.body.appendChild(wrap);
+  const el=container.firstElementChild;
+  const cv=await html2canvas(el,{scale:2,useCORS:true,backgroundColor:'#fff',width:794,windowWidth:794,scrollX:0,scrollY:0});
+  document.body.removeChild(wrap);
+  return cv;
+}
+
+async function _renderJournalPdf(date){
+  const btn=$$('jrDl');const orig=btn?btn.textContent:'';
+  if(btn){btn.disabled=true;btn.textContent='⏳ 생성 중...';}
+  try{
+    const pages=_buildJournalReportPages(date);
+    const{PDFDocument}=PDFLib;
+    const outDoc=await PDFDocument.create();
+    const PW=595.28,PH=841.89,margin=24;
+    for(const html of pages){
+      const cv=await _journalCanvas(html);
+      const png=await outDoc.embedPng(dataUrlToBytes(cv.toDataURL('image/png')));
+      const page=outDoc.addPage([PW,PH]);
+      const maxW=PW-margin*2,maxH=PH-margin*2;
+      const sc=Math.min(maxW/png.width,maxH/png.height);
+      const dw=png.width*sc,dh=png.height*sc;
+      page.drawImage(png,{x:(PW-dw)/2,y:PH-margin-dh,width:dw,height:dh});
+    }
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([await outDoc.save()],{type:'application/pdf'}));
+    a.download=`수업일지표_${date}.pdf`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  }catch(e){alert('수업 일지표 생성 오류: '+e.message);console.error(e);}
+  if(btn){btn.disabled=false;btn.textContent=orig;}
+}
+
 function _buildJournalAttendImageHtml(date){
   const present=[],late=[],absent=[];
   G.students.forEach(n=>{

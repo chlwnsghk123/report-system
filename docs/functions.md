@@ -242,6 +242,13 @@ DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 �
 | `dlClassJournal()` | 수업 일지 날짜 선택 모달 열기 |
 | `_downloadJournalImage(date)` | 수업 일지 PNG 캡처·다운로드 |
 | `_buildJournalAttendImageHtml(date)` | 수업 일지 출결 현황 HTML (이미지 다운로드용) |
+| `dlJournalReport()` | **수업 일지표** 입력 모달 (날짜·다음 수업 계획·학생별 코멘트, 날짜별 저장) |
+| `_journalReportDates(date)` | 수업 일지표 집계 기간 — 선택 날짜 포함 직전 최대 6회차 날짜 배열 |
+| `_renderJournalInputs(date)` | 모달의 코멘트/계획 입력칸을 해당 날짜 저장값으로 채움 (대상=출석 학생) |
+| `_saveJournalInputs(date)` | 입력칸 → `G.journalNote`/`G.journalPlan` 저장 + saveAppData |
+| `_buildJournalReportPages(date)` | 수업 일지표 페이지 HTML 배열 생성 (1쪽: 수업정보·출결·이행률표 / 2쪽~: 코멘트·다음 계획) |
+| `_journalCanvas(html)` | 페이지 HTML → html2canvas 캔버스 |
+| `_renderJournalPdf(date)` | 페이지들 → A4 세로 멀티페이지 PDF 생성·다운로드 (`수업일지표_날짜.pdf`) |
 | `_stuRptRemoveItem(key)` | 이행률 표 미리보기에서 과제 항목 임시 제외 (저장 안 됨) |
 | `dlStudentReport()` | 학생별 리포트 요약 모달 열기 (학생·날짜 범위 선택) |
 | `_renderStudentReport(student,s,e,container,opts)` | 학생별 종합 요약 + 날짜별 과제 상세 HTML 렌더링 (compact/interactive/removedSet 옵션) |

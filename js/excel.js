@@ -84,7 +84,7 @@ function parseWB(wb){
     }
   }
 
-  G.students=[];G.scores={};G.corrects={};G.wrong={};G.hwRec={};G.rates={};G.memos={};G.attend={};G.mascotChoices={};G.hwDisabled={};
+  G.students=[];G.scores={};G.corrects={};G.wrong={};G.hwRec={};G.rates={};G.memos={};G.attend={};G.mascotChoices={};G.hwDisabled={};G.journalNote={};G.journalPlan={};
 
   const hasDateSheets=wb.SheetNames.some(n=>/^\d{4}-\d{2}-\d{2}$/.test(n));
 
@@ -261,6 +261,16 @@ function parseWB(wb){
           if(!(G.hwDisabled[key] instanceof Set))G.hwDisabled[key]=new Set();
           G.hwDisabled[key].add(ref);
         }
+      }
+      if(section==='▼ 수업일지코멘트'){
+        // 수업 일지표 학생별 코멘트 복원 (col0="학생||날짜", col1=코멘트)
+        const key=col0,note=String(r[1]||'');
+        if(key&&note.trim())G.journalNote[key]=note;
+      }
+      if(section==='▼ 수업일지계획'){
+        // 수업 일지표 다음 수업 계획 복원 (col0=날짜, col1=계획)
+        const key=col0,plan=String(r[1]||'');
+        if(key&&plan.trim())G.journalPlan[key]=plan;
       }
       if(section==='▼ 마지막저장'&&col0==='lastSaved'){
         G.lastSaved=String(r[1]||'').trim();
@@ -488,6 +498,18 @@ async function saveToExcel(){
     cfgAoa.push(['▼ 과제OFF','','']);
     offRows.forEach(r=>cfgAoa.push(r));
   }
+  // 수업 일지표 코멘트 (col0="학생||날짜", col1=코멘트)
+  const noteRows=Object.entries(G.journalNote||{}).filter(([,v])=>String(v||'').trim());
+  if(noteRows.length){
+    cfgAoa.push(['▼ 수업일지코멘트','','']);
+    noteRows.forEach(([k,v])=>cfgAoa.push([k,String(v),'']));
+  }
+  // 수업 일지표 다음 수업 계획 (col0=날짜, col1=계획)
+  const planRows=Object.entries(G.journalPlan||{}).filter(([,v])=>String(v||'').trim());
+  if(planRows.length){
+    cfgAoa.push(['▼ 수업일지계획','','']);
+    planRows.forEach(([k,v])=>cfgAoa.push([k,String(v),'']));
+  }
   // 마지막 저장 시각
   G.lastSaved=nowKSTStr();
   cfgAoa.push(['▼ 마지막저장','','']);
@@ -553,7 +575,7 @@ function _clearAllData(){
   G.selDate='';G.selStudent='';
   G.hwItems=[];G.hwStatus=[];G.hwItemRefs=[];
   G.hwRateManual=null;G.extraHw=[];G.reportEdits={};
-  G.hwDisabled={};
+  G.hwDisabled={};G.journalNote={};G.journalPlan={};
   G.tabData={};G.studentPdfs={};
   G.pdfCanvases=[];G.pdfPageCount=0;G.currentSpread=0;
   G.excelFileName='학습리포트_데이터.xlsx';
