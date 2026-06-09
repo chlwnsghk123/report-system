@@ -57,7 +57,6 @@ function initCE(){
     $$('inputRate').value=v;$$('inputRate').classList.remove('auto');
     if(G.selStudent&&G.selDate){G.rates[G.selStudent]=G.rates[G.selStudent]||{};G.rates[G.selStudent][G.selDate]=v;}
     updateHwBadge();rebuildGraph();updateRateFace();
-    if(v>=0)autoAttendOnRate();
   });
   rRate.addEventListener('paste',function(e){
     e.preventDefault();
@@ -1049,8 +1048,10 @@ function openBatchPdfModal(){
   $$('batchPdfDate').innerHTML=opts;
   const updateInfo=()=>{
     const d=$$('batchPdfDate').value;
-    const el=G.students.filter(n=>G.rates[n]?.[d]!=null);
-    $$('batchPdfInfo').textContent=`출석 ${el.length}명 · 결석 ${G.students.length-el.length}명`;
+    // 실제 선택한 출결 기준 — 대상=결석/제외 제외, 결석=명시적 결석 선택
+    const el=G.students.filter(n=>isReportEligible(n,d));
+    const absentCnt=G.students.filter(n=>isAbsent(n,d)).length;
+    $$('batchPdfInfo').textContent=`대상 ${el.length}명 · 결석 ${absentCnt}명`;
   };
   $$('batchPdfDate').onchange=updateInfo;
   updateInfo();

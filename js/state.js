@@ -27,6 +27,8 @@ const G={
   currentView:'config',dateTabOffset:0,unsaved:false,
   pendingPropagations:[],
   hwDisabled:{},  // {"학생||날짜": Set(OFF된 과제 ref)} — 이번 주차 과제 ON/OFF
+  journalNote:{}, // {"학생||날짜": "코멘트"} — 수업 일지표 학생별 코멘트 (날짜별 저장)
+  journalPlan:{}, // {"날짜": "다음 수업 계획"} — 수업 일지표 다음 수업 계획
 };
 
 // ─── IndexedDB 상수 ───

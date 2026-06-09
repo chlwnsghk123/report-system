@@ -113,19 +113,20 @@ switchTab(name)
 ## 6. 이행률 데이터 흐름
 
 ```
-이행률 값 규칙:
-  null / undefined  = 결석 (데이터 없음, 그래프에서 제외)
+이행률 값 규칙:  (※ 이행률은 출결과 무관 — 결석 판정은 attend로만 한다)
+  null / undefined  = 이행률 없음 (그래프에서 제외)
   -1                = 표시 안 함 (리포트에 '-' 표시, 그래프 제외)
-  0                 = 출석했지만 이행률 0% (그래프에 0% 표시)
+  0                 = 이행률 0% (그래프에 0% 표시)
   1~100             = 정상 이행률
 
 onRateManual()
-  → inputRate 빈값(''): G.hwRateManual=null, G.rates에서 해당 키 삭제 (=결석)
-  → inputRate '0': G.hwRateManual=0, G.rates[학생][날짜]=0 (=출석, 0%)
+  → inputRate 빈값(''): G.hwRateManual=null, G.rates에서 해당 키 삭제 (이행률 없음)
+  → inputRate '0': G.hwRateManual=0, G.rates[학생][날짜]=0 (이행률 0%)
+  → ★ 이행률 입력/변경은 더 이상 출결(attend)을 자동으로 바꾸지 않음
 
 syncHwRecItems() / selectDate() / saveToExcel()
-  → hwRec.이행률 동기화 우선순위: rateManual > G.rates[학생][날짜] > null(결석)
-  → rateManual이 null이고 G.rates도 없으면 hwRec.이행률 = null (결석 처리)
+  → hwRec.이행률 동기화 우선순위: rateManual > G.rates[학생][날짜] > null
+  → rateManual이 null이고 G.rates도 없으면 hwRec.이행률 = null
   → 0과 null 구분 보존
 
 selectDate() 날짜 전환 시 동기화 항목:
@@ -140,7 +141,7 @@ saveToExcel() 동기화 (현재 날짜 tabData 기준):
 
 rebuildGraph()
   → G.rates[학생][날짜] (현재 날짜 이하만, 첫 번째 날짜 제외, -1 제외)
-  → v!=null 필터 → null(결석)은 제외, 0은 포함
+  → v!=null 필터 → null은 제외, 0은 포함
   → 수동입력값 반영
   → 최근 4개 slice(-4)
   → SVG polyline + circle + text
@@ -183,7 +184,8 @@ saveToExcel()
       비고 열: 이월과제 자동 요약 `(전·M.D)과제명→상태, ...` + 사용자 메모 (`자동요약 | 메모`)
       추가과제 열: 이번 주차 학생별 추가 과제 텍스트 (hwRec.extraHw)
     이월과제 시트: [학생, 확인날짜, 과제내용, 원본날짜, 상태] (▼ 날짜 블록 구분)
-    설정 시트: 스티커 등 앱 설정 + 마지막 저장 시각 (▼ 섹션 구분)
+    설정 시트: 스티커(▼ 스티커) + 이번 주차 과제 OFF(▼ 과제OFF) + 마지막 저장 시각(▼ 마지막저장)
+      날짜별 시트 '출결' 열: G.attend 선택값 그대로 저장 (이행률로 보정하지 않음)
   → 다운로드
 
 ## 9. 캐리오버 시스템
@@ -207,4 +209,54 @@ saveTabData()
   → syncHwRecItems()
     → G.hwItems/hwStatus/hwItemRefs → hwRec[key].items 배열 동기화
     → 모든 항목 통일 구조: {text, status, ref, fromDate}
+```
+
+## 10. 출결 판정 (선택 기반)
+
+```
+출결은 "실제로 선택한 값"만 기준. 이행률(rates)로 출석/결석을 추정/보정하지 않는다.
+판정 규칙은 js/domain.js (도메인 계층)에 단일화:
+  attOf(s,d)            → G.attend[s][d] (2/1/0/-1/undefined)
+  isAbsent(s,d)         → attOf===0 (명시적 결석만)
+  isPresent(s,d)        → 2 또는 1
+  isReportEligible(s,d) → 결석(0)·제외(-1)가 아니면 true (일괄 PDF 대상)
+
+영향 받는 화면(모두 domain 규칙 호출):
+  setAttend/updateAttendUI(출결 토글), saveToExcel(출결 열),
+  요약 이미지·이행률 요약표·수업일지·일괄 PDF 대상 판정·일괄 PDF 안내문구
+  → "결석" 표시는 isAbsent일 때만. 이행률만 없는 경우는 '-'로 표시.
+```
+
+## 11. 이번 주차 과제 ON/OFF 영속화
+
+```
+toggleHwDisabled(idx)
+  → G.hwDisabled["학생||날짜"](Set)에 과제 ref add/delete
+  → saveAppData()
+
+저장: saveToExcel() → 설정 시트 ▼ 과제OFF 섹션에 [학생||날짜, ref] 기록
+복원: parseWB() → ▼ 과제OFF 파싱 → G.hwDisabled[key] = Set(ref들)
+
+다음 주차 반영:
+  renderHwEditor()/updateHwDisplay()가 직전 주차에서 OFF된 과제(isHwOff)를 체크목록에서 제외
+  → "이번 주차에 OFF한 과제는 다음 주차 숙제로 나타나지 않음"
+```
+
+## 12. 수업 일지표 (이행률 + 코멘트, 멀티페이지 PDF)
+
+```
+dlJournalReport()  [메뉴 > 리포트 모아보기 > 📓 수업 일지표]
+  → 모달: 날짜 선택 + 다음 수업 계획 + 학생별 코멘트(출석 학생) 입력
+  → 입력값은 날짜별 저장:
+      G.journalNote["학생||날짜"] = 코멘트, G.journalPlan["날짜"] = 계획 → saveAppData
+  → 영속화: 엑셀 설정 시트 ▼ 수업일지코멘트 / ▼ 수업일지계획 (parseWB에서 복원)
+
+PDF 생성: _renderJournalPdf(date)
+  → _buildJournalReportPages(date): 페이지 HTML 배열
+      1쪽: 헤더 + 수업정보(진도·과제) + 출결현황(attend 기준) + 숙제 이행률표(최근 6회차)
+      2쪽~: 학생별 코멘트 카드(6명/쪽) + 마지막 쪽에 '다음 수업 계획'
+  → 각 페이지 html2canvas → pdf-lib A4 세로 페이지에 맞춰 배치
+  → 파일명: 수업일지표_{날짜}.pdf
+  집계 기간 = _journalReportDates(date): 선택 날짜 포함 직전 최대 6회차
+  이행률 등급(표·평균): 70%+ 양호 / 40~69% 보통 / 40%미만 미흡, 결석은 attend로만 판정
 ```

@@ -117,12 +117,12 @@ function rebuildGraph(){
 // ─── 과제 에디터 (좌패널: 저번 주차 과제 체크, base + carry만) ───
 function renderHwEditor(){
   const c=$$('hwEditor');
+  const prevDate=getPrevL()?.날짜||'';
   const firstCarryIdx=G.hwItemRefs.findIndex(r=>isCarryItem(r?.fromDate));
-  let html='';
-  if(!G.hwItems.length){
-    html+='<div style="font-size:11px;color:#b5bac4;padding:4px 2px;">이전 주차 과제 없음</div>';
-  }
+  let html='',rendered=0;
   G.hwItems.forEach((item,i)=>{
+    // 직전 주차에서 OFF한 과제는 이번 주차 체크목록에 노출하지 않음 (=숙제 없음)
+    if(isHwOff(G.selStudent,prevDate,G.hwItemRefs[i]?.ref||''))return;
     const st=G.hwStatus[i]??-1;
     const fromDate=G.hwItemRefs[i]?.fromDate||'';
     const carry=isCarryItem(fromDate);
@@ -134,7 +134,9 @@ function renderHwEditor(){
       <input type="text" value="${esc(item)}" readonly style="cursor:pointer;opacity:.8;" tabindex="-1">
       <span class="hw-btn s${st}">${hwBtnLabel(st)}</span>
     </div>`;
+    rendered++;
   });
+  if(!rendered)html='<div style="font-size:11px;color:#b5bac4;padding:4px 2px;">이전 주차 과제 없음</div>';
   c.innerHTML=html;
   updateHwDisplay();
 }
@@ -194,8 +196,6 @@ function onRateManual(){
     else delete G.rates[G.selStudent][G.selDate];
   }
   updateHwBadge();rebuildGraph();updateRateFace();
-  // 이행률 입력 시 결석→출석 자동 전환
-  if(v!==''&&Number(v)!==-1)autoAttendOnRate();
 }
 
 // ─── 과제 순환 버튼 ───
@@ -245,14 +245,16 @@ function updateHeaderDate(curDate,nextDate){
 // ─── 저번 주차 과제 표시 (2열 레이아웃 지원) ───
 function updateHwDisplay(){
   const list=$$('rHwList'),sec=$$('secPrevHw');
+  const prevDate=getPrevL()?.날짜||'';
+  const offHidden=i=>isHwOff(G.selStudent,prevDate,G.hwItemRefs[i]?.ref||'');
   const stName={2:'완료',1:'부분완료',0:'미완료'};
-  const visible=G.hwItems.filter((_,i)=>!isNone(G.hwStatus[i]));
+  const visible=G.hwItems.filter((_,i)=>!isNone(G.hwStatus[i])&&!offHidden(i));
   if(!G.hwItems.length||!visible.length){if(sec)sec.style.display='none';list.innerHTML='';return;}
   if(sec)sec.style.display='';
   const icons={2:'✓',1:'△',0:'✗'};
   const baseHtml=[],carryHtml=[],extraHtml=[];
   G.hwItems.forEach((item,i)=>{
-    if(!item.trim()||isNone(G.hwStatus[i]))return;
+    if(!item.trim()||isNone(G.hwStatus[i])||offHidden(i))return;
     const st=G.hwStatus[i]??0;
     const isCarry=isCarryItem(G.hwItemRefs[i]?.fromDate);
     const li=`<div class="hw-li s${st}">
@@ -324,26 +326,10 @@ function updateAttendUI(){
   }
   if(bar)bar.style.display='flex';
   const val=G.attend[G.selStudent]?.[G.selDate];
-  // -1=해제(특수), 미래 공란은 선택 안 함, 과거 공란은 결석
-  const today=todayKST();
-  let effective=val;
-  if(val===-1)effective=null; // 해제 상태 → 아무 버튼도 선택 안 함
-  else if(val==null||val===undefined){
-    effective=G.selDate<=today?0:null;
-  }
+  // 실제로 선택한 값만 표시 — 미선택(-1=해제/공란)은 아무 버튼도 활성화하지 않음
+  const effective=(val===-1||val==null)?null:val;
   wrap.querySelectorAll('.att-btn').forEach(btn=>{
     const bv=parseInt(btn.dataset.att);
     btn.classList.toggle('active',bv===effective);
   });
-}
-
-// 이행률 변경 시 결석→출석 자동 전환
-function autoAttendOnRate(){
-  if(!G.selStudent||!G.selDate)return;
-  const att=G.attend[G.selStudent]?.[G.selDate];
-  if(att===0||att==null){
-    G.attend[G.selStudent]=G.attend[G.selStudent]||{};
-    G.attend[G.selStudent][G.selDate]=2;
-    updateAttendUI();
-  }
 }

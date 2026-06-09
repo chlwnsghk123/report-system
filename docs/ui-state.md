@@ -72,7 +72,8 @@ G = {
   wrong: {},       // {학생명:{날짜:"오답번호문자열"}}
   hwRec: {},       // {"학생명||날짜":{이행률,과제1_상태~N_상태,items:[{text,status,type,fromDate}]}}
   memos: {},       // {"학생명||날짜":"비고 텍스트"} — 리포트 미반영, 엑셀 저장용
-  attend: {},      // {학생명:{날짜:값}} — -1=특수, 0=결석, 1=지각, 2=출석
+  attend: {},      // {학생명:{날짜:값}} — -1=특수/제외, 0=결석, 1=지각, 2=출석, 미선택=undefined
+                   //   ★ 출결은 "실제 선택한 값"만 기준 (이행률로 추정/보정하지 않음). 판정은 js/domain.js
 
   // 현재 선택
   selDate: '', selStudent: '',
@@ -83,6 +84,9 @@ G = {
   hwItemRefs: [],     // 각 항목 참조 [{ref, fromDate}] — base는 'lessonId-과제N', 추가과제는 'lessonId@x@텍스트' (parseHwRef로 통합 파싱)
   extraHw: [],        // 이번 주차 학생별 추가 과제 [{text}]
   hwDisabled: {},     // 이번 주차 과제 OFF 상태 {"학생||날짜": Set(과제 ref)} — 학생·날짜별 분리, ref 기반
+                      //   엑셀 설정 시트(▼ 과제OFF)에 영속화. OFF 과제는 다음 주차 체크목록에서도 제외(js/domain.js: hwOffSet)
+  journalNote: {},    // 수업 일지표 학생별 코멘트 {"학생||날짜":"코멘트"} — 엑셀 설정 시트(▼ 수업일지코멘트)에 영속화
+  journalPlan: {},    // 수업 일지표 다음 수업 계획 {"날짜":"계획"} — 엑셀 설정 시트(▼ 수업일지계획)에 영속화
   hwRateManual: null, // null=엑셀 데이터 사용, 숫자=수동입력
   reportEdits: {},    // 리포트카드 contenteditable 직접편집 오버라이드 (키: 요소ID, 값: innerHTML)
 
@@ -124,5 +128,6 @@ G = {
 
 ## IndexedDB
 - DB: `reportApp4`, Store: `data`
-- 키: `'appData'`(lessons/students/rates/scores/corrects/wrong/hwRec/memos/attend/tabData/fileName/mascotChoices), `'session'`(selDate·selStudent·showMini·showComment·colorMode·currentView), `'studentPdfs'`(학생별 PDF bytes/name/pageCount/isPng)
+- 키: `'appData'`(lessons/students/rates/scores/corrects/wrong/hwRec/memos/attend/tabData/fileName/mascotChoices/hwDisabled/journalNote/journalPlan), `'session'`(selDate·selStudent·showMini·showComment·colorMode·currentView), `'studentPdfs'`(학생별 PDF bytes/name/pageCount/isPng)
 - 참고: IndexedDB에 저장되는 키는 `fileName` (G.excelFileName 값을 저장)
+- 참고: `appData`는 현재 백업용(쓰기 전용)이며 새로고침 시 자동 복원하지 않음 — 실질 영속화는 **엑셀 파일**. (architecture.md P5 참고)
