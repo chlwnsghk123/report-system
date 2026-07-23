@@ -817,10 +817,11 @@ function _renderJournalInputs(date){
   $$('jrDetail').value=info.detail!=null?info.detail:(les?.상세진도||'');
   $$('jrHw').value=info.hwText!=null?info.hwText:defHws.join('\n');
   $$('jrPlan').value=G.journalPlan[date]||'';
-  const eligible=G.students.filter(n=>isReportEligible(n,date));
+  // 코멘트 대상: 제외(-1)만 빼고 결석 학생도 포함 (결석자도 코멘트 작성 가능)
+  const eligible=G.students.filter(n=>!isExcluded(n,date));
   overlay._jrStudents=eligible;
   const box=$$('jrNotes');
-  if(!eligible.length){box.innerHTML='<div style="font-size:13px;color:#9aa0a8;padding:6px 2px;">코멘트 대상(출석) 학생이 없습니다. 출결을 먼저 선택해 주세요.</div>';return;}
+  if(!eligible.length){box.innerHTML='<div style="font-size:13px;color:#9aa0a8;padding:6px 2px;">코멘트 대상 학생이 없습니다.</div>';return;}
   box.innerHTML=eligible.map((n,i)=>`
     <div style="margin-bottom:12px;">
       <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:5px;">${esc(n)}</div>
@@ -967,12 +968,14 @@ function _buildJournalReportPages(date){
 
   // 페이지 조립
   const inners=[headerHtml+infoHtml+attHtml+rateHtml];
+  // 코멘트 대상: 제외(-1)만 빼고 결석 학생도 포함
+  const commentTargets=G.students.filter(n=>!isExcluded(n,date));
   const chunks=[];
-  for(let i=0;i<present.length;i+=6)chunks.push(present.slice(i,i+6));
+  for(let i=0;i<commentTargets.length;i+=6)chunks.push(commentTargets.slice(i,i+6));
   if(!chunks.length)chunks.push([]);
   chunks.forEach((grp,ci)=>{
-    let inner=secLabel('학생별 코멘트',present.length+'명');
-    inner+=grp.length?grp.map(commentCard).join(''):'<div style="font-size:13px;color:#9aa0a8;padding:6px 2px 18px;">출석 학생이 없습니다.</div>';
+    let inner=secLabel('학생별 코멘트',commentTargets.length+'명');
+    inner+=grp.length?grp.map(commentCard).join(''):'<div style="font-size:13px;color:#9aa0a8;padding:6px 2px 18px;">코멘트 대상 학생이 없습니다.</div>';
     if(ci===chunks.length-1)inner+=planHtml;
     inners.push(inner);
   });

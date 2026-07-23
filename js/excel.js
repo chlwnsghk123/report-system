@@ -113,8 +113,9 @@ function parseWB(wb){
       rows.slice(1).forEach(r=>{
         const name=String(r[0]||'').trim();if(!name)return;
         if(!G.students.includes(name))G.students.push(name);
-        // B열: 출결 (-1=특수, 0/공란=결석, 1=지각, 2=출석)
-        const attendVal=String(r[1]||'').trim();
+        // B열: 출결 (-1=특수, 0=결석, 1=지각, 2=출석, 공란=미선택)
+        // r[1]??'' 사용: 숫자 0(결석)이 falsy로 유실되지 않도록 (0||''='' 방지)
+        const attendVal=String(r[1]??'').trim();
         if(attendVal!==''){
           const av=parseInt(attendVal);
           if(!isNaN(av)){G.attend[name]=G.attend[name]||{};G.attend[name][date]=av;}

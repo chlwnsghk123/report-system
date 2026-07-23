@@ -72,7 +72,7 @@ DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 �
 | 함수 | 역할 |
 |---|---|
 | `updateScale()` | 리포트카드 반응형 스케일 계산·적용 |
-| `initCE()` | contenteditable 양방향 동기화 설정 |
+| `initCE()` | (사용 안 함) 리포트카드 이행률 직접 수정 기능 제거로 비워둔 no-op |
 | `fp(cid,pid)` | 리포트카드 → 패널 단방향 텍스트 동기화 |
 | `switchView(view)` | 'config'/'date' 뷰 전환 |
 | `renderViewTabs()` | (레거시, 미사용) 뷰 탭 바 렌더링 |
