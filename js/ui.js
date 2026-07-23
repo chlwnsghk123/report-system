@@ -30,40 +30,9 @@ function updateScale(){
 }
 
 // ─── contenteditable 동기화 ───
-function initCE(){
-  const rRate=$$('rRate');
-  // 숫자만 입력 허용 (0~999), Enter 차단
-  rRate.addEventListener('keydown',function(e){
-    if(e.key==='Enter'){e.preventDefault();this.blur();return;}
-    // 방향키, 백스페이스, 삭제, 탭 허용
-    if(['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End'].includes(e.key))return;
-    // Ctrl+A/C/V/X 허용
-    if(e.ctrlKey||e.metaKey)return;
-    // 숫자 키만 허용
-    if(!/^\d$/.test(e.key))e.preventDefault();
-  });
-  rRate.addEventListener('input',function(){
-    // 숫자가 아닌 문자 제거
-    let text=this.innerText.replace(/[^\d]/g,'');
-    let v=parseInt(text);
-    if(isNaN(v))v=0;
-    if(v>100)v=100;
-    if(this.innerText!==String(v)){this.innerText=v;
-      // 커서를 끝으로
-      const sel=window.getSelection();const range=document.createRange();
-      range.selectNodeContents(this);range.collapse(false);sel.removeAllRanges();sel.addRange(range);
-    }
-    G.hwRateManual=v;
-    $$('inputRate').value=v;$$('inputRate').classList.remove('auto');
-    if(G.selStudent&&G.selDate){G.rates[G.selStudent]=G.rates[G.selStudent]||{};G.rates[G.selStudent][G.selDate]=v;}
-    updateHwBadge();rebuildGraph();updateRateFace();
-  });
-  rRate.addEventListener('paste',function(e){
-    e.preventDefault();
-    const text=e.clipboardData.getData('text/plain').replace(/[^\d]/g,'');
-    document.execCommand('insertText',false,text);
-  });
-}
+// 리포트카드 이행률(rRate) 직접 수정 기능 제거 — 이행률은 좌패널 입력으로만 설정.
+// (rRate는 표시 전용, 값은 onRateManual/autoCalcRate가 innerText로 갱신)
+function initCE(){}
 
 // 리포트카드 → 패널 단방향 동기화 (좌패널에서 갱신 시 override 제거)
 function fp(cid,pid){const c=$$(cid),p=$$(pid);if(c&&p){const v=p.value.replace(/\n{2,}/g,'\n');if(c.innerText.trim()!==v){c.innerText=v;delete G.reportEdits[cid];}}}
