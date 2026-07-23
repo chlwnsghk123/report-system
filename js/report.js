@@ -90,23 +90,38 @@ function openMascotPicker(e){
 function rebuildGraph(){
   if(!G.selDate||!G.selStudent)return;
   const firstDate=G.lessons[0]?.날짜;
+  // 결석 날짜는 이행률 % 대신 그래프에 '결석'으로 표시 (이행률 유무와 무관하게 포함)
   let entries=G.lessons
-    .filter(l=>l.날짜<=G.selDate)
-    .map(l=>({date:l.날짜,v:G.rates[G.selStudent]?.[l.날짜]}))
-    .filter(e=>e.v!=null&&!isNaN(e.v)&&e.v!==-1&&e.date!==firstDate);
+    .filter(l=>l.날짜<=G.selDate&&l.날짜!==firstDate)
+    .map(l=>({date:l.날짜,v:G.rates[G.selStudent]?.[l.날짜],absent:isAbsent(G.selStudent,l.날짜)}))
+    .filter(e=>e.absent||(e.v!=null&&!isNaN(e.v)&&e.v!==-1));
   const cur=parseFloat($$('inputRate').value);
-  if(!isNaN(cur)&&cur!==-1&&G.selDate!==firstDate){
+  const curAbsent=isAbsent(G.selStudent,G.selDate);
+  if(G.selDate!==firstDate&&(curAbsent||(!isNaN(cur)&&cur!==-1))){
     const i=entries.findIndex(e=>e.date===G.selDate);
-    if(i>=0)entries[i].v=cur;else entries.push({date:G.selDate,v:cur});
+    const ent={date:G.selDate,v:isNaN(cur)?null:cur,absent:curAbsent};
+    if(i>=0)entries[i]=ent;else entries.push(ent);
   }
   entries=entries.slice(-4);
   const svg=$$('svgChart');
   if(!entries.length){svg.innerHTML='';$$('gLabels').innerHTML='';return;}
-  const pts=entries.map((e,i)=>{let y=88-(e.v/100)*62;if(y<22)y=22;if(y>88)y=88;return{x:30+i*200,y,v:e.v,date:e.date};});
-  let html=pts.length>1?`<polyline points="${pts.map(p=>`${p.x},${p.y}`).join(' ')}" class="cl"/>`:'';
+  const pts=entries.map((e,i)=>{
+    let y;
+    if(e.absent){y=88;} // 결석은 그래프 바닥에 표시
+    else{y=88-(e.v/100)*62;if(y<22)y=22;if(y>88)y=88;}
+    return{x:30+i*200,y,v:e.v,date:e.date,absent:e.absent};
+  });
+  // 꺾은선은 결석이 아닌(이행률 있는) 점들만 연결
+  const linePts=pts.filter(p=>!p.absent);
+  let html=linePts.length>1?`<polyline points="${linePts.map(p=>`${p.x},${p.y}`).join(' ')}" class="cl"/>`:'';
   pts.forEach((p,i)=>{const a=i===pts.length-1;
-    html+=`<circle cx="${p.x}" cy="${p.y}" class="cd ${a?'active':''}"/>
-           <text x="${p.x}" y="${p.y-11}" class="clbl ${a?'':'past'}">${p.v}%</text>`;});
+    if(p.absent){
+      html+=`<circle cx="${p.x}" cy="${p.y}" class="cd absent ${a?'active':''}"/>
+           <text x="${p.x}" y="${p.y-11}" class="clbl absent ${a?'':'past'}">결석</text>`;
+    }else{
+      html+=`<circle cx="${p.x}" cy="${p.y}" class="cd ${a?'active':''}"/>
+           <text x="${p.x}" y="${p.y-11}" class="clbl ${a?'':'past'}">${p.v}%</text>`;
+    }});
   svg.innerHTML=html;
   let lbl='';for(let i=0;i<4;i++){const a=i===entries.length-1;
     lbl+=`<span class="${a?'act':''}">${i<entries.length?shortD(entries[i].date):''}</span>`;}
