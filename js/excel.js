@@ -435,7 +435,9 @@ async function saveToExcel(){
         }).join(', ');
         const userMemo=G.memos[`${n}||${date}`]||'';
         const bigo=[autoText,userMemo].filter(x=>x).join(' | ');
-        return[n,attVal,G.wrong[n]?.[date]||'',rate!=null?rate:'',...hwVals,...extraVals,bigo];
+        // 결석 날짜는 이행률 % 대신 '결석' 문자열로 저장
+        const rateCell=att===0?'결석':(rate!=null?rate:'');
+        return[n,attVal,G.wrong[n]?.[date]||'',rateCell,...hwVals,...extraVals,bigo];
       })
     ];
     const wsD=XLSX.utils.aoa_to_sheet(aoa,{skipHeader:false});
@@ -445,7 +447,8 @@ async function saveToExcel(){
         const addr=XLSX.utils.encode_cell({r:R,c:C});
         const cell=wsD[addr];if(!cell)continue;
         if(C>=4&&C<4+hwCount+maxExtra){cell.t='s';cell.v=String(cell.v===undefined?'':cell.v);continue;}
-        if(cell.v===0&&cell.t==='n'&&C!==3){cell.v='';cell.t='s';}
+        // 출결(C=1)의 0은 '결석'을 뜻하므로 공란 처리에서 제외 (저장·재로드 시 결석 유지)
+        if(cell.v===0&&cell.t==='n'&&C!==3&&C!==1){cell.v='';cell.t='s';}
       }
     }
     XLSX.utils.book_append_sheet(wb,wsD,date);
