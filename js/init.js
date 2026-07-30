@@ -1,28 +1,26 @@
 // ─── 마스코트 이미지 수동 등록 ───
 function loadMascotImages(){
   const mascotFiles={
+    // 75% 이상 (high): 밝은 표정 동물 8종
     high:[
-      '01_char_r0_c0.png','01_char_r0_c0_.png','01_char_r0_c0__.png','01_char_r0_c0___.png',
-      '02_char_r0_c1.png','02_char_r0_c1_.png','02_char_r0_c1__.png','02_char_r0_c1___.png',
-      '03_char_r0_c2.png','03_char_r0_c2__.png',
-      '04_char_r0_c3.png','05_char_r0_c4.png',
-      '06_char_r1_c0.png','06_char_r1_c0__.png',
-      '07_char_r1_c1.png','07_char_r1_c1__.png',
-      '08_char_r1_c2.png','08_char_r1_c2__.png',
-      '11_char_r2_c0.png','12_char_r2_c1.png'
+      'v2_75plus_kids_01_B_cat.png','v2_75plus_kids_02_B_puppy.png',
+      'v2_75plus_kids_03_B_bunny.png','v2_75plus_kids_04_B_squirrel.png',
+      'v2_75plus_kids_05_B_polar_bear.png','v2_75plus_kids_06_B_bear.png',
+      'v2_75plus_kids_07_B_panda.png','v2_75plus_kids_08_B_hamster.png'
     ],
+    // 30% 이상 ~ 75% 미만 (mid): 동물 8종 (B)
     mid:[
-      '03_char_r0_c2_.png','05_char_r0_c4___.png',
-      '06_char_r1_c0.png','07_char_r1_c1.png','08_char_r1_c2.png',
-      '09_char_r1_c3_.png','09_char_r1_c3__.png',
-      '10_char_r1_c4.png','10_char_r1_c4_.png','10_char_r1_c4__.png',
-      '14_char_r2_c3_.png'
+      'v3_30below_01_B_cat.png','v3_30below_02_B_puppy.png',
+      'v3_30below_03_B_bunny.png','v3_30below_04_B_squirrel.png',
+      'v3_30below_05_B_polar_bear.png','v3_30below_06_B_bear.png',
+      'v3_30below_07_B_panda.png','v3_30below_08_B_hamster.png'
     ],
+    // 30% 미만 (low): 동물 8종 (A)
     low:[
-      '03_char_r0_c2___.png',
-      '04_char_r0_c3_.png','04_char_r0_c3___.png',
-      '05_char_r0_c4__.png',
-      '13_char_r2_c2_.png'
+      'v3_30below_01_A_cat.png','v3_30below_02_A_puppy.png',
+      'v3_30below_03_A_bunny.png','v3_30below_04_A_squirrel.png',
+      'v3_30below_05_A_polar_bear.png','v3_30below_06_A_bear.png',
+      'v3_30below_07_A_panda.png','v3_30below_08_A_hamster.png'
     ]
   };
   for(const tier of ['high','mid','low']){
