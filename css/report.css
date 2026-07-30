@@ -96,7 +96,7 @@
 .rate-wrap{display:flex;align-items:flex-end;gap:0;margin-bottom:15px;}
 .rate-num{font-size:64px;font-weight:900;color:#111;line-height:1;letter-spacing:-2px;}
 .rate-unit{font-size:24px;font-weight:500;color:#777;margin-bottom:8px;margin-left:4px;}
-.rate-mascot{position:absolute;right:15px;bottom:calc(100% - 17.7px);width:120px;height:120px;z-index:2;cursor:pointer;}
+.rate-mascot{position:absolute;right:15px;bottom:calc(100% + 2px);width:120px;height:120px;z-index:2;cursor:pointer;}
 .rate-mascot img{width:100%;height:100%;object-fit:contain;pointer-events:none;}
 /* 마스코트 선택 팝업 — 오버레이 */
 .mascot-picker-overlay{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;animation:mpFadeIn .15s ease;}
