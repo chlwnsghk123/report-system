@@ -17,11 +17,19 @@ function updateRateFace(){
   const imgs=MASCOT_IMGS[tier];
   if(!imgs||!imgs.length){el.innerHTML='';el.style.display='none';return;}
   el.style.display='';
-  // 학생별·점수대별 저장된 마스코트 확인 (선택한 경우에만 표시)
+  // 학생별 저장된 마스코트 확인 (선택한 경우에만 표시)
+  // 현재 점수대(티어)에 설정이 없으면 다른 티어에 설정한 캐릭터(동일 idx)를 사용 →
+  // 한 번 설정한 캐릭터가 특정 날짜뿐 아니라 모든 날짜(점수대)에 동일하게 표시됨.
+  // (티어별 이미지는 같은 순서로 등록되어 idx가 곧 같은 캐릭터를 가리킴)
   let idx;
   const saved=G.mascotChoices[G.selStudent];
-  if(saved&&saved[tier]!=null&&saved[tier]<imgs.length){
-    idx=saved[tier];
+  let pick=null;
+  if(saved){
+    if(saved[tier]!=null)pick=saved[tier];
+    else for(const t of ['high','mid','low']){if(saved[t]!=null){pick=saved[t];break;}}
+  }
+  if(pick!=null&&pick<imgs.length){
+    idx=pick;
   }else{
     // 선택하지 않은 경우 표시하지 않음
     el.innerHTML='';el.style.display='none';
