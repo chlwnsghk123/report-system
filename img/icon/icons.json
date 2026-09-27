@@ -1,11 +1,6 @@
 {
   "icons": [
     {
-      "file": "favicon.svg",
-      "purpose": "브라우저 탭 파비콘 (SVG, 벡터)",
-      "location": "index.html <head> link[rel=icon]"
-    },
-    {
       "file": "favicon-96x96.png",
       "purpose": "브라우저 탭 파비콘 (PNG 96x96 폴백)",
       "location": "index.html <head> link[rel=icon]"

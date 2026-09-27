@@ -7,30 +7,29 @@
 // ════════════════════════════════════════
 // 1) 출결 규칙 (Attendance Rules)
 // ════════════════════════════════════════
-// G.attend[학생][날짜] 값: 2=출석, 1=지각, 0=결석, -1=특수/제외, undefined=미선택
+// G.attend[학생][날짜] 값: 2=출석, 1=지각, 0=결석, 없음(undefined)=미선택
 // ★ 핵심 원칙: 출결은 "실제로 선택한 값"만을 기준으로 판정한다.
 //   과제 이행률(G.rates)로 출석/결석을 추정하지 않는다.
+// ※ 구버전 파일의 -1은 '선택 해제'를 뜻했으므로 미선택으로 취급한다.
 
-// 학생·날짜의 원본 출결값 반환 (없으면 undefined)
+// 학생·날짜의 출결값 반환 (2|1|0, 미선택이면 undefined)
 function attOf(student,date){
   if(!student||!date)return undefined;
-  return G.attend?.[student]?.[date];
+  const v=G.attend?.[student]?.[date];
+  return(v===0||v===1||v===2)?v:undefined;
 }
 // 명시적으로 '결석'을 선택한 경우에만 결석으로 판정
 function isAbsent(student,date){return attOf(student,date)===0;}
 // 출석 또는 지각을 선택한 경우 (실제 출석)
 function isPresent(student,date){const v=attOf(student,date);return v===2||v===1;}
-// 특수/제외(-1): 요약·집계에서 제외
-function isExcluded(student,date){return attOf(student,date)===-1;}
-// 리포트/PDF 생성 대상 여부 — 명시적 결석·제외가 아니면 대상
-function isReportEligible(student,date){const v=attOf(student,date);return v!==0&&v!==-1;}
-// 출결 분류 문자열 ('present'|'late'|'absent'|'excluded'|'none')
+// 리포트/PDF 생성 대상 여부 — 명시적 결석만 제외
+function isReportEligible(student,date){return attOf(student,date)!==0;}
+// 출결 분류 문자열 ('present'|'late'|'absent'|'none')
 function attendCategory(student,date){
   const v=attOf(student,date);
   if(v===2)return'present';
   if(v===1)return'late';
   if(v===0)return'absent';
-  if(v===-1)return'excluded';
   return'none';
 }
 
@@ -49,3 +48,56 @@ function hwOffSet(student,date){
 }
 // 특정 과제(ref)가 해당 학생·날짜에 OFF 되었는지 여부
 function isHwOff(student,date,ref){return!!ref&&hwOffSet(student,date).has(ref);}
+
+// ════════════════════════════════════════
+// 3) 이행률 규칙 (Homework Rate Rules)
+// ════════════════════════════════════════
+// 계산: 완료=100, 부분완료=50, 미완료=0의 평균(반올림). '없음'·이월과제는 계산에서 제외.
+// 등급: 모든 화면·출력물(리포트·요약표·일지표·마스코트)이 같은 기준을 쓰도록 여기서만 정의.
+const RATE_TIER={high:75,mid:30}; // 75% 이상=양호, 30~74%=보통, 30% 미만=미흡
+const RATE_STYLE={
+  high:{label:'양호',fg:'#166534',bg:'#dcfce7'},
+  mid:{label:'보통',fg:'#92400e',bg:'#fef3c7'},
+  low:{label:'미흡',fg:'#991b1b',bg:'#fee2e2'},
+};
+// 이행률 → 'high'|'mid'|'low' (값이 없거나 음수면 null)
+function rateTier(v){
+  if(v==null||v===''||isNaN(v)||v<0)return null;
+  return v>=RATE_TIER.high?'high':v>=RATE_TIER.mid?'mid':'low';
+}
+function rateFg(v){return RATE_STYLE[rateTier(v)]?.fg||'#9ca3af';}
+function rateBg(v){return RATE_STYLE[rateTier(v)]?.bg||'#f1f3f5';}
+// 과제 상태 배열 → 이행률(0~100 정수), 상태가 하나도 없으면 null
+function calcRate(statuses){
+  const sc=(statuses||[]).filter(s=>s===0||s===1||s===2).map(s=>s===2?100:s===1?50:0);
+  return sc.length?Math.round(sc.reduce((a,b)=>a+b,0)/sc.length):null;
+}
+// 과제 상태 배열 → {done, partial, miss} 개수
+function hwStatusCounts(statuses){
+  const c={done:0,partial:0,miss:0};
+  (statuses||[]).forEach(s=>{if(s===2)c.done++;else if(s===1)c.partial++;else if(s===0)c.miss++;});
+  return c;
+}
+
+// ════════════════════════════════════════
+// 4) 미니 테스트 규칙 (Mini Test Rules)
+// ════════════════════════════════════════
+// 저장 구조: G.wrong[학생][날짜]="3, 7"(오답 번호), G.miniTest[날짜]={total:문항수, range:범위},
+//           G.miniScore["학생||날짜"]=맞힌 수(직접 입력 시에만, 없으면 문항수-오답수로 자동 계산)
+// 오답 문자열 → 번호 배열
+function parseWrongList(str){return String(str||'').split(/[,，]/).map(s=>s.trim()).filter(Boolean);}
+// 학생·날짜의 미니테스트 결과 (시험 기록이 없거나 결석이면 null)
+// 반환: {total, correct, wrong:[...], range, pct, perfect}
+function miniResult(student,date){
+  if(!student||!date||isAbsent(student,date))return null;
+  const wrong=parseWrongList(G.wrong?.[student]?.[date]);
+  const t=G.miniTest?.[date]||{};
+  const total=Number(t.total)>0?Math.round(Number(t.total)):null;
+  const ov=G.miniScore?.[`${student}||${date}`];
+  const hasOv=ov!=null&&ov!==''&&!isNaN(ov);
+  if(total==null&&!wrong.length&&!hasOv)return null;
+  let correct=hasOv?Number(ov):(total!=null?Math.max(0,total-wrong.length):null);
+  if(correct!=null&&total!=null)correct=Math.min(correct,total);
+  const pct=(correct!=null&&total)?Math.round(correct/total*100):null;
+  return{total,correct,wrong,range:String(t.range||'').trim(),pct,perfect:total!=null&&correct===total};
+}

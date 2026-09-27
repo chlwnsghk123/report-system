@@ -6,7 +6,6 @@
 <title>학습 리포트</title>
 
 <!-- 파비콘 & 앱 아이콘 -->
-<link rel="icon" type="image/svg+xml" href="img/icon/favicon.svg">
 <link rel="icon" type="image/png" sizes="96x96" href="img/icon/favicon-96x96.png">
 <link rel="shortcut icon" href="img/icon/favicon.ico">
 <link rel="apple-touch-icon" sizes="180x180" href="img/icon/apple-touch-icon.png">
@@ -17,6 +16,7 @@
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <!-- 스타일 -->
 <link rel="stylesheet" href="css/layout.css">
@@ -48,12 +48,16 @@
       <button id="btnExcelRemove" class="sbar-remove-btn" onclick="removeExcelData()" style="display:none;" title="엑셀 데이터 제거">−</button>
     </div>
     <input type="file" id="excelInput" accept=".xlsx,.xls" style="display:none" onchange="loadExcel(this)">
+    <!-- 지난 작업 이어하기 (IndexedDB 자동 백업) -->
+    <div id="recoverBanner" class="recover-banner" style="display:none;">
+      <div class="recover-text"><b>지난 작업이 있습니다</b><span id="recoverInfo"></span></div>
+      <div class="recover-btns">
+        <button class="recover-ok" onclick="restoreFromBackup()">이어하기</button>
+        <button class="recover-no" onclick="dismissRecovery()">닫기</button>
+      </div>
+    </div>
     <button id="btnZeroStart" class="btn-zero-start" onclick="zeroStart()">또는 직접 시작하기 →</button>
   </div>
-
-  <!-- 뷰 탭 (숨김) -->
-  <div class="view-tabs" id="viewTabs" style="display:none!important;"></div>
-  <div class="tab-bar" id="tabBar" style="display:none!important;"></div>
 
   <div class="panel-body">
     <div id="viewDate" style="display:none;">
@@ -64,19 +68,21 @@
       <div class="panel-section">
         <div class="panel-card">
           <div class="cg" id="gPrevHw">
-            <label>저번 주차 과제 <span class="ab">자동</span></label>
+            <label>지난 수업 과제 검사 <span class="ab">자동</span>
+              <button class="hw-all-done" onclick="markAllHwDone()" title="상태가 비어 있는 과제를 모두 '완료'로 표시합니다">✓ 모두 완료</button></label>
             <div id="hwEditor" style="display:flex;flex-direction:column;gap:4px;"></div>
             <div class="rate-input-row">
               <span class="rate-label">이행률</span>
-              <input type="number" id="inputRate" class="rate-input" min="0" max="100" oninput="onRateManual()">
+              <input type="number" id="inputRate" class="rate-input" min="0" max="100" oninput="onRateManual()" title="과제 상태를 바꾸면 자동 계산됩니다. 직접 입력도 가능합니다">
               <span class="rate-unit-sm">%</span>
-              <button class="ab rate-auto-btn" onclick="autoCalcRate()" title="과제 상태에서 이행률을 자동 계산합니다" style="margin-left:auto;">⚡ 자동계산</button>
+              <span id="hwCounts" class="hw-counts"></span>
+              <button class="ab rate-auto-btn" onclick="autoCalcRate()" title="직접 입력한 값을 과제 상태 기준으로 다시 계산합니다" style="margin-left:auto;">⚡ 다시 계산</button>
             </div>
           </div>
         </div>
         <div class="panel-card">
           <div class="cg" id="gCurHw">
-            <label>이번 주차 과제 <span class="ab">자동</span> <span class="label-hint">(학생별 추가 가능)</span></label>
+            <label>다음 수업까지 과제 <span class="ab">자동</span> <span class="label-hint">(학생별 추가 가능)</span></label>
             <div id="curHwList" style="display:flex;flex-direction:column;gap:3px;overflow:hidden;"></div>
             <div id="extraHwEditor" style="display:flex;flex-direction:column;gap:3px;"></div>
             <div class="hw-add-extra">
@@ -93,47 +99,47 @@
           <div class="sw-track"><div class="sw-thumb"></div></div>
           <div style="flex:1;">
             <div class="sw-label">📝 미니 테스트</div>
-            <div class="sw-desc">리포트에 테스트 결과 포함</div>
+            <div class="sw-desc">리포트에 점수·다시 볼 문제 표시</div>
           </div>
         </div>
         <div id="gMini" style="display:none;flex-direction:column;gap:8px;">
           <div class="panel-card">
             <div class="cg">
-              <label>오답 번호 <span class="label-hint">(쉼표 구분)</span></label>
-              <input type="text" id="inputWrong" placeholder="오답 번호 입력" oninput="updateWrongTags(this.value)">
+              <label>시험 정보 <span class="label-hint">(이 날짜 반 공통)</span></label>
+              <div class="mini-row">
+                <input type="number" id="miniTotal" min="1" placeholder="문항 수" oninput="onMiniInput()" style="width:84px;flex:none;">
+                <input type="text" id="miniRange" placeholder="범위 (예: 유형 03~06)" oninput="onMiniInput()">
+              </div>
+              <label style="margin-top:6px;">오답 번호 <span class="label-hint">(쉼표 구분)</span></label>
+              <div class="mini-row">
+                <input type="text" id="inputWrong" placeholder="예: 3, 7, 12" oninput="onWrongInput(this.value)">
+                <input type="number" id="miniCorrect" min="0" placeholder="맞힌 수" title="비워두면 '문항 수 − 오답 수'로 자동 계산" oninput="onMiniInput()" style="width:84px;flex:none;">
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- 코멘트 (임시 숨김) -->
-        <div class="sw-row" id="toggleComment" onclick="toggleSec('comment')" style="display:none;">
+        <div class="sw-row" id="toggleComment" onclick="toggleSec('comment')">
           <div class="sw-track"><div class="sw-thumb"></div></div>
           <div style="flex:1;">
-            <div class="sw-label">💬 코멘트</div>
-            <div class="sw-desc">선생님 한마디 포함</div>
+            <div class="sw-label">💬 선생님 한마디</div>
+            <div class="sw-desc">리포트 하단에 코멘트 표시 (수업 일지표와 공유)</div>
           </div>
         </div>
-        <div class="cg" id="gComment" style="display:none;">
-          <div style="font-size:11px;color:#9ca3af;padding:2px 0;">리포트에서 직접 편집하세요</div>
+        <div id="gComment" style="display:none;flex-direction:column;gap:8px;">
+          <div class="panel-card">
+            <div class="cg">
+              <textarea id="inputComment" rows="3" placeholder="이 학생에게 전할 한마디 (학생별·날짜별 저장)" oninput="onCommentInput()"></textarea>
+              <div class="mini-row" style="align-items:center;">
+                <span class="label-hint" style="flex:none;">서명</span>
+                <input type="text" id="inputTeacher" placeholder="선생님 이름 (From. ○○ T)" oninput="onTeacherInput()">
+              </div>
+            </div>
+          </div>
         </div>
-        <input type="hidden" id="inputTeacher">
-        <input type="hidden" id="inputComment">
-        <button class="btn-s" id="btnMemo" onclick="openMemo()" style="display:none;">📋 비고 작성하기</button>
       </div>
     </div>
   </div>
-
-  <!-- hidden inputs -->
-  <input type="hidden" id="inCurBook">
-  <input type="hidden" id="inCurChap">
-  <input type="hidden" id="inCurDetail">
-  <input type="hidden" id="inPrevBook">
-  <input type="hidden" id="inPrevChap">
-  <input type="hidden" id="inPrevDetail">
-  <input type="hidden" id="inputNotice">
-  <input type="number" id="inputCorrect" style="display:none;">
-  <input type="number" id="inputTotal" style="display:none;">
-  <div id="calcResult" style="display:none;"></div>
 </div>
 
 <!-- 패널 리사이즈 핸들 -->
@@ -145,7 +151,7 @@
   <div class="toolbar">
     <div style="display:flex;flex-direction:column;gap:4px;"></div>
     <div class="tb-group">
-      <button class="tb-btn" disabled title="준비 중">🖨 프린트</button>
+      <button class="tb-btn" id="btnImg" onclick="dlReportImage()" style="display:none;" title="카톡 전송용 이미지(JPG)로 저장">🖼 이미지</button>
       <button class="tb-btn" id="btnPdf" onclick="dlPdf()" style="display:none;">📄 PDF로 내보내기</button>
       <button class="tb-btn tb-save tb-main" id="btnSave" onclick="saveToExcel()" style="display:none" disabled>💾 저장</button>
       <div class="tb-sep"></div>
@@ -157,22 +163,18 @@
             <div class="tb-sub-list">
               <button onclick="openAddStudentModal();closeToolbarMenus()">➕ 학생 추가</button>
               <button onclick="openRemoveStudentModal();closeToolbarMenus()">➖ 학생 제거</button>
-              <div class="tb-menu-sep"></div>
-              <button onclick="openStudentSettingsModal();closeToolbarMenus()">⚙ 학생 설정</button>
             </div>
           </div>
           <div class="tb-sub">
             <button class="tb-sub-trigger">📊 리포트 모아보기 <span class="tb-arrow">‹</span></button>
             <div class="tb-sub-list">
-              <button onclick="dlClassJournal();closeToolbarMenus()">📝 수업 일지</button>
-              <button onclick="dlJournalReport();closeToolbarMenus()">📓 수업 일지표 (이행률+코멘트)</button>
+              <button onclick="dlJournalReport();closeToolbarMenus()">📓 수업 일지표 (원장님 보고용)</button>
               <button onclick="dlStudentReport();closeToolbarMenus()">📊 이행률 요약표 (학생별)</button>
               <button onclick="dlGradeSummary();closeToolbarMenus()">📊 이행률 요약표 (전체)</button>
-              <div class="tb-menu-sep"></div>
-              <button onclick="dlSummaryPdf();closeToolbarMenus()">📋 전체 과제 요약 이미지</button>
             </div>
           </div>
           <div class="tb-menu-sep"></div>
+          <button onclick="dlKakaoZip();closeToolbarMenus()">📱 카톡용 이미지 일괄 (ZIP)</button>
           <button onclick="openBatchPdfModal();closeToolbarMenus()">📄 일괄 PDF</button>
         </div>
       </div>
@@ -183,9 +185,9 @@
           <button onclick="openLessonModal();closeToolbarMenus()">📋 수업 진도 설정</button>
           <div class="tb-menu-sep"></div>
           <div style="padding:8px 14px 6px;font-size:11px;font-weight:700;color:#8a8f9e;">리포트 테마</div>
-          <button id="btnColorMode" onclick="toggleColorMode();closeToolbarMenus()">🌙 흑백 모드</button>
+          <button id="btnColorMode" onclick="toggleColorMode();closeToolbarMenus()">🎨 컬러 모드로 보기</button>
           <div class="tb-menu-sep"></div>
-          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.79)</button>
+          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.80)</button>
         </div>
       </div>
       <button class="tb-btn tb-help-btn" onclick="openHelpModal()" title="도움말">?</button>
@@ -208,11 +210,8 @@
           <button class="att-btn att-late" data-att="1" onclick="setAttend(1)">지각</button>
           <button class="att-btn att-absent" data-att="0" onclick="setAttend(0)">결석</button>
         </div>
-      </div>
-      <div class="page-nav" id="pageNav" style="display:none;">
-        <button id="btnPrev" onclick="prevSpread()" disabled>‹</button>
-        <span class="pinfo" id="pageInfo">1 / 1</span>
-        <button id="btnNext" onclick="nextSpread()" disabled>›</button>
+        <button class="att-all-btn" onclick="markAllPresent()" title="출결을 아직 체크하지 않은 학생을 모두 출석으로 표시">전원 출석</button>
+        <span id="attendUnset" class="attend-unset"></span>
       </div>
       <div class="spread-row" id="spreadRow">
         <div class="page-slot" id="leftSlot">
@@ -245,7 +244,7 @@
             <!-- ② 저번 주차 과제 -->
             <div class="sec" id="secPrevHw">
               <div class="sec-title">
-                <span class="sec-icon">✎</span> 저번 주차 과제
+                <span class="sec-icon">✎</span> 지난 수업 과제
                 <span id="rPrevHwDate" class="prev-hw-date"></span>
               </div>
               <div class="hw-list" id="rHwList"></div>
@@ -256,20 +255,20 @@
               <div class="sec-title"><span class="sec-icon">📖</span> 수업 진도</div>
               <div class="prog-row">
                 <div class="prog-card current">
-                  <div class="prog-label">현재 진도 <span id="rCurDt" style="text-transform:none;font-weight:500;"></span></div>
+                  <div class="prog-label">오늘 배운 내용 <span id="rCurDt" style="text-transform:none;font-weight:500;"></span></div>
                   <div>
-                    <span class="prog-book eh" id="rCurBook" data-panel="inCurBook"></span>
-                    <span class="prog-chap eh" id="rCurChap" data-panel="inCurChap"></span>
+                    <span class="prog-book eh" id="rCurBook"></span>
+                    <span class="prog-chap eh" id="rCurChap"></span>
                   </div>
-                  <div class="prog-detail eh" id="rCurDetail" data-panel="inCurDetail"></div>
+                  <div class="prog-detail eh" id="rCurDetail"></div>
                 </div>
                 <div class="prog-card prev">
-                  <div class="prog-label">이전 진도 <span id="rPrevDt" style="text-transform:none;font-weight:500;"></span></div>
+                  <div class="prog-label">지난 수업 내용 <span id="rPrevDt" style="text-transform:none;font-weight:500;"></span></div>
                   <div>
-                    <span class="prog-book eh" id="rPrevBook" data-panel="inPrevBook"></span>
-                    <span class="prog-chap eh" id="rPrevChap" data-panel="inPrevChap"></span>
+                    <span class="prog-book eh" id="rPrevBook"></span>
+                    <span class="prog-chap eh" id="rPrevChap"></span>
                   </div>
-                  <div class="prog-detail eh" id="rPrevDetail" data-panel="inPrevDetail"></div>
+                  <div class="prog-detail eh" id="rPrevDetail"></div>
                 </div>
               </div>
             </div>
@@ -277,7 +276,7 @@
             <!-- ④ 이번 과제 -->
             <div class="sec">
               <div class="sec-title">
-                <span class="sec-icon">✐</span> 이번 주차 과제
+                <span class="sec-icon">✐</span> 다음 수업까지 과제
                 <span id="rNextHwDate" class="prev-hw-date"></span>
               </div>
               <div class="next-hw-list" id="rNoticeList"></div>
@@ -285,20 +284,21 @@
 
             <!-- ⑤ 미니테스트 (선택) -->
             <div class="sec" id="secMini" style="display:none;">
-              <div class="sec-title green"><span class="sec-icon">✏</span> 미니 테스트</div>
-              <div class="mini-wrong-row">
-                <div class="mini-wrong-lbl">✗ 오답 번호</div>
-                <div class="mini-tags" id="rWrongTags"></div>
+              <div class="sec-title green"><span class="sec-icon">✏</span> 미니 테스트 <span id="rMiniRange" class="prev-hw-date"></span></div>
+              <div class="mini-result">
+                <div class="mini-score" id="rMiniScore"></div>
+                <div class="mini-wrong-row" id="rMiniWrongRow">
+                  <div class="mini-wrong-lbl">다시 볼 문제</div>
+                  <div class="mini-tags" id="rWrongTags"></div>
+                </div>
               </div>
-              <span id="rCorrect" style="display:none;"></span>
-              <span id="rTotal" style="display:none;"></span>
             </div>
 
             <!-- ⑥ 코멘트 (선택) -->
             <div class="sec" id="secComment" style="display:none;">
-              <div class="sec-title"><span class="sec-icon">·</span> 코멘트</div>
+              <div class="sec-title"><span class="sec-icon">·</span> 선생님 한마디</div>
               <div class="comment-wrap">
-                <div class="comment-text eh" id="commentBody" data-panel="inputComment"></div>
+                <div class="comment-text eh" id="commentBody"></div>
                 <div class="teacher-sign eh" id="commentSign"></div>
               </div>
             </div>
@@ -346,7 +346,7 @@
       <h3>⚙ 수업 진도 설정</h3>
       <div style="display:flex;align-items:center;gap:8px;">
         <button class="btn-s" onclick="addLesson()" style="width:auto;padding:6px 14px;font-size:12px;">➕ 날짜 추가</button>
-        <button class="lm-close" onclick="closeLessonModal();if(G.selDate)switchView('date');">✕</button>
+        <button class="lm-close" onclick="exitLessonModal()">✕</button>
       </div>
     </div>
     <div class="lm-body lm-main" style="padding:20px 24px;overflow-y:auto;">
@@ -364,27 +364,6 @@
 <script src="js/ui.js"></script>
 <script src="js/session.js"></script>
 <script src="js/autofill.js"></script>
-<!-- 비고 모달 -->
-<div class="lm-overlay" id="memoModalOverlay" style="display:none;" onclick="if(event.target===this)closeMemo(false)">
-  <div class="lm-modal" style="max-width:560px;">
-    <div class="lm-header">
-      <h3 id="memoTitle">📋 비고</h3>
-      <button class="lm-close" onclick="closeMemo()">✕</button>
-    </div>
-    <div style="padding:20px 24px;flex:1;display:flex;flex-direction:column;gap:14px;overflow-y:auto;">
-      <div id="memoAutoArea" style="display:none;">
-        <div style="font-size:11px;font-weight:700;color:#6b7280;margin-bottom:6px;">자동 기록 (이월과제 요약)</div>
-        <div id="memoAutoText" style="font-size:13px;color:#555;background:#f8f9fa;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px;line-height:1.6;white-space:pre-wrap;"></div>
-      </div>
-      <div style="flex:1;display:flex;flex-direction:column;">
-        <div style="font-size:11px;font-weight:700;color:#6b7280;margin-bottom:6px;">메모</div>
-        <textarea id="memoText" placeholder="추가 메모를 입력하세요..." style="flex:1;min-height:140px;resize:vertical;padding:12px;font-size:14px;font-family:inherit;border:1px solid #d1d6db;border-radius:10px;outline:none;line-height:1.7;"></textarea>
-      </div>
-      <button class="btn-p" onclick="saveMemo()">저장</button>
-    </div>
-  </div>
-</div>
-
 <script src="js/report.js"></script>
 <script src="js/pdf.js"></script>
 <script src="js/init.js"></script>
