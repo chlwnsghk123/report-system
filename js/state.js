@@ -14,23 +14,29 @@ function genLessonId(){return String(Math.floor(Math.random()*9e9)+1e9);}
 // ─── 전역 상태 G ───
 const G={
   lessons:[],students:[],
-  rates:{},scores:{},corrects:{},wrong:{},hwRec:{},memos:{},attend:{},
+  rates:{},wrong:{},hwRec:{},memos:{},attend:{},
   selDate:'',selStudent:'',
-  hwItems:[],hwStatus:[],hwItemRefs:[],hwRateManual:null,extraHw:[],reportEdits:{},
-  totalQ:5,
+  hwItems:[],hwStatus:[],hwItemRefs:[],hwRateManual:null,extraHw:[],
   showMini:false,showComment:false,colorMode:false,
   tabData:{},
   excelFileName:'학습리포트_데이터.xlsx',
-  attachedPdfBytes:null,pdfCanvases:[],pdfPageCount:0,currentSpread:0,
-  studentPdfs:{},  // {studentName: [{bytes:Uint8Array, name:string, canvases:[], pageCount:number}, ...]}
-  mascotChoices:{},selectedMascot:null,lastSaved:'',
-  currentView:'config',dateTabOffset:0,unsaved:false,
+  pdfCanvases:[],
+  studentPdfs:{},  // {studentName: [{name:string, canvases:[캔버스], pageCount:number}]} — 첨부 시험자료, 세션 한정
+  mascotChoices:{},lastSaved:'',
+  currentView:'config',unsaved:false,
   pendingPropagations:[],
   hwDisabled:{},  // {"학생||날짜": Set(OFF된 과제 ref)} — 이번 주차 과제 ON/OFF
-  journalNote:{}, // {"학생||날짜": "코멘트"} — 수업 일지표 학생별 코멘트 (날짜별 저장)
+  journalNote:{}, // {"학생||날짜": "코멘트"} — 선생님 코멘트 (수업 일지표 + 리포트 '선생님 한마디' 공용)
   journalPlan:{}, // {"날짜": "다음 수업 계획"} — 수업 일지표 다음 수업 계획
-  journalInfo:{}, // {"날짜": {book,chapter,detail,hwText}} — 수업 일지표 오늘 진도·과제 편집값 (없으면 레슨 기본값)
+  journalInfo:{}, // {"날짜": {book?,chapter?,detail?,hwText?}} — 수업 일지표 진도·과제 편집값 (수업 정보와 다른 항목만)
+  miniTest:{},    // {"날짜": {total:문항수, range:"시험 범위"}} — 미니 테스트 정보 (날짜별)
+  miniScore:{},   // {"학생||날짜": 맞힌 수} — 직접 입력한 경우만 (없으면 문항수-오답수)
+  teacherName:'', // 리포트 코멘트 서명 (From. ○○ T)
 };
+
+// ─── 엑셀·IndexedDB에 저장되는 데이터 필드 (저장·복구·초기화 공용) ───
+const DATA_KEYS=['lessons','students','rates','wrong','hwRec','memos','attend','mascotChoices','hwDisabled',
+  'journalNote','journalPlan','journalInfo','miniTest','miniScore','teacherName','showMini','showComment','colorMode','lastSaved'];
 
 // ─── IndexedDB 상수 ───
 const DB='reportApp4',STORE='data';

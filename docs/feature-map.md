@@ -9,43 +9,44 @@
 ```
 A 패널 (좌측, 드래그 리사이즈 가능)
 [panel-head]
-├─ 📝 학습 리포트 (제목) + 마지막 저장 시간 → .panel-brand, #rLastSaved
-├─ 상태바 / 엑셀 불러오기            → #sbar, #excelInput
+├─ 📝 학습 리포트 (제목) + 마지막 저장 시간 → .panel-brand, #rLastSaved, #unsavedInline
+├─ 상태바 / 엑셀 불러오기            → #sbar, #excelInput, #btnExcelRemove
+├─ 지난 작업 이어하기 배너           → #recoverBanner (checkRecovery / restoreFromBackup)
+└─ 직접 시작하기                    → #btnZeroStart
 
 [panel-body > viewDate]
 ├─ 수업 정보 읽기전용 요약 (카드형)   → #dateSummary
 ├─ [과제 & 이행률 섹션]
-│  ├─ 저번 주차 과제 + 이행률 입력    → .panel-card > #gPrevHw, #hwEditor, #inputRate
-│  │    └─ base 과제 + 이월 과제 (캐리오버 뱃지)
-│  └─ 이번 주차 과제 + 추가 과제 입력  → .panel-card > #gCurHw, #extraHwEditor
+│  ├─ 지난 수업 과제 검사 + 이행률     → .panel-card > #gPrevHw, #hwEditor, #inputRate, #hwCounts, ✓ 모두 완료
+│  │    └─ base 과제 + 이월 과제 ((이월) 뱃지)
+│  └─ 다음 수업까지 과제 + 추가 과제  → .panel-card > #gCurHw, #curHwList(ON/OFF), #extraHwEditor
 ├─ [선택 항목 섹션]
-│  ├─ 미니 테스트 토글               → #toggleMini → #gMini > #inputWrong
-│  └─ 코멘트 토글 (임시 숨김)        → #toggleComment → #gComment
-hidden: #inCurBook/Chap/Detail, #inPrevBook/Chap/Detail, #inputNotice, #inputCorrect/#inputTotal
+│  ├─ 미니 테스트 토글               → #toggleMini → #gMini (#miniTotal, #miniRange, #inputWrong, #miniCorrect)
+│  └─ 선생님 한마디 토글             → #toggleComment → #gComment (#inputComment, #inputTeacher)
 
 [panel-resize] 드래그 리사이즈 핸들   → #panelResize
 
 수업설정 전체화면 모달 (#lessonModalOverlay)
-├─ 학생 관리                        → #studentListItems, #newStudentInput
 └─ 수업 날짜별 레슨 카드             → #lessonCards
-     └─ .lesson-card × N (교재/단원/상세진도/과제 동적 추가·삭제)
-접근: ⚙ 설정 메뉴 → '📋 수업 진도 설정'
+     └─ .lesson-card × N (날짜/교재/단원/상세진도/과제 동적 추가·삭제)
+접근: ⚙ 설정 메뉴 → '📋 수업 진도 설정' (또는 패널 우클릭) · 닫기: ✕/ESC → exitLessonModal()
 
 B 미리보기 (우측)
-├─ 상단 툴바                        → .toolbar (#btnPdf, #btnSave, #tbMenu, #tbSettings)
-│  └─ ⚙ 설정 안에: 수업 진도 설정, 흑백 모드
-├─ 상단 날짜 네비게이션              → #dateNavBar (‹ 날짜 › + 클릭 드롭다운)
-├─ 리포트카드 #reportCard (슬라이드 전환 애니메이션)
+├─ 상단 툴바                        → .toolbar (#btnImg, #btnPdf, #btnSave, #tbMenu, #tbSettings, ? 도움말)
+│  ├─ ☰ 메뉴: 학생 관리(추가/제거) · 리포트 모아보기(수업 일지표 / 이행률 요약표 학생별·전체) · 카톡용 이미지 일괄(ZIP) · 일괄 PDF
+│  └─ ⚙ 설정: 수업 진도 설정, 컬러/흑백 모드, 업데이트 확인
+├─ 상단 날짜 네비게이션              → #dateNavBar (‹ 날짜 › + 클릭 드롭다운 + 날짜 추가)
+├─ 출결 바                          → #attendBar (#attendToggle 출석/지각/결석 + 전원 출석 + #attendUnset)
+├─ 리포트카드 #reportCard (슬라이드 전환 애니메이션, A4 넘치면 .dense/.dense2 자동 맞춤)
 │    ├─ 헤더 (학생명/날짜)           → #rName, #rDate
-│    ├─ ① 이행률 + 그래프 + 마스코트  → #secRate, #svgChart, #gLabels, #rateMascot
-│    ├─ ② 저번 주차 과제 목록        → #secPrevHw, #rHwList (캐리오버: (전) 마크)
-│    ├─ ③ 수업 진도 (현재/이전)       → .prog-card
-│    ├─ ④ 이번 주차 과제 목록        → #rNoticeList (미완료 캐리오버 자동 추가)
-│    ├─ ⑤ 미니 테스트 (선택)         → #secMini, #rWrongTags
-│    └─ ⑥ 코멘트 (선택)             → #secComment, #commentBody, #commentSign
+│    ├─ ① 이행률 + 그래프 + 마스코트  → #secRate(.absent), #svgChart, #gLabels, #rateMascot
+│    ├─ ② 지난 수업 과제 목록        → #secPrevHw, #rHwList (이월: (이월) 마크)
+│    ├─ ③ 수업 진도 (오늘/지난 수업)  → .prog-card
+│    ├─ ④ 다음 수업까지 과제 목록    → #rNoticeList ((개별)·(이월), 없으면 '별도 과제 없음')
+│    ├─ ⑤ 미니 테스트 (선택)         → #secMini, #rMiniScore, #rMiniRange, #rWrongTags
+│    └─ ⑥ 선생님 한마디 (선택)       → #secComment, #commentBody, #commentSign
 ├─ PDF 첨부 버튼 (+)                → #pdfAddInline (리포트카드 바로 오른쪽)
-├─ 세로 날짜 사이드바 (다크 사선)     → #dateSidebar > #dsList (.ds-item × N)
-└─ 학생 사이드바 (폴더탭)            → #studentSidebar > #ssList (.ss-item × N, 호버 메뉴)
+└─ 학생 사이드바 (폴더탭)            → #studentSidebar > #ssList (.ss-item[data-student] × N, 우클릭 메뉴)
 ```
 
 ---
@@ -60,11 +61,13 @@ B 미리보기 (우측)
 | PDF 내보내기 버튼 | `#btnPdf` | 상단 툴바 | `index.html` |
 | PDF 첨부(+) 버튼 | `#pdfAddInline` | 리포트카드 우측 | `index.html` |
 | 날짜 네비게이션 | `#dateNavBar` | 미리보기 상단 | `index.html` + `js/ui.js` |
-| 세로 날짜 사이드바 | `#dateSidebar` | 학생 사이드바 왼쪽 | `index.html` + `js/ui.js` |
 | 패널 리사이즈 핸들 | `#panelResize` | 패널과 미리보기 사이 | `index.html` + `js/init.js` |
 | 수업 진도 설정 | `#tbSettings` 메뉴 안 | 상단 설정 드롭다운 | `index.html` |
 | 미니 테스트 토글 | `#toggleMini` | panel-body | `index.html` |
-| 코멘트 토글 | `#toggleComment` | panel-body | `index.html` |
+| 선생님 한마디 토글 | `#toggleComment` | panel-body | `index.html` |
+| 전원 출석 버튼 | `.att-all-btn` | 출결 바 | `index.html` |
+| 모두 완료 버튼 | `.hw-all-done` | `#gPrevHw` 제목 옆 | `index.html` |
+| 이미지 저장 버튼 | `#btnImg` | 상단 툴바 | `index.html` |
 | 이행률 입력 | `#inputRate` | `#gPrevHw` 안 | `index.html` |
 | 오답 번호 입력 | `#inputWrong` | `#gMini` 안 | `index.html` |
 
@@ -81,26 +84,33 @@ B 미리보기 (우측)
 | 캐리오버 계산 | `js/autofill.js` | `computeCarryover()` |
 | 이번 과제 + 캐리오버 반영 | `js/autofill.js` | `updateNoticeWithCarry()` |
 | 탭 전환 | `js/ui.js` | `switchTab()` |
-| 미니/코멘트 토글 | `js/ui.js` | `toggleSec()` |
+| 미니/코멘트 토글 | `js/ui.js` | `toggleSec()`, `applyViewSettings()` |
+| 이행률 자동 계산 | `js/report.js` + `js/domain.js` | `_afterHwStatusChange()`, `applyRate()`, `calcRate()` |
+| 모두 완료 / 전원 출석 | `js/report.js` | `markAllHwDone()`, `markAllPresent()` |
+| 미니테스트 점수 | `js/report.js` + `js/domain.js` | `onMiniInput()`, `onWrongInput()`, `updateMiniSection()`, `miniResult()` |
+| 선생님 한마디 | `js/report.js` | `onCommentInput()`, `onTeacherInput()`, `updateCommentSection()` |
+| A4 한 장 맞춤 | `js/report.js` + `css/report.css` | `fitReportCard()` (.dense/.dense2) |
+| 지난 작업 이어하기 | `js/session.js` | `checkRecovery()`, `restoreFromBackup()` |
+| 학생 이름 변경 | `js/ui.js` | `renameStudent()` |
 | 수업설정 모달 | `js/ui.js` | `openLessonModal()`, `closeLessonModal()` |
 | 수업 카드 렌더링 | `js/ui.js` | `renderLessonCards()` (날짜 상태 분류 포함) |
-| 수업 날짜 변경 | `js/ui.js` | `updateLessonDate()` (hwRec/rates/wrong/memos 키 이동) |
+| 수업 날짜 변경 | `js/ui.js` | `updateLessonDate()` → `renameDateData()` (날짜 키 데이터 전부 이동) |
 | 과제 동적 추가/삭제 | `js/ui.js` | `addLessonHw()`, `removeLessonHw()` |
 | hwRec items 동기화 | `js/ui.js` | `syncHwRecItems()` |
 | 엑셀 파싱 | `js/excel.js` | `parseWB()` (이월과제 시트 + 동적 과제열) |
 | 엑셀 저장 | `js/excel.js` | `saveToExcel()` (이월과제 시트 + 비고열 + 마지막 저장 시각) |
 | 마지막 저장 표시 | `js/excel.js` | `updateLastSavedDisplay()` → #rLastSaved |
 | PDF 저장 | `js/pdf.js` | `dlPdf()` |
-| 일괄 PDF 내보내기 | `js/pdf.js` | `dlBatchPdf()`, `_doBatchPdf()` |
-| 성적 요약표 | `js/pdf.js` | `dlGradeSummary()`, `_renderGradeTable()`, `_downloadGradeImage()` |
-| 수업 일지 이미지 | `js/pdf.js` | `dlClassJournal()`, `_downloadJournalImage()` |
+| 일괄 PDF 내보내기 | `js/ui.js` + `js/pdf.js` | `openBatchPdfModal()`, `_doBatchPdf()` |
+| 이행률 요약표 (전체) | `js/pdf.js` | `dlGradeSummary()`, `_renderGradeTable()`, `_downloadGradeImage()` |
+| 수업 일지표 | `js/pdf.js` | `dlJournalReport()`, `_buildJournalReportPages()`, `_renderJournalPdf()` |
+| 카톡용 이미지 / ZIP | `js/pdf.js` | `dlReportImage()`, `dlKakaoZip()` |
 | 업데이트 내역 모달 | `js/pdf.js` | `showUpdateModal()` (updates.md 로드) |
 | 시험자료 PDF 뷰어 | `js/pdf.js` | `handlePdfInput()`, `renderSpread()` |
 | 마스코트 이미지 로드 | `js/init.js` | `loadMascotImages()` |
 | 날짜 자동 선택 | `js/session.js` | `autoSelectDate()` |
-| 앱 저장/복원 | `js/session.js` | `saveAppData()`, `saveAppDataNow()`, `restoreSession()` |
+| 자동 백업/복구 | `js/session.js` | `saveAppData()`, `saveAppDataNow()`, `checkRecovery()`, `restoreFromBackup()` |
 | 상단 날짜 네비게이션 | `js/ui.js` | `renderDateNav()`, `navDatePrev()`, `navDateNext()`, `toggleDateDropdown()` |
-| 세로 날짜 사이드바 | `js/ui.js` | `renderDateSidebar()` |
 | 패널 드래그 리사이즈 | `js/init.js` | `initPanelResize()` |
 | 학생 전환 애니메이션 | `js/ui.js` + `css/layout.css` | `switchTab()` (.rc-transition) |
 

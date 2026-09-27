@@ -30,6 +30,7 @@ function propagateCarryover(student,date,refStr,newStatus){
     if(!nr.items)nr.items=[];
     if(nr.items.some(it=>it.ref===refStr))return;
     const r=_resolveCarryRef(refStr,student);
+    if(isOptionalHw(r.text))return; // (선택) 과제는 이월하지 않음
     nr.items.push({text:r.text,status:-1,ref:refStr,fromDate:r.fromDate});
   }else if(newStatus===2||newStatus===-1){
     for(let i=curIdx+1;i<G.lessons.length;i++){
@@ -76,14 +77,8 @@ function computeCarryover(student,date){
   const rec=G.hwRec[key];
   if(!rec?.items?.length)return[];
   return rec.items
-    .filter(it=>(it.status===0||it.status===1)&&it.ref)
+    .filter(it=>(it.status===0||it.status===1)&&it.ref&&!isOptionalHw(it.text))
     .map(it=>({text:it.text,ref:it.ref,fromDate:it.fromDate||prevDate}));
-}
-
-// ─── 직전 수업 날짜 반환 (date 기준) ───
-function _prevDateFor(date){
-  const idx=G.lessons.findIndex(l=>l.날짜===date);
-  return idx>0?G.lessons[idx-1].날짜:null;
 }
 
 // ─── 이번 주차 과제 ON/OFF 헬퍼 ───
@@ -118,6 +113,7 @@ function _curHwOnOffItems(){
     const carry=isCarryItem(G.hwItemRefs[i]?.fromDate);
     const st=G.hwStatus[i];
     const ref=G.hwItemRefs[i]?.ref;
+    if(isOptionalHw(text))return; // (선택) 과제는 다음 수업 과제로 넘기지 않음
     if(carry){
       out.push({text,ref:ref||`carry#${i}`,kind:'carry',st});
     }else if(!isNone(st)&&(st===0||st===1)){
@@ -150,14 +146,18 @@ function updateNoticeWithCarry(){
     if(it.kind==='base'){
       baseHtml+=`<div class="next-hw-li">${esc(it.text)}</div>`;baseCount++;
     }else if(it.kind==='extra'){
-      extraHtml+=`<div class="next-hw-li"><span class="carry-tag">(추가)</span>${esc(it.text)}</div>`;baseCount++;
+      extraHtml+=`<div class="next-hw-li"><span class="carry-tag">(개별)</span>${esc(it.text)}</div>`;baseCount++;
     }else if(it.st===0||it.st===1){
       // 이월/직전미완료: 미완료·부분완료만 이번 주차 과제로 노출
-      carryHtml+=`<div class="next-hw-li"><span class="carry-tag">(전)</span>${esc(it.text)}</div>`;carryCount++;
+      carryHtml+=`<div class="next-hw-li"><span class="carry-tag">(이월)</span>${esc(it.text)}</div>`;carryCount++;
     }
   });
   const total=baseCount+carryCount;
-  if(total>3&&carryCount>0){
+  if(!total){
+    // 과제가 없는 날(시험 대비 복습 등) — 빈 칸 대신 안내 문구
+    list.className='next-hw-list';
+    list.innerHTML='<div class="next-hw-empty">별도 과제 없음</div>';
+  }else if(total>3&&carryCount>0){
     list.className='next-hw-list compact';
     list.innerHTML=`<div class="hw-col"><div class="hw-col-label">본과제</div>${baseHtml}${extraHtml}</div>`
       +`<div class="hw-col"><div class="hw-col-label">이월과제</div>${carryHtml}</div>`;
@@ -178,7 +178,7 @@ function renderCurHwList(){
     const off=dis.has(it.ref);
     const cls=it.kind==='extra'?'cur-hw-item extra':it.kind==='carry'?'cur-hw-item carry':'cur-hw-item';
     const badge=it.kind==='extra'?'<span class="cur-hw-badge">(추가)</span>'
-               :it.kind==='carry'?'<span class="cur-hw-badge">(전)</span>':'';
+               :it.kind==='carry'?'<span class="cur-hw-badge">(이월)</span>':'';
     return`<div class="${cls}${off?' disabled':''}" onclick="toggleHwDisabled(${i})">
       ${badge}<span class="cur-hw-text">${esc(it.text)}</span>
       <span class="cur-hw-toggle">${off?'OFF':'ON'}</span>
@@ -194,7 +194,7 @@ function toggleHwDisabled(idx){
   if(dis.has(it.ref))dis.delete(it.ref);
   else dis.add(it.ref);
   renderCurHwList();
-  updateNoticeWithCarry();
+  updateNoticeWithCarry();fitReportCard();
   saveAppData();
 }
 
@@ -210,33 +210,22 @@ function renderExtraHwEditor(){
   ).join('');
 }
 
-// ─── 자동 채우기 (날짜 기준 공통) ───
-function autoFillCommon(){
+// ─── 수업 정보 → 리포트카드 (헤더 날짜·진도·다음 수업 과제 기본 목록) ───
+function renderLessonInfo(){
   const cur=getCurL();if(!cur)return;
   const prev=getPrevL(),next=getNextL();
-  G.totalQ=cur.전체문제수||5;setAuto('inputTotal',G.totalQ);
   updateHeaderDate(cur.날짜,next?.날짜||'');
-  $$('inCurBook').value=cur.교재;fp('rCurBook','inCurBook');
-  $$('inCurChap').value=cur.단원;fp('rCurChap','inCurChap');
-  $$('inCurDetail').value=cur.상세진도;fp('rCurDetail','inCurDetail');
-  $$('inPrevBook').value=prev?.교재||'';fp('rPrevBook','inPrevBook');
-  $$('inPrevChap').value=prev?.단원||'';fp('rPrevChap','inPrevChap');
-  $$('inPrevDetail').value=prev?.상세진도||'';fp('rPrevDetail','inPrevDetail');
-  const hwKeys=getLessonHwKeys(cur);
-  const hwT=hwKeys.map(k=>cur[k]||'').filter(x=>x);
-  $$('inputNotice').value=hwT.join('\n');
-  updateNoticeList(hwT.join('\n'));
-  fp('commentBody','inputComment');
-  updateCommentSign();
-  renderDateSummary();
+  const put=(id,v)=>{const el=$$(id);if(el)el.innerText=String(v||'').replace(/\n{2,}/g,'\n').trim();};
+  put('rCurBook',cur.교재);put('rCurChap',cur.단원);put('rCurDetail',cur.상세진도);
+  put('rPrevBook',prev?.교재);put('rPrevChap',prev?.단원);put('rPrevDetail',prev?.상세진도);
+  updateNoticeList(getLessonHwKeys(cur).map(k=>cur[k]||'').filter(x=>x).join('\n'));
 }
 
-// 엑셀 기호/숫자 → 내부 숫자 상태 변환 (excel.js의 stFromExcel과 동일)
-function stFromExcel(v){
-  if(v===2||v==='○'||v==='2'||v==='완료')return 2;
-  if(v===1||v==='△'||v==='1'||v==='부분완료')return 1;
-  if(v===0||v==='X'||v==='x'||v==='✗'||v==='×'||v==='✕'||v==='0'||v==='미완료')return 0;
-  return -1;
+// ─── 자동 채우기 (날짜 기준 공통) ───
+function autoFillCommon(){
+  if(!getCurL())return;
+  renderLessonInfo();
+  renderDateSummary();
 }
 
 // ─── 이전 날짜의 extraHw를 base 항목으로 가져오기 ───
@@ -253,18 +242,7 @@ function getPrevExtraHw(student,date){
 function autoFillAll(){
   autoFillCommon();$$('rName').innerText=G.selStudent;
   const hadData=restoreTabData(G.selStudent);
-  if(hadData){
-    renderHwEditor();updateHwDisplay();
-    renderExtraHwEditor();updateNoticeWithCarry();
-    if(G.hwRateManual!==null){$$('inputRate').value=G.hwRateManual;$$('inputRate').classList.remove('auto');}
-    else{
-      setAuto('inputRate',G.rates[G.selStudent]?.[G.selDate]??'');
-    }
-    updateWrongTags($$('inputWrong').value);
-  }else{
-    $$('inputComment').value='';fp('commentBody','inputComment');
-    $$('inputWrong').value=G.wrong[G.selStudent]?.[G.selDate]||'';
-    updateWrongTags($$('inputWrong').value);
+  if(!hadData){
     // hwRec.items는 캐시이지만, 직전 수업의 base 과제가 추가/변경되었을 수 있으므로
     // 항상 prev hw + computeCarryover로 재구성하고 기존 status는 ref로 매칭하여 보존
     const key=G.selDate?`${G.selStudent}||${G.selDate}`:null;
@@ -276,47 +254,46 @@ function autoFillAll(){
     const prev=getPrevL();
     let allItems=[];
     if(prev){
-      const prevHwKeys=getLessonHwKeys(prev);
-      prevHwKeys.forEach(k=>{
+      getLessonHwKeys(prev).forEach(k=>{
         const text=prev[k]||'';if(!text)return;
         allItems.push({text,ref:`${prev.id}-${k}`,fromDate:prev.날짜});
       });
     }
-    const prevExtra=getPrevExtraHw(G.selStudent,G.selDate);
-    prevExtra.forEach(text=>{
-      if(!text)return;
+    getPrevExtraHw(G.selStudent,G.selDate).forEach(text=>{
       // 신 형식: 텍스트 기반 ref (인덱스 흔들림 없음)
       allItems.push({text,ref:prev?buildExtraRef(prev.id,text):'',fromDate:prev?.날짜||''});
     });
     // 캐리오버 항목 (직전 날짜에서 미완료인 것) — 중복 ref 제외
-    const carryItems=computeCarryover(G.selStudent,G.selDate);
-    carryItems.forEach(c=>{
+    computeCarryover(G.selStudent,G.selDate).forEach(c=>{
       if(c.ref&&allItems.some(it=>it.ref===c.ref))return;
       allItems.push({text:c.text,ref:c.ref,fromDate:c.fromDate});
     });
     G.hwItems=allItems.map(it=>it.text);
     G.hwItemRefs=allItems.map(it=>({ref:it.ref,fromDate:it.fromDate}));
-    G.hwStatus=allItems.map((it,i)=>{
+    // 순번 필드는 rec.items가 아예 없을 때만 사용 (있으면 ref로만 매칭 — 새 과제가 남의 상태를 물려받지 않도록)
+    const useLegacy=!hwR?.items?.length;
+    let li=0;
+    G.hwStatus=allItems.map(it=>{
+      li++;
       // 1순위: rec.items의 ref 매칭으로 status 복원
       if(it.ref&&existingStatus.has(it.ref))return existingStatus.get(it.ref);
-      // 2순위: 레거시 과제N_상태 (rec.items가 무효화된 경우 — 수업설정 모달 닫은 직후 등)
-      const st=hwR?.[`과제${i+1}_상태`];
-      if(st!=null)return stFromExcel(st);
-      return -1;
+      // 2순위: 레거시 과제N_상태 (rec.items가 없는 경우)
+      const st=useLegacy?hwR?.[`과제${li}_상태`]:null;
+      return st!=null?stFromExcel(st):-1;
     });
     // 이번 날짜의 학생별 추가 과제 로드
     G.extraHw=(hwR?.extraHw||[]).map(it=>({...it}));
-    setAuto('inputRate',G.rates[G.selStudent]?.[G.selDate]??'');G.hwRateManual=null;
-    renderHwEditor();updateHwDisplay();
-    renderExtraHwEditor();updateNoticeWithCarry();
-    syncHwRecItems(G.selStudent,G.selDate);
+    G.hwRateManual=null;
   }
-  const rv=$$('inputRate').value;
-  const isFirst=G.lessons.length>0&&G.selDate===G.lessons[0].날짜;
-  if(rv===''||isFirst){$$('secRate').style.display='none';}
-  else if(Number(rv)===-1){$$('secRate').style.display='';$$('rRate').innerText='-';}
-  else{$$('secRate').style.display='';$$('rRate').innerText=rv;}
-  updateHwBadge();rebuildGraph();updateRateFace();
-  updateCommentSign();
-  applyReportEdits();
+  // 입력칸: 오답·이행률 (오답은 입력 즉시 G.wrong에 저장되므로 항상 G.wrong 기준)
+  $$('inputWrong').value=G.wrong[G.selStudent]?.[G.selDate]||'';
+  if(G.hwRateManual!==null){$$('inputRate').value=G.hwRateManual;$$('inputRate').classList.remove('auto');}
+  else setAuto('inputRate',G.rates[G.selStudent]?.[G.selDate]??'');
+  renderHwEditor();
+  renderExtraHwEditor();updateNoticeWithCarry();
+  if(!hadData)syncHwRecItems(G.selStudent,G.selDate);
+  refreshRateSection();rebuildGraph();
+  renderMiniPanel();updateMiniSection();
+  renderCommentPanel();updateCommentSection();
+  fitReportCard();
 }

@@ -9,13 +9,22 @@ function setAuto(id,val){
   el.value=String(val??'');el.classList.add('auto');
   if(!el._al){el.addEventListener('input',function(){this.classList.remove('auto');});el._al=true;}
 }
-function rmAuto(el){el.classList.remove('auto');}
 
 // ─── 상태바 ───
 function setBar(t,m){const e=$$('sbar');e.className='sbar '+t;e.textContent=m;}
+// ─── 짧은 알림 (화면 하단, 2초) ───
+function toast(msg){
+  let t=document.querySelector('.app-toast');
+  if(!t){t=document.createElement('div');t.className='app-toast';document.body.appendChild(t);}
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.remove('show'),2000);
+}
 
 // ─── 날짜 포맷 ───
+const DATE_RE=/^\d{4}-\d{2}-\d{2}$/;
 function shortD(d){if(!d)return'';const p=d.split('-');return`${p[1]}.${p[2]}`;}
+// Date → 'YYYY-MM-DD'
+function ymd(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function fmtKo(d){
   if(!d)return d;
   const[y,m,day]=d.split('-');
@@ -70,5 +79,5 @@ function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 
 // ─── 한국 시간 (KST, UTC+9) ───
 function nowKST(){return new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Seoul'}));}
-function todayKST(){const d=nowKST();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function todayKST(){return ymd(nowKST());}
 function nowKSTStr(){const d=nowKST();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;}

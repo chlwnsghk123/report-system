@@ -1,8 +1,7 @@
 // ─── 스케일 ───
 function updateScale(){
   const card=$$('reportCard'),area=$$('previewContent')||$$('previewArea');
-  const nav=$$('pageNav'),navH=nav&&nav.style.display!=='none'?nav.offsetHeight:0;
-  const availH=area.clientHeight-navH-40;
+  const availH=area.clientHeight-40;
   const availW=area.clientWidth-60;
   const a4w=794,a4h=1123;
   const spreadRow=$$('spreadRow');
@@ -29,14 +28,6 @@ function updateScale(){
   _updateZoomLabel();
 }
 
-// ─── contenteditable 동기화 ───
-// 리포트카드 이행률(rRate) 직접 수정 기능 제거 — 이행률은 좌패널 입력으로만 설정.
-// (rRate는 표시 전용, 값은 onRateManual/autoCalcRate가 innerText로 갱신)
-function initCE(){}
-
-// 리포트카드 → 패널 단방향 동기화 (좌패널에서 갱신 시 override 제거)
-function fp(cid,pid){const c=$$(cid),p=$$(pid);if(c&&p){const v=p.value.replace(/\n{2,}/g,'\n');if(c.innerText.trim()!==v){c.innerText=v;delete G.reportEdits[cid];}}}
-
 // ═══════════════════════════════════════
 // 뷰 전환 시스템
 // ═══════════════════════════════════════
@@ -48,13 +39,12 @@ function switchView(view){
   if(view==='config'){
     openLessonModal();
   }else if(view==='date'){
-    closeLessonModal();
+    const refilled=closeLessonModal();
     renderDateSummary();
     renderTabs();
     renderDateNav();
     _updateStudentNav();
-    updateMemoBtn();
-    if(G.selDate&&G.selStudent)autoFillAll();
+    if(G.selDate&&G.selStudent){if(!refilled)autoFillAll();}
     else if(G.selDate)autoFillCommon();
     updateAttendUI();
   }
@@ -69,67 +59,33 @@ function openLessonModal(){
 }
 function closeLessonModal(){
   G._lessonFocus=-1; // 포커싱 초기화
+  const ov=$$('lessonModalOverlay');
+  const wasOpen=ov&&ov.style.display==='flex';
   _closeModal('lessonModalOverlay');
-  // 수업설정 변경 후 과제 목록 재구성을 위해 tabData 캐시만 무효화.
-  // rec.items는 삭제하지 않음 — 삭제하면 rebuildAllHwItems가 이월과제를
-  // buildAllCarryover로 재생성하면서 체크 상태(status)를 -1로 리셋해 유실됨.
-  // rebuildAllHwItems는 baseItems만 새로 만들고 carryItems는 기존 상태를 보존함.
-  G.tabData={};
-  if(G.lessons.length)rebuildAllHwItems();
+  // 수업설정을 실제로 열었다 닫을 때만 과제 목록 재구성 (날짜 이동마다 전체 재구성하지 않음).
+  // rebuildAllHwItems는 기존 상태를 ref로 보존하고 base 과제만 새로 만듦.
+  if(wasOpen){
+    G.tabData={};
+    if(G.lessons.length)rebuildAllHwItems();
+    // 재구성된 기록으로 현재 학생 작업 상태도 즉시 다시 채움 (옛 상태가 나중에 덮어쓰지 않도록)
+    if(G.selStudent&&G.selDate&&getCurL()){autoFillAll();return true;}
+  }
+  return false;
 }
-
-// ─── 뷰 탭 (상단) ───
-function renderViewTabs(){
-  const tabs=$$('viewTabs');tabs.style.display='';
-  const dates=$$('vtDates');
-  const maxVis=4;
-  const off=G.dateTabOffset||0;
-  const vis=G.lessons.slice(off,off+maxVis);
-  dates.innerHTML=vis.map(l=>
-    `<div class="vt-date${l.날짜===G.selDate&&G.currentView==='date'?' active':''}"
-      data-date="${l.날짜}" onclick="selectDate('${l.날짜}')">${shortD(l.날짜)}</div>`
-  ).join('');
-}
-
-function shiftDate(dir){
-  const max=Math.max(0,G.lessons.length-4);
-  G.dateTabOffset=Math.max(0,Math.min(max,(G.dateTabOffset||0)+dir));
-  renderDateNav();renderDateSidebar();
+// 수업설정 모달 ✕/ESC — 선택 날짜가 없으면(직접 시작·선택 날짜 삭제) 가장 가까운 날짜로 이동
+function exitLessonModal(){
+  if(!G.lessons.length){closeLessonModal();return;}
+  if(!G.lessons.some(l=>l.날짜===G.selDate)){closeLessonModal();autoSelectDate();return;}
+  switchView('date');
 }
 
 function selectDate(date){
-  // 보류된 이월 전파 적용
+  // 보류된 이월 전파 적용 + 현재 학생 작업 반영 (다른 학생은 전환 시 이미 hwRec에 반영됨)
   flushPropagations();
-  // 모든 학생의 tabData를 hwRec에 동기화 (현재 학생은 먼저 saveTabData)
-  if(G.selDate){
-    if(G.selStudent)saveTabData();
-    for(const name of Object.keys(G.tabData)){
-      const td=G.tabData[name];if(!td)continue;
-      const key=`${name}||${G.selDate}`;
-      const rec=G.hwRec[key]||{이행률:null};
-      const items=(td.hwItems||[]);
-      const hs=td.hwStatus||[];
-      const refs=td.hwItemRefs||items.map(()=>({ref:'',fromDate:''}));
-      if(items.length){
-        rec.items=items.map((text,i)=>({text,status:hs[i]??-1,ref:refs[i]?.ref||'',fromDate:refs[i]?.fromDate||''}));
-        items.forEach((_,i)=>{rec[`과제${i+1}_상태`]=hs[i]??-1;});
-      }
-      if(td.rateManual!=null){rec.이행률=td.rateManual;G.rates[name]=G.rates[name]||{};G.rates[name][G.selDate]=td.rateManual;}
-      else if(G.rates[name]?.[G.selDate]!=null){rec.이행률=G.rates[name][G.selDate];}
-      else{rec.이행률=null;}
-      // 오답·맞힌수 동기화 (날짜 전환 시 유실 방지)
-      if(td.wrongInput){G.wrong[name]=G.wrong[name]||{};G.wrong[name][G.selDate]=td.wrongInput;}
-      else if(G.wrong[name]?.[G.selDate]){delete G.wrong[name][G.selDate];}
-      // 이번 주차 추가 과제 동기화
-      rec.extraHw=(td.extraHw||[]).map(it=>({...it}));
-      G.hwRec[key]=rec;
-    }
-    saveAppData();
-  }
+  if(G.selDate&&G.selStudent)saveTabData();
   G.selDate=date;
   G.tabData={};
   G.hwRateManual=null;
-  G.reportEdits={};
   if(!G.selStudent&&G.students.length)G.selStudent=G.students[0];
   switchView('date');
   updateAttendUI();
@@ -172,7 +128,7 @@ function renderLessonCards(){
     const hwHtml=showKeys.map((k,hi)=>{
       const realIdx=hwKeys.indexOf(k);
       return`<div class="lc-hw-row">
-        <input placeholder="과제 ${realIdx+1}" value="${esc(l[k]||'')}" oninput="updateLessonField(${i},'${k}',this.value)" onfocus="focusLessonCard(${i})">
+        <input placeholder="과제 ${realIdx+1} (선택 과제는 '(선택)' 붙이기)" value="${esc(l[k]||'')}" oninput="updateLessonField(${i},'${k}',this.value)" onfocus="focusLessonCard(${i})">
         ${showKeys.length>1||visibleHw.length>1?`<button class="lc-hw-del" onclick="removeLessonHw(${i},${realIdx})" title="과제 삭제">✕</button>`:''}
       </div>`;
     }).join('');
@@ -225,24 +181,8 @@ function focusLessonCard(idx){
 
 function updateLessonField(idx,field,value){
   G.lessons[idx][field]=value;
-  if(G.lessons[idx].날짜===G.selDate)syncLessonToReport();
+  if(G.lessons[idx].날짜===G.selDate||G.lessons[idx+1]?.날짜===G.selDate)renderLessonInfo();
   saveAppData();
-}
-
-function syncLessonToReport(){
-  const cur=getCurL(),prev=getPrevL(),next=getNextL();
-  if(!cur)return;
-  $$('inCurBook').value=cur.교재;fp('rCurBook','inCurBook');
-  $$('inCurChap').value=cur.단원;fp('rCurChap','inCurChap');
-  $$('inCurDetail').value=cur.상세진도;fp('rCurDetail','inCurDetail');
-  $$('inPrevBook').value=prev?.교재||'';fp('rPrevBook','inPrevBook');
-  $$('inPrevChap').value=prev?.단원||'';fp('rPrevChap','inPrevChap');
-  $$('inPrevDetail').value=prev?.상세진도||'';fp('rPrevDetail','inPrevDetail');
-  const hwKeys=getLessonHwKeys(cur);
-  const hwT=hwKeys.map(k=>cur[k]||'').filter(x=>x);
-  $$('inputNotice').value=hwT.join('\n');
-  updateNoticeList(hwT.join('\n'));
-  updateHeaderDate(cur.날짜,next?.날짜||'');
 }
 
 // ─── 과제 동적 추가/삭제 ───
@@ -265,7 +205,10 @@ function removeLessonHw(idx,hwIdx){
   keys.forEach(k=>delete l[k]);
   // 재정렬된 값으로 다시 설정
   vals.forEach((v,i)=>{l[`과제${i+1}`]=v;});
-  if(l.날짜===G.selDate)syncLessonToReport();
+  // base 과제 ref("{id}-과제N")가 번호 기반이므로, 기록된 상태·OFF·이월이 다른 과제로 밀리지 않게 ref도 재매핑
+  _remapLessonHwRefs(l.id,hwIdx+1);
+  G.tabData={};
+  if(l.날짜===G.selDate)renderLessonInfo();
   renderLessonCards();saveAppData();
 }
 
@@ -274,52 +217,92 @@ function updateLessonDate(idx,newDate){
   const oldDate=G.lessons[idx].날짜;
   if(oldDate===newDate)return;
   if(G.lessons.some((l,i)=>i!==idx&&l.날짜===newDate)){alert('이미 같은 날짜가 있습니다.');renderLessonCards();return;}
-  // hwRec 키 이동 (학생별)
-  G.students.forEach(n=>{
-    const oldKey=`${n}||${oldDate}`,newKey=`${n}||${newDate}`;
-    if(G.hwRec[oldKey]){G.hwRec[newKey]=G.hwRec[oldKey];delete G.hwRec[oldKey];}
-    if(G.rates[n]?.[oldDate]!=null){G.rates[n][newDate]=G.rates[n][oldDate];delete G.rates[n][oldDate];}
-    if(G.wrong[n]?.[oldDate]){G.wrong[n][newDate]=G.wrong[n][oldDate];delete G.wrong[n][oldDate];}
-    if(G.memos[`${n}||${oldDate}`]){G.memos[`${n}||${newDate}`]=G.memos[`${n}||${oldDate}`];delete G.memos[`${n}||${oldDate}`];}
-  });
+  // 앞뒤 수업을 건너뛰어 순서가 바뀌면 '지난 수업 과제' 연결이 모두 달라지므로 막음
+  const prevD=G.lessons[idx-1]?.날짜,nextD=G.lessons[idx+1]?.날짜;
+  if((prevD&&newDate<prevD)||(nextD&&newDate>nextD)){
+    alert(`수업 순서가 바뀌는 날짜 변경은 할 수 없습니다.\n(${prevD?fmtKo(prevD):'처음'} ~ ${nextD?fmtKo(nextD):'끝'} 사이 날짜만 가능)\n\n다른 위치로 옮기려면 이 수업을 삭제하고 새로 추가해 주세요.`);
+    renderLessonCards();return;
+  }
+  renameDateData(oldDate,newDate);
   G.lessons[idx].날짜=newDate;
   G.lessons.sort((a,b)=>a.날짜.localeCompare(b.날짜));
   if(G.selDate===oldDate)G.selDate=newDate;
-  renderLessonCards();renderDateNav();renderDateSidebar();saveAppData();
+  G.tabData={};
+  renderLessonCards();renderDateNav();saveAppData();
 }
 
 function addLesson(){
   let newDate;
-  if(G.lessons.length){
-    const last=G.lessons[G.lessons.length-1].날짜;
-    const d=new Date(last);d.setDate(d.getDate()+7);
-    newDate=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  }else{
-    newDate=todayKST();
-  }
-  while(G.lessons.some(l=>l.날짜===newDate)){
-    const d=new Date(newDate);d.setDate(d.getDate()+1);
-    newDate=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  }
-  G.lessons.push({id:genLessonId(),날짜:newDate,전체문제수:5,교재:'',단원:'',상세진도:'',과제1:''});
+  const plusDays=(ds,n)=>{const[y,m,d]=ds.split('-').map(Number);return ymd(new Date(y,m-1,d+n));};
+  if(G.lessons.length)newDate=plusDays(G.lessons[G.lessons.length-1].날짜,7);
+  else newDate=todayKST();
+  while(G.lessons.some(l=>l.날짜===newDate))newDate=plusDays(newDate,1);
+  G.lessons.push({id:genLessonId(),날짜:newDate,교재:'',단원:'',상세진도:'',과제1:''});
   G.lessons.sort((a,b)=>a.날짜.localeCompare(b.날짜));
-  renderLessonCards();renderDateNav();renderDateSidebar();saveAppData();
+  renderLessonCards();renderDateNav();saveAppData();
 }
 
 function removeLesson(idx){
   const date=G.lessons[idx].날짜;
-  if(!confirm(`${fmtKo(date)} 수업을 삭제할까요?`))return;
+  if(!confirm(`${fmtKo(date)} 수업을 삭제할까요?\n이 날짜의 출결·과제 기록·코멘트도 함께 삭제됩니다.`))return;
   G.lessons.splice(idx,1);
+  removeDateData(date);
   if(G.selDate===date)G.selDate='';
-  renderLessonCards();renderDateNav();renderDateSidebar();saveAppData();
+  G.tabData={};
+  renderLessonCards();renderDateNav();saveAppData();
+}
+
+// ─── 날짜 키 데이터 일괄 이동/삭제 (수업 날짜 변경·삭제 시 고아 데이터·유실 방지) ───
+// 날짜가 키에 들어가는 모든 저장소: hwRec·memos·hwDisabled·journalNote·miniScore("학생||날짜"),
+// rates·wrong·attend(학생→날짜), journalPlan·journalInfo·miniTest(날짜), 과제 항목의 fromDate, 이월 예약
+function _forDateKeys(date,fn){
+  ['hwRec','memos','hwDisabled','journalNote','miniScore'].forEach(store=>{
+    const o=G[store];if(!o)return;
+    Object.keys(o).forEach(k=>{if(k.endsWith('||'+date))fn(o,k,k.slice(0,-date.length));});
+  });
+  ['rates','wrong','attend'].forEach(store=>{
+    Object.values(G[store]||{}).forEach(o=>{if(o&&date in o)fn(o,date,'');});
+  });
+  ['journalPlan','journalInfo','miniTest'].forEach(store=>{
+    const o=G[store];if(o&&date in o)fn(o,date,'');
+  });
+}
+function renameDateData(oldDate,newDate){
+  _forDateKeys(oldDate,(o,k,prefix)=>{o[prefix+newDate]=o[k];delete o[k];});
+  Object.values(G.hwRec).forEach(rec=>(rec.items||[]).forEach(it=>{if(it.fromDate===oldDate)it.fromDate=newDate;}));
+  G.pendingPropagations.forEach(p=>{if(p.date===oldDate)p.date=newDate;});
+}
+function removeDateData(date){
+  _forDateKeys(date,(o,k)=>{delete o[k];});
+  G.pendingPropagations=G.pendingPropagations.filter(p=>p.date!==date);
+}
+// 수업의 n번째 base 과제 삭제 → 그 과제 ref 기록 제거, 뒤 번호 ref는 하나씩 당김
+function _remapLessonHwRefs(lessonId,removedNo){
+  const pre=lessonId+'-과제';
+  const map=ref=>{
+    if(!ref||!ref.startsWith(pre))return ref;
+    const n=parseInt(ref.slice(pre.length));
+    if(isNaN(n)||String(n)!==ref.slice(pre.length))return ref;
+    if(n===removedNo)return null;
+    return n>removedNo?pre+(n-1):ref;
+  };
+  Object.values(G.hwRec).forEach(rec=>{
+    if(!rec.items)return;
+    rec.items=rec.items.filter(it=>map(it.ref)!==null);
+    rec.items.forEach(it=>{it.ref=map(it.ref);});
+  });
+  Object.keys(G.hwDisabled||{}).forEach(k=>{
+    const s=G.hwDisabled[k];if(!(s instanceof Set))return;
+    G.hwDisabled[k]=new Set([...s].map(map).filter(r=>r!==null));
+  });
+  G.pendingPropagations=G.pendingPropagations.filter(p=>map(p.ref)!==null);
+  G.pendingPropagations.forEach(p=>{p.ref=map(p.ref);});
 }
 
 // ─── 날짜 뷰: 수업 요약 ───
 function renderDateSummary(){
   const cur=getCurL(),el=$$('dateSummary');
   if(!cur){el.innerHTML='';return;}
-  const hwKeys=getLessonHwKeys(cur);
-  const hwT=hwKeys.map(k=>cur[k]||'').filter(x=>x);
   // 상세진도를 줄 단위로 분할하여 칩으로 나열
   const detailChips=(cur.상세진도||'').split(/\n/).map(s=>s.trim()).filter(Boolean)
     .map(s=>`<span class="ds-chip">${esc(s)}</span>`).join('');
@@ -352,7 +335,7 @@ function renderTabs(){
     const hasPdf=pdfs.length>0;
     const cls=`ss-item${n===G.selStudent?' active':''}${hasPdf?' has-pdf':''}`;
     const en=esc(n);
-    return`<div class="${cls}" onclick="switchTab('${en}')" data-student="${en}">
+    return`<div class="${cls}" onclick="switchTab(this.dataset.student)" data-student="${en}">
       <div class="ss-name">${en}</div>
       ${hasPdf?`<span class="ss-pdf-badge">📎</span>`:''}
     </div>`;
@@ -368,7 +351,8 @@ function renderTabs(){
         {label:'📊 이행률 요약표',action:()=>{if(G.selStudent!==name)switchTab(name);openStudentReportFor(name);}},
         {label:pdfLabel,action:()=>{if(G.selStudent!==name)switchTab(name);attachPdfForStudent(name);}},
         {sep:true},
-        {label:'🎨 캐릭터 설정',action:()=>{if(G.selStudent!==name)switchTab(name);openMascotSettingsModal(name);}}
+        {label:'🎨 캐릭터 설정',action:()=>{if(G.selStudent!==name)switchTab(name);openMascotSettingsModal(name);}},
+        {label:'✏ 이름 변경',action:()=>renameStudent(name)}
       ]);
     });
   });
@@ -383,11 +367,8 @@ function switchTab(name){
   if(name===G.selStudent)return;
   flushPropagations();
   saveTabData();G.selStudent=name;renderTabs();
-  const m=$$('rateMascot');if(m)delete m.dataset.idx;
-  updateMemoBtn();
   // 학생별 PDF 동기화
-  _syncGlobalPdf();
-  G.currentSpread=0;renderSpread();
+  renderSpread();
   if(G.selDate)autoFillAll();
   updateAttendUI();
   saveSession();
@@ -410,11 +391,7 @@ function saveTabData(){
     hwItems:[...G.hwItems],
     hwItemRefs:G.hwItemRefs.map(r=>({...r})),
     extraHw:(G.extraHw||[]).map(it=>({...it})),
-    totalInput:$$('inputTotal').value,
-    wrongInput:$$('inputWrong').value,rateManual:G.hwRateManual,
-    comment:$$('inputComment').value,
-    teacher:$$('inputTeacher').value,
-    reportEdits:{...G.reportEdits},
+    rateManual:G.hwRateManual,
   };
   syncHwRecItems(G.selStudent,G.selDate);
 }
@@ -433,9 +410,12 @@ function syncHwRecItems(student,date){
     const fromDate=G.hwItemRefs[i]?.fromDate||'';
     return{text,status:G.hwStatus[i]??-1,ref,fromDate};
   });
-  // 레거시 필드도 업데이트
+  // 순번 필드(엑셀 과제N 열) — base 과제만, 이월 과제는 이월과제 시트에 저장되므로 제외
+  Object.keys(rec).forEach(k=>{if(/^과제\d+_상태$/.test(k))delete rec[k];});
+  let li=0;
   G.hwItems.forEach((_,i)=>{
-    rec[`과제${i+1}_상태`]=G.hwStatus[i]??-1;
+    if(isCarryForDate(G.hwItemRefs[i]?.fromDate,date))return;
+    rec[`과제${++li}_상태`]=G.hwStatus[i]??-1;
   });
   // 이번 주차 추가 과제 저장
   rec.extraHw=(G.extraHw||[]).map(it=>({...it}));
@@ -449,38 +429,7 @@ function restoreTabData(name){
   G.hwItemRefs=d.hwItemRefs||G.hwItems.map(()=>({ref:'',fromDate:''}));
   G.extraHw=(d.extraHw||[]).map(it=>({...it}));
   G.hwRateManual=d.rateManual??null;
-  $$('inputTotal').value=d.totalInput||'';
-  $$('inputWrong').value=d.wrongInput||'';$$('inputComment').value=d.comment||'';
-  $$('inputTeacher').value=d.teacher||'';
-  G.reportEdits=d.reportEdits?{...d.reportEdits}:{};
-  fp('commentBody','inputComment');return true;
-}
-
-// ─── 비고 모달 ───
-let _memoKey=''; // 모달 열 때 캡처한 키 (student||date 변경 방지)
-let _memoOriginal=''; // 원본 텍스트 (변경 감지용)
-
-function _getCarryAutoText(student,date){
-  const key=`${student}||${date}`;
-  const rec=G.hwRec[key];
-  if(!rec?.items)return'';
-  const carries=rec.items.filter(it=>isCarryForDate(it.fromDate,date)&&!isNone(it.status));
-  if(!carries.length)return'';
-  const stDesc={2:'완료',1:'일부 완료',0:'미완료'};
-  // 상태가 변한 이월과제만 표시, 중복 제거 (같은 텍스트+출제일이면 최신만)
-  const changed=carries.filter(it=>{
-    const prevSt=_getOriginalRefStatus(student,it.ref);
-    return prevSt==null||it.status!==prevSt;
-  });
-  // 중복 제거: 같은 ref(과제 원본)면 마지막 것만
-  const seen=new Map();
-  changed.forEach(it=>{seen.set(it.ref,it);});
-  return[...seen.values()].map(it=>{
-    const cd=refToCheckDate(it.ref);
-    const fd=cd?`${shortD(cd)} 출제`:'이전 수업';
-    const desc=stDesc[it.status]||'확인 전';
-    return`[이월] ${it.text} (${fd}) → ${desc}`;
-  }).join('\n');
+  return true;
 }
 
 // ref로 원본 과제의 최초 상태 조회
@@ -501,54 +450,6 @@ function _getOriginalRefStatus(student,ref){
   return null;
 }
 
-function openMemo(){
-  if(!G.selStudent||!G.selDate)return;
-  _memoKey=`${G.selStudent}||${G.selDate}`;
-  let text=G.memos[_memoKey]||'';
-  // 기존 저장된 [이월] 자동 텍스트 제거 후 최신으로 교체
-  const autoText=_getCarryAutoText(G.selStudent,G.selDate);
-  text=text.split('\n').filter(l=>!l.startsWith('[이월]')).join('\n').trim();
-  if(autoText){text=text?autoText+'\n'+text:autoText;}
-  _memoOriginal=text;
-  $$('memoTitle').textContent=`📋 비고 — ${G.selStudent} (${shortD(G.selDate)})`;
-  // 자동 텍스트 영역 숨김 (통합됨)
-  const autoArea=$$('memoAutoArea');
-  if(false){
-  }else{
-    autoArea.style.display='none';
-  }
-  $$('memoText').value=text;
-  _openModal('memoModalOverlay');
-  setTimeout(()=>$$('memoText').focus(),100);
-}
-function closeMemo(force){
-  // 변경 감지: 저장 안 한 채 닫으려 할 때 확인
-  const cur=$$('memoText').value.trim();
-  if(!force&&cur!==_memoOriginal){
-    if(!confirm('저장하지 않은 내용이 있습니다. 닫으시겠습니까?'))return;
-  }
-  _closeModal('memoModalOverlay');
-}
-function saveMemo(){
-  const text=$$('memoText').value.trim();
-  if(text)G.memos[_memoKey]=text;
-  else delete G.memos[_memoKey];
-  _memoOriginal=text; // 저장했으므로 원본 갱신
-  saveAppData();
-  _showModalToast('memoModalOverlay','저장되었습니다');
-  _closeModal('memoModalOverlay');
-  updateMemoBtn();
-}
-function updateMemoBtn(){
-  const btn=$$('btnMemo');if(!btn)return;
-  const key=`${G.selStudent||''}||${G.selDate||''}`;
-  const has=!!G.memos[key];
-  btn.classList.toggle('has',has);
-  btn.textContent=has?'📋 비고 수정하기':'📋 비고 작성하기';
-  // 학생/날짜 미선택 시 비활성
-  btn.disabled=!G.selStudent||!G.selDate;
-}
-
 // ─── 모달 공통 (배경스크롤 방지, ESC 처리) ───
 function _openModal(id){
   $$(id).style.display='flex';
@@ -557,7 +458,7 @@ function _openModal(id){
 function _closeModal(id){
   $$(id).style.display='none';
   // 다른 모달이 열려있지 않으면 스크롤 복원
-  const anyOpen=['lessonModalOverlay','memoModalOverlay'].some(m=>$$(m)&&$$(m).style.display==='flex');
+  const anyOpen=[...document.querySelectorAll('.lm-overlay')].some(m=>m.style.display==='flex');
   if(!anyOpen)document.body.classList.remove('modal-open');
 }
 function _showModalToast(modalId,msg){
@@ -571,31 +472,21 @@ function _showModalToast(modalId,msg){
   setTimeout(()=>toast.classList.remove('show'),1800);
 }
 
+// ─── 보기 설정 (미니테스트·선생님 한마디 표시, 컬러 모드) → 화면 반영 ───
+// 이 설정은 엑셀 '설정' 시트(▼ 보기설정)에 저장되어 다음에 열어도 유지됨
+function applyViewSettings(){
+  const set=(id,on)=>{const t=$$(id);if(t)t.classList.toggle('on',on);};
+  set('toggleMini',G.showMini);set('toggleComment',G.showComment);
+  const gm=$$('gMini');if(gm)gm.style.display=G.showMini?'flex':'none';
+  const gc=$$('gComment');if(gc)gc.style.display=G.showComment?'flex':'none';
+  const rc=document.querySelector('.rc');if(rc)rc.classList.toggle('color-mode',G.colorMode);
+  const btn=$$('btnColorMode');
+  if(btn)btn.textContent=G.colorMode?'⚫ 흑백 모드로 보기':'🎨 컬러 모드로 보기';
+}
 // ─── 컬러/흑백 모드 토글 ───
 function toggleColorMode(){
   G.colorMode=!G.colorMode;
-  const rc=document.querySelector('.rc');
-  if(rc)rc.classList.toggle('color-mode',G.colorMode);
-  const btn=$$('btnColorMode');
-  if(btn)btn.textContent=G.colorMode?'☀️ 컬러 모드':'🌙 흑백 모드';
-  saveSession();
-}
-
-// ─── 날짜 사이드바 (학생 사이드바 왼쪽, 세로) ───
-function renderDateSidebar(){
-  const sidebar=$$('dateSidebar'),list=$$('dsList');
-  if(!sidebar||!list)return;
-  if(!G.lessons.length||G.currentView!=='date'){sidebar.style.display='none';return;}
-  sidebar.style.display='flex';
-  list.innerHTML=G.lessons.map(l=>{
-    const cls=`ds-item${l.날짜===G.selDate?' active':''}`;
-    return`<div class="${cls}" onclick="selectDate('${l.날짜}')" title="${fmtKo(l.날짜)}">
-      <span class="ds-item-label">${shortD(l.날짜)}</span>
-    </div>`;
-  }).join('');
-  // 선택된 날짜로 스크롤
-  const active=list.querySelector('.ds-item.active');
-  if(active)setTimeout(()=>active.scrollIntoView({block:'nearest',behavior:'smooth'}),50);
+  applyViewSettings();saveAppData();
 }
 
 // ─── 상단 날짜 네비게이션 (리포트 위) ───
@@ -620,7 +511,7 @@ function toggleDateDropdown(){
   dd.classList.toggle('open');
   if(!isOpen){
     dd.innerHTML=G.lessons.map(l=>
-      `<button class="${l.날짜===G.selDate?'active':''}" onclick="selectDate('${l.날짜}');$$('dnDropdown').classList.remove('open');">${fmtKo(l.날짜)}</button>`
+      `<button class="${l.날짜===G.selDate?'active':''}" data-date="${esc(l.날짜)}" onclick="selectDate(this.dataset.date);$$('dnDropdown').classList.remove('open');">${fmtKo(l.날짜)}</button>`
     ).join('');
   }
 }
@@ -632,18 +523,12 @@ document.addEventListener('click',function(e){
 
 // ─── 토글 (미니테스트/코멘트) ───
 function toggleSec(type){
-  if(type==='mini'){
-    G.showMini=!G.showMini;
-    $$('toggleMini').classList.toggle('on',G.showMini);
-    $$('gMini').style.display=G.showMini?'flex':'none';
-    $$('secMini').style.display=G.showMini?'':'none';
-  }else{
-    G.showComment=!G.showComment;
-    $$('toggleComment').classList.toggle('on',G.showComment);
-    $$('gComment').style.display=G.showComment?'':'none';
-    $$('secComment').style.display=G.showComment?'':'none';
-  }
-  setTimeout(updateScale,50);saveSession();
+  if(type==='mini')G.showMini=!G.showMini;
+  else G.showComment=!G.showComment;
+  applyViewSettings();
+  // 리포트 섹션은 학생별 데이터가 있을 때만 표시 (빈 칸 방지)
+  updateMiniSection();updateCommentSection();fitReportCard();
+  setTimeout(updateScale,50);saveAppData();
 }
 
 // ─── 확대/축소 컨트롤 ───
@@ -775,8 +660,9 @@ function openMascotSettingsModal(studentName){
 
 // ─── 키보드 방향키: 좌우=날짜, 상하=학생 ───
 document.addEventListener('keydown',function(e){
-  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.isContentEditable)return;
-  if(G.currentView!=='date'||!G.selDate)return;
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT'||e.target.isContentEditable)return;
+  if(G.currentView!=='date'||!G.selDate||document.body.classList.contains('modal-open'))return;
+  if(document.querySelector('.stu-modal-overlay,.help-overlay,.mascot-settings-overlay,.mascot-picker-overlay'))return;
   if(e.key==='ArrowLeft'){e.preventDefault();navDatePrev();}
   else if(e.key==='ArrowRight'){e.preventDefault();navDateNext();}
   else if(e.key==='ArrowUp'){e.preventDefault();navStudentPrev();}
@@ -802,43 +688,21 @@ document.addEventListener('DOMContentLoaded',function(){
     ];
     if(onCard){
       items.push({sep:true});
-      items.push({label:'📷 리포트 이미지 저장',action:()=>_saveReportAsImage('card')});
+      items.push({label:'🖼 리포트 이미지 저장',action:()=>dlReportImage()});
     }
     if(onRightPdf){
       items.push({sep:true});
-      items.push({label:'📷 시험자료 이미지 저장',action:()=>_saveReportAsImage('right-pdf')});
+      items.push({label:'📷 시험자료 이미지 저장',action:()=>saveAttachAsImage()});
     }
     _showContextMenu(e.clientX,e.clientY,items);
   });
 });
 
-// ─── 리포트/PDF를 이미지로 저장 (html2canvas 캡처) ───
-async function _saveReportAsImage(target){
+// ─── 첨부 시험자료를 이미지(JPG)로 저장 ───
+async function saveAttachAsImage(){
   try{
-    if(target==='right-pdf'){
-      // 오른쪽 PDF 캔버스를 캡처
-      const cv=$$('rightPdfCanvas');
-      if(!cv)return;
-      const canvas=await html2canvas(cv,{scale:2,useCORS:true,backgroundColor:'#fff',
-        width:cv.offsetWidth,height:cv.offsetHeight,scrollX:0,scrollY:0,
-        windowWidth:cv.offsetWidth,windowHeight:cv.offsetHeight});
-      const link=document.createElement('a');
-      link.download=`${G.selStudent||'report'}_시험자료_${G.selDate||'page'}.png`;
-      link.href=canvas.toDataURL('image/png');
-      link.click();
-      return;
-    }
-    // 리포트 카드를 html2canvas로 캡처
-    const el=$$('reportCard');if(!el)return;
-    const canvas=await html2canvas(el,{scale:2,useCORS:true,backgroundColor:'#fff',
-      onclone:doc=>{const c=doc.getElementById('reportCard');c.style.transform='none';c.style.margin='0';
-        doc.querySelectorAll('[contenteditable]').forEach(e=>e.style.outline='none');},
-      width:el.offsetWidth,height:el.offsetHeight,scrollX:0,scrollY:0,
-      windowWidth:el.offsetWidth,windowHeight:el.offsetHeight});
-    const link=document.createElement('a');
-    link.download=`${G.selStudent||'report'}_${G.selDate||'card'}.png`;
-    link.href=canvas.toDataURL('image/png');
-    link.click();
+    const cv=G.pdfCanvases[0];if(!cv)return;
+    _downloadBlob(await _canvasToJpgBlob(cv,KAKAO_W),`${_safeName(G.selStudent||'학생')}_${_mmdd(G.selDate)}_시험자료.jpg`);
   }catch(err){console.error('이미지 저장 실패:',err);alert('이미지 저장 실패: '+err.message);}
 }
 
@@ -882,10 +746,11 @@ function _doAddStudents(){
     input.value='';
     if(msg)msg.style.color='#16a34a';
     if(msg)msg.textContent=`${added}명 추가 완료!`;
+    // 첫 학생이면 자동 선택 후 리포트 표시
+    const first=!G.selStudent&&G.students.length;
+    if(first)G.selStudent=G.students[0];
     renderTabs();saveAppData();
-    // 첫 학생이면 자동 선택
-    if(!G.selStudent&&G.students.length)G.selStudent=G.students[0];
-    if(G.currentView==='date'){renderTabs();_updateStudentNav();}
+    if(G.currentView==='date'){_updateStudentNav();if(first&&G.selDate){autoFillAll();updateAttendUI();}}
     setTimeout(()=>{if(msg){msg.textContent='';msg.style.color='#9ca3af';}},2000);
   }
 }
@@ -917,37 +782,42 @@ function _doRemoveStudent(idx){
   const name=G.students[idx];
   if(!confirm(`⚠️ '${name}' 학생을 삭제하시겠습니까?\n\n이 학생의 모든 과제 기록, 이행률, 메모 등이 영구적으로 삭제됩니다.`))return;
   G.students.splice(idx,1);
-  if(G.selStudent===name)G.selStudent=G.students[0]||'';
-  // 관련 데이터 정리
+  // 관련 데이터 정리 ("학생||날짜" 키 저장소 전부 + 이월 예약·작업 캐시)
   delete G.rates[name];delete G.wrong[name];delete G.attend[name];
-  delete G.mascotChoices[name];delete G.studentPdfs[name];
-  Object.keys(G.hwRec).forEach(k=>{if(k.startsWith(name+'||'))delete G.hwRec[k];});
-  Object.keys(G.memos).forEach(k=>{if(k.startsWith(name+'||'))delete G.memos[k];});
-  renderTabs();saveAppData();
+  delete G.mascotChoices[name];delete G.studentPdfs[name];delete G.tabData[name];
+  ['hwRec','memos','hwDisabled','journalNote','miniScore'].forEach(st=>{
+    Object.keys(G[st]||{}).forEach(k=>{if(k.startsWith(name+'||'))delete G[st][k];});
+  });
+  G.pendingPropagations=G.pendingPropagations.filter(p=>p.student!==name);
+  if(G.selStudent===name){
+    // 삭제한 학생의 작업 상태를 버리고(saveTabData 없이) 다음 학생으로 새로 채움
+    G.selStudent=G.students[0]||'';
+    G.hwItems=[];G.hwStatus=[];G.hwItemRefs=[];G.extraHw=[];G.hwRateManual=null;
+    if(G.selStudent&&G.selDate&&G.currentView==='date'){autoFillAll();updateAttendUI();}
+    _syncGlobalPdf();renderSpread();
+  }
+  renderTabs();_updateStudentNav();saveAppData();
   // 모달 갱신
   openRemoveStudentModal();
 }
 
-// ─── 학생 설정 모달 (껍데기) ───
-function openStudentSettingsModal(){
-  _closeHoverMenus();
-  const exist=document.querySelector('.stu-modal-overlay[data-type="settings"]');
-  if(exist)exist.remove();
-  const overlay=document.createElement('div');
-  overlay.className='stu-modal-overlay';overlay.dataset.type='settings';
-  overlay.innerHTML=`<div class="stu-modal">
-    <div class="stu-modal-header">
-      <span class="stu-modal-title">⚙ 학생 설정</span>
-      <button class="ms-close" onclick="this.closest('.stu-modal-overlay').remove()">✕</button>
-    </div>
-    <div class="stu-modal-body" style="text-align:center;padding:40px 24px;">
-      <div style="font-size:40px;margin-bottom:12px;">🚧</div>
-      <div style="font-size:15px;font-weight:700;color:#374151;margin-bottom:6px;">준비 중</div>
-      <div style="font-size:13px;color:#9ca3af;">학생별 상세 설정 기능이 곧 추가될 예정입니다.</div>
-    </div>
-  </div>`;
-  document.body.appendChild(overlay);
-  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+// ─── 학생 이름 변경 (기록을 모두 새 이름으로 이동) ───
+function renameStudent(oldName){
+  const nn=(prompt(`'${oldName}' 학생의 새 이름을 입력하세요.`,oldName)||'').trim();
+  if(!nn||nn===oldName)return;
+  if(G.students.includes(nn)){alert('이미 등록된 이름입니다.');return;}
+  if(G.selStudent===oldName)saveTabData();
+  G.students[G.students.indexOf(oldName)]=nn;
+  ['rates','wrong','attend','mascotChoices','studentPdfs','tabData'].forEach(st=>{
+    if(G[st]&&oldName in G[st]){G[st][nn]=G[st][oldName];delete G[st][oldName];}
+  });
+  ['hwRec','memos','hwDisabled','journalNote','miniScore'].forEach(st=>{
+    Object.keys(G[st]||{}).forEach(k=>{if(k.startsWith(oldName+'||')){G[st][nn+k.slice(oldName.length)]=G[st][k];delete G[st][k];}});
+  });
+  G.pendingPropagations.forEach(p=>{if(p.student===oldName)p.student=nn;});
+  if(G.selStudent===oldName){G.selStudent=nn;if(G.selDate)autoFillAll();}
+  renderTabs();_updateStudentNav();saveAppData();
+  toast(`'${oldName}' → '${nn}' 이름을 바꿨습니다`);
 }
 
 // 메뉴 닫기 헬퍼
@@ -963,12 +833,14 @@ function openHelpModal(){
   overlay.className='help-overlay';
   const sections=[
     {icon:'🚀',title:'시작하기',body:'엑셀 파일을 불러오거나, <b>직접 시작하기</b>를 클릭하면 처음부터 설정할 수 있습니다.<br>이전에 저장한 엑셀 파일을 불러오면 기존 데이터를 이어서 작업합니다.'},
-    {icon:'👥',title:'학생 관리',body:'상단 <b>학생 관리</b> 메뉴에서 학생을 추가하거나 제거합니다.<br>쉼표(,)로 구분하면 여러 명을 한번에 추가할 수 있습니다.<br>학생을 제거하면 해당 학생의 모든 기록이 삭제됩니다.'},
+    {icon:'👥',title:'학생 관리',body:'상단 <b>학생 관리</b> 메뉴에서 학생을 추가하거나 제거합니다.<br>쉼표(,)로 구분하면 여러 명을 한번에 추가할 수 있습니다.<br>오른쪽 학생 목록에서 이름을 <b>우클릭 → 이름 변경</b>하면 기록을 유지한 채 이름만 바뀝니다.<br>학생을 제거하면 해당 학생의 모든 기록이 삭제됩니다.'},
     {icon:'📅',title:'수업 설정',body:'<b>설정 → 수업 진도 설정</b>에서 수업 날짜, 교재, 단원, 과제를 관리합니다.<br>날짜 네비게이션의 <b>+</b> 버튼으로도 날짜를 빠르게 추가할 수 있습니다.<br>왼쪽 패널에서 우클릭하면 바로 수업 설정을 열 수 있습니다.'},
-    {icon:'✅',title:'과제 관리',body:'왼쪽 패널에서 과제 상태(완료/부분완료/미완료)를 체크합니다.<br>이행률은 직접 입력하거나 <b>자동계산</b> 버튼으로 계산됩니다.<br>학생별 추가 과제도 등록할 수 있고, 미완료 과제는 자동으로 다음 수업에 이월됩니다.'},
+    {icon:'✅',title:'출결·과제 관리',body:'리포트 위 <b>전원 출석</b>으로 미체크 학생을 한 번에 출석 처리하고, 결석·지각만 따로 누르세요.<br>왼쪽 패널에서 과제 상태(완료/부분완료/미완료)를 체크하면 <b>이행률이 자동으로 계산</b>됩니다. <b>모두 완료</b> 버튼으로 한 번에 채울 수도 있고, 이행률 칸에 직접 입력해도 됩니다.<br>학생별 추가 과제도 등록할 수 있고, 미완료 과제는 자동으로 다음 수업에 이월됩니다.'},
+    {icon:'📝',title:'미니 테스트·선생님 한마디',body:'<b>미니 테스트</b>를 켜고 문항 수·범위(반 공통)와 오답 번호(학생별)를 입력하면 리포트에 점수(예: 3/5)와 다시 볼 문제가 표시됩니다. 맞힌 수는 자동 계산되며 직접 고칠 수도 있습니다.<br><b>선생님 한마디</b>를 켜고 학생별 코멘트를 쓰면 리포트 하단에 표시되고, 수업 일지표 코멘트에도 그대로 쓰입니다.'},
     {icon:'📄',title:'리포트 확인',body:'오른쪽 미리보기에서 학생별 리포트카드를 실시간으로 확인합니다.<br>학생 사이드바에서 학생을 클릭하거나 키보드 ↑↓로 전환합니다.<br>날짜는 상단 화살표 또는 키보드 ←→로 이동합니다.'},
-    {icon:'📊',title:'리포트 모아보기',body:'<b>리포트 모아보기</b> 메뉴에서 다양한 요약 자료를 확인합니다:<br>• 📝 수업 일지 — 날짜별 수업 내용 정리<br>• 📊 이행률 요약표 — 학생별/전체 과제 이행률<br>• 📋 전체 과제 요약 — 모든 학생의 과제 상태 한눈에'},
-    {icon:'💾',title:'저장하기',body:'<b>💾 저장</b> 버튼을 누르면 엑셀 파일로 저장됩니다.<br>다음에 이 파일을 다시 불러오면 이어서 작업할 수 있습니다.<br><b>일괄 PDF</b>로 선택한 날짜의 전체 학생 리포트를 한번에 내보낼 수 있습니다.'},
+    {icon:'📊',title:'리포트 모아보기',body:'<b>리포트 모아보기</b> 메뉴에서 요약 자료를 만듭니다:<br>• 📓 수업 일지표 — 원장님 보고용 (출결·이행률·숙제 검사 결과·오답 집계·코멘트)<br>• 📊 이행률 요약표 — 학생별(학부모 상담용) / 전체'},
+    {icon:'📱',title:'학부모 전송',body:'<b>🖼 이미지</b> 버튼으로 현재 리포트를 카톡 전송용 이미지(JPG)로 저장합니다.<br>메뉴의 <b>카톡용 이미지 일괄 (ZIP)</b>은 학생별 이미지를 한 번에, <b>일괄 PDF</b>는 전체를 하나의 PDF로 만듭니다. 시험자료를 첨부하지 않은 리포트는 세로 A4 한 장으로 저장됩니다.'},
+    {icon:'💾',title:'저장·복구',body:'<b>💾 저장</b> 버튼(Ctrl+S)을 누르면 엑셀 파일로 저장됩니다. 다음에 이 파일을 다시 불러오면 이어서 작업할 수 있습니다.<br>작업 내용은 브라우저에도 자동으로 백업되어, 저장하지 못하고 창을 닫았더라도 다음 실행 때 <b>지난 작업 이어하기</b>로 복구할 수 있습니다.'},
     {icon:'📥',title:'샘플 파일',body:'처음 사용하시나요? 아래 버튼으로 샘플 엑셀 파일을 다운받아 참고하세요.<br>4명의 학생과 3개의 수업 날짜가 포함된 예시 데이터입니다.'}
   ];
   overlay.innerHTML=`<div class="help-modal">
@@ -1020,7 +892,8 @@ function openBatchPdfModal(){
     // 실제 선택한 출결 기준 — 대상=결석/제외 제외, 결석=명시적 결석 선택
     const el=G.students.filter(n=>isReportEligible(n,d));
     const absentCnt=G.students.filter(n=>isAbsent(n,d)).length;
-    $$('batchPdfInfo').textContent=`대상 ${el.length}명 · 결석 ${absentCnt}명`;
+    $$('batchPdfInfo').textContent=el.length?`대상 ${el.length}명 · 결석 ${absentCnt}명`:'리포트 대상 학생이 없습니다 (전원 결석)';
+    $$('batchPdfOk').disabled=!el.length;
   };
   $$('batchPdfDate').onchange=updateInfo;
   updateInfo();

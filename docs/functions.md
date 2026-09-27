@@ -6,259 +6,217 @@
 | `$$` | `document.getElementById` 단축 헬퍼 |
 | `isNone(s)` | 상태값 판별 (`''`, `-1`, `null`, `undefined` → 없음) |
 | `genLessonId()` | 10자리 난수 수업 ID 생성 |
-| `G` | 전역 상태 객체 |
+| `G` | 전역 상태 객체 (필드 설명: `docs/ui-state.md`) |
+| `DATA_KEYS` | 엑셀·IndexedDB에 저장되는 데이터 필드 목록 (백업·복구·파싱 롤백 공용) |
 | `DB`, `STORE` | IndexedDB 이름 상수 |
 
 ## js/utils.js
 | 함수 | 역할 |
 |---|---|
-| `getCurL()` | 현재 선택 날짜의 lesson 반환 |
-| `getPrevL()` | 이전 lesson 반환 |
-| `getNextL()` | 다음 lesson 반환 |
-| `setAuto(id,val)` | 인풋에 자동채우기 값 설정 + `.auto` 클래스 |
-| `rmAuto(el)` | `.auto` 클래스 제거 |
+| `getCurL()` / `getPrevL()` / `getNextL()` | 현재 선택 날짜의 수업 / 이전 수업 / 다음 수업 |
+| `setAuto(id,val)` | 인풋에 자동채우기 값 설정 + `.auto` 클래스 (입력하면 해제) |
 | `setBar(t,m)` | 상태바 타입·메시지 업데이트 |
-| `shortD(d)` | YYYY-MM-DD → M.D |
+| `toast(msg)` | 화면 하단 짧은 알림 (2초) |
+| `DATE_RE` | `YYYY-MM-DD` 형식 정규식 (엑셀 날짜 검증) |
+| `shortD(d)` | YYYY-MM-DD → MM.DD |
+| `ymd(d)` | Date → YYYY-MM-DD |
 | `fmtKo(d)` | YYYY-MM-DD → 한글날짜 (요일 포함) |
-| `isCarryItem(fromDate)` | 현재 선택 날짜 기준 이월 과제 여부 판별 (fromDate !== 직전 수업 날짜) |
-| `isCarryForDate(fromDate,date)` | 특정 날짜 기준 이월 과제 여부 판별 |
-| `parseHwRef(ref)` | ref 통합 파서 — 신/구 형식 모두 지원, `{type, lessonId, text?, hwKey?, ei?}` 반환 |
-| `buildExtraRef(lessonId,text)` | 추가과제 신 형식 ref 생성: `{lessonId}@x@{text}` |
-| `refToCheckDate(ref)` | ref → 체크 날짜 변환 (원본 수업 다음 수업일 = 숙제 확인일) |
-| `esc(s)` | HTML 특수문자 이스케이프 |
-| `nowKST()` | 한국 시간(KST) Date 객체 반환 |
-| `todayKST()` | 한국 시간 기준 오늘 날짜 (YYYY-MM-DD) |
-| `nowKSTStr()` | 한국 시간 기준 현재 일시 (YYYY-MM-DD HH:MM:SS) |
+| `isCarryItem(fromDate)` | 현재 선택 날짜 기준 이월 과제 여부 (fromDate !== 직전 수업 날짜) |
+| `isCarryForDate(fromDate,date)` | 특정 날짜 기준 이월 과제 여부 |
+| `parseHwRef(ref)` | ref 통합 파서 — 신/구 형식, `{type, lessonId, text?, hwKey?, ei?}` |
+| `buildExtraRef(lessonId,text)` | 추가과제 신 형식 ref: `{lessonId}@x@{text}` |
+| `refToCheckDate(ref)` | ref → 숙제 확인일 (원본 수업 다음 수업일) |
+| `esc(s)` | HTML 특수문자 이스케이프 (inline JS 문자열에는 쓰지 말고 `data-*` 속성 사용) |
+| `nowKST()` / `todayKST()` / `nowKSTStr()` | 한국 시간 Date / 오늘(YYYY-MM-DD) / 현재 일시 문자열 |
 
 ## js/domain.js (도메인 계층)
 DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 부수효과 없음. (설계 배경: `docs/architecture.md`)
-| 함수 | 역할 |
+| 함수/상수 | 역할 |
 |---|---|
-| `attOf(student,date)` | 학생·날짜의 원본 출결값 반환 (2/1/0/-1/undefined) |
+| `attOf(student,date)` | 출결값 반환 (2/1/0, 미선택·구버전 -1은 undefined) |
 | `isAbsent(student,date)` | **명시적으로 '결석' 선택**한 경우만 결석 판정 (이행률로 추정 안 함) |
-| `isPresent(student,date)` | 출석(2)·지각(1) 선택 시 true |
-| `isExcluded(student,date)` | 특수/제외(-1) 여부 |
-| `isReportEligible(student,date)` | 리포트/PDF 생성 대상 — 결석·제외가 아니면 true |
-| `attendCategory(student,date)` | 출결 분류 문자열 (`present`/`late`/`absent`/`excluded`/`none`) |
-| `hwOffSet(student,date)` | 해당 학생·날짜의 OFF된 과제 ref 집합(Set) 반환 (읽기 전용, 없으면 빈 Set) |
-| `isHwOff(student,date,ref)` | 특정 과제(ref)가 OFF 되었는지 여부 |
+| `isReportEligible(student,date)` | 리포트/일괄 PDF·이미지 대상 여부 — 결석만 제외 |
+| `attendCategory(student,date)` | 출결 분류 문자열 `'present'|'late'|'absent'|'none'` |
+| `hwOffSet(student,date)` | 해당 학생·날짜의 OFF된 과제 ref 집합 (읽기 전용) |
+| `isHwOff(student,date,ref)` | 특정 과제 ref가 OFF인지 |
+| `RATE_TIER` / `RATE_STYLE` | 이행률 등급 기준(75/30)과 등급별 라벨·색 — 모든 화면·출력물 공통 |
+| `rateTier(v)` / `rateFg(v)` / `rateBg(v)` | 이행률 → 등급 / 글자색 / 배경색 |
+| `isOptionalHw(text)` | 과제명에 '(선택)'이 있는 선택 과제인지 — 이행률 계산·이월 대상에서 제외 |
+| `calcRate(statuses)` | 과제 상태 배열 → 이행률 (완료 100·부분 50·미완료 0 평균, 없으면 null) |
+| `hwStatusCounts(statuses)` | 상태 배열 → `{done, partial, miss}` 개수 |
+| `MINI_PERFECT_MARKS` / `parseWrongList(str)` | 오답칸 만점 표시('0'·'없음'·'만점') / 오답 문자열 → 번호 배열 (쉼표 구분, 번호만 나열한 조각은 띄어쓰기·마침표로도 나눔, '4번'→'4') |
+| `miniResult(student,date)` | 미니테스트 결과 `{total,correct,wrong,range,pct,perfect}` — 결석이거나 **그 학생 입력이 없으면 null** (문항 수만으로 만점 처리하지 않음) |
 
 ## js/db.js
 | 함수 | 역할 |
 |---|---|
-| `openDB()` | IndexedDB 오픈 |
-| `dbSet(k,v)` | IndexedDB 키·값 저장 |
-| `dbGet(k)` | IndexedDB 값 읽기 |
+| `openDB()` | IndexedDB 열기 (실패 시 reject — init.js에서 잡고 백업 없이 동작) |
+| `dbSet(k,v)` | 값 저장 — 트랜잭션 오류·중단 시 reject |
+| `dbGet(k)` | 값 읽기 (실패 시 null) |
 
 ## js/excel.js
 | 함수 | 역할 |
 |---|---|
-| `triggerLoad()` | 파일선택 다이얼로그 열기 |
-| `loadExcel(input)` | 엑셀 파일 읽기·파싱 진입 |
-| `toDS(v)` | 날짜값 → YYYY-MM-DD 정규화 |
-| `normalizeRate(v)` | 이행률 정규화: %문자열·소수·정수 → 0~100 숫자 |
-| `stFromExcel(v)` | 엑셀 상태(○/△/X/0/1/2) → 한글(완료/부분완료/미완료) 변환 |
-| `stToExcel(v)` | 한글 상태 → 엑셀 숫자('2'/'1'/'0'/공란) 변환 |
-| `parseWB(wb)` | 워크북 파싱 → G 전체 채움 (신구 형식 자동 감지, 설정 시트의 `▼ 과제OFF` 복원 포함) |
-| `_resolveRefText(ref,studentName)` | 이월과제 ref → 원본 과제 텍스트 해석 (parseWB 내부 함수) |
-| `saveToExcel()` | G → 엑셀 파일 다운로드 (수업정보 + 날짜별 + 이월과제 + 설정 시트). 설정 시트에 과제 ON/OFF(`▼ 과제OFF`)·마지막 저장 시각 기록. 출결은 선택값 그대로 저장(이행률 보정 없음) |
-| `createTemplate()` | 오늘~6월까지 주 1회 날짜가 포함된 신규 템플릿 엑셀 생성·다운로드 |
-| `updateLastSavedDisplay()` | G.lastSaved → #rLastSaved 텍스트 업데이트 |
-| `removeExcelData()` | 엑셀 데이터 제거 모달 (저장 후 제거/그냥 제거/취소 3버튼) |
-| `_clearAllData()` | 모든 데이터 초기화 (G 초기화 + UI 리셋 + DB 정리) |
-| `createSampleExcel()` | 4명 학생·3개 날짜 샘플 엑셀 생성·다운로드 |
+| `triggerLoad()` | 엑셀 파일 선택 창 열기 |
+| `loadExcel(input)` | 파일 읽기 → `parseWB` (실패 시 이전 데이터로 롤백) → 작업 상태 초기화 → 날짜 뷰 |
+| `toDS(v)` | 날짜 값 → YYYY-MM-DD |
+| `normalizeRate(v)` | 이행률 정규화 ("%"·소수·정수 → 0~100) |
+| `stFromExcel(v)` / `stToExcel(v)` | 엑셀 상태 기호 ↔ 내부 숫자 (2/1/0/-1) |
+| `parseWB(wb)` | 워크북 → G (수업정보·날짜별·이월과제·설정 시트, 구 형식 호환) |
+| `rebuildAllHwItems(fromExcel)` | 모든 학생·날짜의 hwRec.items 재구성 (상태는 ref로, 엑셀 로드 직후에만 순번 필드 사용) + 이월 전파 |
+| `updateLastSavedDisplay()` | 마지막 저장 시각 표시 |
+| `saveToExcel()` | 엑셀 저장 (성공 true / 실패 false) — 설정 시트 고아 데이터 정리 포함 |
+| `removeExcelData()` | 데이터 제거 모달 (저장 후 제거 / 그냥 제거 / 취소) |
+| `_clearAllData()` | 모든 데이터·화면·자동 백업 초기화 |
+| `createSampleExcel()` | 샘플 엑셀 다운로드 (도움말) |
 
 ## js/ui.js
 | 함수 | 역할 |
 |---|---|
-| `updateScale()` | 리포트카드 반응형 스케일 계산·적용 |
-| `initCE()` | (사용 안 함) 리포트카드 이행률 직접 수정 기능 제거로 비워둔 no-op |
-| `fp(cid,pid)` | 리포트카드 → 패널 단방향 텍스트 동기화 |
-| `switchView(view)` | 'config'/'date' 뷰 전환 |
-| `renderViewTabs()` | (레거시, 미사용) 뷰 탭 바 렌더링 |
-| `shiftDate(dir)` | (레거시, 미사용) 날짜 탭 스크롤 |
-| `selectDate(date)` | 날짜 선택 → date 뷰 전환 |
-| `renderDateSidebar()` | 우측 날짜 사이드바 렌더링 (학생 사이드바 왼쪽, 세로 사선 스타일) |
-| `renderDateNav()` | 상단 날짜 네비게이션 바 렌더링 (< 날짜 > + 드롭다운) |
-| `navDatePrev()` | 이전 날짜로 이동 |
-| `navDateNext()` | 다음 날짜로 이동 |
-| `toggleDateDropdown()` | 날짜 드롭다운 토글 |
-| `zoomReport(delta)` | 리포트카드 확대/축소 (0=자동맞춤) |
-| `navStudentPrev()` | 이전 학생으로 전환 |
-| `navStudentNext()` | 다음 학생으로 전환 |
-| `_updateStudentNav()` | 학생 전환 화살표 활성/비활성 갱신 |
-| `_showContextMenu(x,y,items)` | 커스텀 우클릭 컨텍스트 메뉴 표시 |
-| `openMascotSettingsModal(name)` | 학생별 점수대 캐릭터 설정 모달 |
-| `_saveReportAsImage(target)` | 리포트/시험자료를 html2canvas로 캡처하여 PNG 다운로드 (target: 'card' 또는 'right-pdf') |
-| `openAddStudentModal()` | 학생 추가 모달 (쉼표 구분 다중 추가 지원) |
-| `_doAddStudents()` | 학생 추가 모달 실행 (내부 함수) |
-| `openRemoveStudentModal()` | 학생 제거 모달 (목록 + 경고 삭제) |
-| `_doRemoveStudent(idx)` | 학생 제거 실행 (관련 데이터 정리 포함) |
-| `openStudentSettingsModal()` | 학생 설정 모달 (껍데기, 준비 중) |
-| `openHelpModal()` | 도움말 모달 (아코디언 형태 기능별 설명 + 샘플 다운로드) |
-| `openBatchPdfModal()` | 일괄 PDF 날짜 선택 모달 |
-| `addDateFromNav()` | 날짜 네비 바에서 날짜 추가 + 이동 |
-| `openLessonModalFocused(date)` | 특정 날짜에 포커싱하여 수업설정 모달 열기 |
-| `_showAutoFieldTip(x,y)` | 읽기전용 필드 클릭 시 안내 툴팁 표시 |
-| `openLessonModal()` | 수업설정 전체화면 모달 열기 |
-| `closeLessonModal()` | 수업설정 모달 닫기 |
-| `getLessonHwKeys(l)` | 레슨 객체의 동적 과제 키 목록 반환 |
-| `renderLessonCards()` | 수업설정 모달: 레슨 카드 렌더링 (날짜 상태 분류·포커스 포함) |
-| `updateLessonField(idx,field,value)` | 레슨 필드 수정 → G.lessons 업데이트 + 리포트 동기화 |
-| `syncLessonToReport()` | 현재 선택 날짜의 수업정보 → 리포트카드 동기화 |
-| `addLessonHw(idx)` | 레슨에 과제 필드 동적 추가 |
-| `removeLessonHw(idx,hwIdx)` | 레슨의 과제 필드 삭제 + 키 재정렬 |
-| `updateLessonDate(idx,newDate)` | 수업 날짜 변경 (hwRec/rates/wrong/memos 키 이동 포함) |
-| `addLesson()` | 새 수업 날짜 추가 (마지막 +7일) |
-| `removeLesson(idx)` | 수업 날짜 삭제 |
-| `renderDateSummary()` | 날짜 뷰 상단: 수업정보 읽기전용 요약 |
-| `renderTabs()` | 학생 사이드바 렌더링 (우측 프리뷰 영역, PDF 뱃지·호버 포함) |
-| `switchTab(name)` | 학생 전환 (사이드바 갱신 + PDF 동기화) |
-| `saveTabData()` | 현재 학생 입력값 → G.tabData 임시저장 + hwRec items 동기화 |
-| `syncHwRecItems(student,date)` | G.hwItems/hwStatus/hwItemRefs → hwRec[key].items 동기화 (통일 구조: ref+fromDate) |
-| `restoreTabData(name)` | G.tabData → UI 복원 (hwItems/hwItemRefs 포함) |
-| `_getCarryAutoText(student,date)` | 이월과제 자동 요약 텍스트 생성 (상태 변경분만, 중복 제거) |
-| `_getOriginalRefStatus(student,ref)` | ref로 원본 과제의 최초 상태 조회 (변경 감지용) |
-| `openMemo()` | 비고 모달 열기 (자동 요약 표시 + 메모 편집) |
-| `closeMemo(force)` | 비고 모달 닫기 (변경 감지 → confirm) |
-| `saveMemo()` | 비고 저장 → G.memos + saveAppData + 토스트 |
-| `updateMemoBtn()` | 비고 버튼 상태 업데이트 (작성/수정 + disabled) |
-| `_openModal(id)` | 모달 열기 공통 (배경 스크롤 잠금) |
-| `_closeModal(id)` | 모달 닫기 공통 (스크롤 복원) |
-| `_showModalToast(modalId,msg)` | 모달 내 토스트 메시지 표시 |
-| `toggleColorMode()` | 다크/라이트(흑백/컬러) 모드 토글 |
-| `toggleSec(type)` | 미니테스트/코멘트 토글 |
-| `_updateZoomLabel()` | 줌 퍼센트 라벨 갱신 |
-| `_closeContextMenu()` | 커스텀 컨텍스트 메뉴 닫기 |
-| `_closeHoverMenus()` | 학생 사이드바 호버 메뉴 닫기 |
-| `_autoGrowTextarea(el)` | 텍스트에리어 높이 자동 확장 |
-| `focusLessonCard(idx)` | 수업설정 모달에서 특정 레슨 카드에 포커싱 |
-| `openStudentReportFor(name)` | 사이드바에서 학생별 이행률 요약표 바로 열기 |
+| `updateScale()` | 미리보기 배율 계산 (첨부 있으면 2장 나란히) |
+| `switchView(view)` | `'config'`(수업설정 모달) / `'date'`(날짜 뷰) 전환 |
+| `openLessonModal()` / `closeLessonModal()` | 수업설정 모달 열기/닫기 — 실제로 열려 있었을 때만 과제 목록 재구성 + 다시 채움 (채웠으면 true) |
+| `exitLessonModal()` | 모달 ✕/ESC — 선택 날짜가 없으면 가장 가까운 날짜로 이동 |
+| `openLessonModalFocused(date)` | 특정 날짜 카드에 포커스한 채 수업설정 열기 |
+| `selectDate(date)` | 날짜 전환 (이월 전파 적용 + 현재 학생 작업 반영) |
+| `getLessonHwKeys(l)` | 수업의 과제 키 목록 (과제1~N) |
+| `renderLessonCards()` / `focusLessonCard(i)` / `_autoGrowTextarea(el)` | 수업 카드 렌더링·포커스·상세진도 높이 조절 |
+| `updateLessonField(i,f,v)` | 수업 필드 수정 → 리포트 진도 갱신 |
+| `addLessonHw(i)` / `removeLessonHw(i,hwIdx)` | 과제 추가/삭제 (삭제 시 ref 재매핑) |
+| `updateLessonDate(i,newDate)` | 수업 날짜 변경 → `renameDateData` |
+| `addLesson()` / `removeLesson(i)` | 수업 추가(+7일) / 삭제(→ `removeDateData`) |
+| `addDateFromNav()` | 날짜 네비의 + 버튼 — 수업 추가 후 그 날짜로 이동 |
+| `_forDateKeys(date,fn)` | 날짜가 키에 들어간 모든 저장소 순회 |
+| `renameDateData(old,new)` / `removeDateData(date)` | 날짜 키 데이터 일괄 이동 / 삭제 (fromDate·이월 예약 포함) |
+| `_remapLessonHwRefs(lessonId,n)` | n번째 과제 삭제 시 ref 기록 제거·뒤 번호 당김 |
+| `renderDateSummary()` | 패널 상단 수업 정보 요약 카드 |
+| `renderTabs()` | 학생 사이드바 (`data-student` + 우클릭: 요약표·PDF 첨부·캐릭터·이름 변경) |
+| `openStudentReportFor(name)` | 학생별 이행률 요약표 열기 |
+| `switchTab(name)` | 학생 전환 (작업 저장 → 첨부 동기화 → 자동채우기 → 슬라이드 애니메이션) |
+| `saveTabData()` / `restoreTabData(name)` | 현재 학생 작업 캐시 저장(+hwRec 동기화) / 복원 |
+| `syncHwRecItems(student,date)` | 현재 과제 상태·추가과제·이행률 → hwRec |
+| `_getOriginalRefStatus(student,ref)` | 이월 과제의 최초 검사 상태 (비고 자동 요약용) |
+| `_openModal(id)` / `_closeModal(id)` / `_showModalToast(id,msg)` | 모달 공통 열기/닫기/토스트 |
+| `applyViewSettings()` | 미니테스트·선생님 한마디 토글, 컬러 모드를 화면에 반영 |
+| `toggleColorMode()` / `toggleSec(type)` | 컬러/흑백 전환 / 미니테스트·코멘트 표시 전환 (엑셀에 저장) |
+| `renderDateNav()` / `navDatePrev()` / `navDateNext()` / `toggleDateDropdown()` | 상단 날짜 네비게이션 |
+| `zoomReport(delta)` / `_updateZoomLabel()` | 확대/축소 |
+| `navStudentPrev()` / `navStudentNext()` / `_updateStudentNav()` | 학생 전환 화살표 (키보드 ↑↓) |
+| `_showContextMenu(x,y,items)` / `_closeContextMenu()` | 커스텀 우클릭 메뉴 |
+| `openMascotSettingsModal(name)` | 학생별 캐릭터 설정 |
+| `saveAttachAsImage()` | 첨부 시험자료를 JPG로 저장 (리포트 영역 우클릭) |
+| `openAddStudentModal()` / `_doAddStudents()` | 학생 추가 (쉼표로 여러 명, 첫 학생이면 바로 리포트 표시) |
+| `openRemoveStudentModal()` / `_doRemoveStudent(i)` | 학생 제거 (관련 데이터 전부 정리, 작업 상태 덮어쓰기 방지) |
+| `renameStudent(old)` | 학생 이름 변경 (기록 전부 새 이름으로 이동) |
+| `_closeHoverMenus()` | 툴바 메뉴 닫기 |
+| `openHelpModal()` | 도움말 |
+| `openBatchPdfModal()` | 일괄 PDF 날짜 선택 (대상 0명이면 비활성) |
+| `_showAutoFieldTip(x,y)` | 읽기전용 필드 클릭 시 안내 툴팁 |
 
 ## js/session.js
 | 함수 | 역할 |
 |---|---|
-| `saveAppData()` | G → IndexedDB `appData` 저장 (300ms 디바운스, 에러 핸들링) |
-| `saveAppDataNow()` | G → IndexedDB `appData` 즉시 저장 (엑셀 저장 등) |
-| `saveSession()` | 세션 상태 → IndexedDB `session` 저장 |
-| `restoreSession(s)` | IndexedDB → 세션 복원 |
-| `showGroups()` | 엑셀 로드 후 UI 요소 표시 + 날짜 자동 선택 + 제거버튼 표시 |
-| `zeroStart()` | 엑셀 없이 직접 시작 (빈 상태 UI 활성화) |
-| `autoSelectDate()` | 오늘 이후 가장 가까운 날짜 자동 선택 |
-| `renderStudentList()` | 학생 목록 UI 렌더링 |
-| `addStudent()` | 새 학생 G.students에 추가 |
-| `removeStudent(idx)` | 학생 삭제 (G.students에서 제거) |
-| `toggleStudentSec()` | 학생 목록 섹션 접기·펼치기 |
-| `markUnsaved()` | 미저장 상태 배너 표시 (G.unsaved=true) |
-| `markSaved()` | 미저장 배너 숨김 (G.unsaved=false) |
+| `_appSnapshot()` / `_writeSnapshot()` | 자동 백업 스냅샷 생성 / IndexedDB 저장 ('지난 작업' 배너 대기 중엔 쓰지 않음, 이번 세션에 직접 다 지운 경우만 백업 비움) |
+| `saveAppData()` | 데이터 변경 → 미저장 표시 + 백업 예약(300ms) |
+| `saveSession()` | 선택 변경 → 백업 예약만 |
+| `saveAppDataNow()` | 즉시 백업 |
+| `checkRecovery()` | 시작 시 백업이 있으면 '지난 작업 이어하기' 배너 표시 |
+| `restoreFromBackup()` / `dismissRecovery(byUser)` | 백업 복구 / 배너 닫기 (저장 안 된 백업이면 확인) |
+| `showGroups(keepSelection)` | 데이터 로드 후 버튼 표시 + 날짜 뷰 진입 |
+| `zeroStart()` | 엑셀 없이 직접 시작 (저장 안 된 '지난 작업' 백업이 있으면 확인) |
+| `autoSelectDate()` | 오늘 이후 가장 가까운 수업 날짜 선택 |
+| `markUnsaved()` / `markSaved()` | ⚠ 미저장 표시 |
 
 ## js/autofill.js
 | 함수 | 역할 |
 |---|---|
-| `stFromExcel(v)` | 엑셀 기호/숫자(○/△/X/0/1/2) → 한글 상태 변환 |
-| `_resolveCarryRef(ref,student)` | ref → 과제 텍스트·출제일 해석 (이월 전파용 헬퍼) |
-| `propagateCarryover(student,date,refStr,newStatus)` | 과제 status 변경 시 미래 날짜 hwRec 갱신 (0/1→다음 날짜 이월 생성, 2/-1→이후 모든 이월 삭제) |
-| `buildAllCarryover()` | 엑셀 로드 후 전체 날짜·학생 순회하며 미완료/부분완료 항목의 이월 레코드 일괄 생성 |
-| `flushPropagations()` | G.pendingPropagations 큐의 보류된 이월 전파를 일괄 적용 (세션 전환/저장 시 호출) |
-| `computeCarryover(student,date)` | 직전 날짜 hwRec에서 미완료/부분완료 항목 수집 → 캐리오버 배열 반환 |
-| `_hwDisabledSet()` | 현재 학생·날짜의 OFF된 과제 ref Set 반환 (`G.hwDisabled["학생||날짜"]`, 없으면 생성) |
-| `_curHwOnOffItems()` | 이번 주차 과제 목록 구성 → `[{text,ref,kind,st}]` (renderCurHwList·updateNoticeWithCarry·autoSyncHwDisabled 공용, ref 기반) |
-| `autoSyncHwDisabled()` | 이월/직전미완료 과제 상태에 따라 이번주차 이월 항목 자동 ON/OFF (ref 기반) |
-| `updateNoticeWithCarry()` | 이번 주차 과제 + 추가과제 + 미완료 캐리오버 → 리포트카드 반영 (OFF 항목 ref로 필터링) |
-| `renderCurHwList()` | 패널 이번 주차 과제 목록 렌더 (레슨+추가+이월, Enable/Disable 토글) |
-| `toggleHwDisabled(idx)` | 이번 주차 과제 Enable/Disable 토글 (인덱스를 ref로 해석하여 학생·날짜별 저장, 엑셀 영속화) |
-| `renderExtraHwEditor()` | 패널 학생별 추가 과제 에디터 렌더 (수정/삭제 가능) |
-| `autoFillCommon()` | 날짜 기준 공통 필드 자동채우기 |
-| `getPrevExtraHw(student,date)` | 이전 날짜의 학생별 추가과제 텍스트 배열 반환 |
-| `_prevDateFor(date)` | 특정 날짜 기준 직전 수업 날짜 반환 |
-| `autoFillAll()` | 학생+날짜 기준 전체 자동채우기 (hwRec.items 우선 사용, 없으면 직접 구성) |
+| `_resolveCarryRef(ref,student)` | ref → 과제 텍스트·출제일 (이월 전파용) |
+| `propagateCarryover(student,date,ref,status)` | 상태 변경 → 다음 수업 이월 레코드 생성/삭제 |
+| `flushPropagations()` | 보류된 이월 전파 일괄 적용 |
+| `buildAllCarryover()` | 엑셀 로드 후 전체 이월 전파 |
+| `computeCarryover(student,date)` | 직전 수업의 미완료·부분완료 항목 수집 |
+| `_hwDisabledSet()` | 현재 학생·날짜의 OFF 집합 (없으면 생성) |
+| `_curHwOnOffItems()` | 다음 수업까지 과제 목록 구성 (본과제·추가·이월, ref 포함) |
+| `autoSyncHwDisabled()` | 지난 과제 상태에 따라 이월 항목 자동 ON/OFF |
+| `updateNoticeWithCarry()` | 리포트 '다음 수업까지 과제' (없으면 '별도 과제 없음') |
+| `renderCurHwList()` / `toggleHwDisabled(i)` | 패널 과제 ON/OFF 목록 / 토글 |
+| `renderExtraHwEditor()` | 패널 추가 과제 에디터 |
+| `renderLessonInfo()` | 수업 정보 → 리포트 헤더 날짜·진도·과제 기본 목록 |
+| `autoFillCommon()` | 날짜 기준 공통 채우기 (`renderLessonInfo` + 요약 카드) |
+| `getPrevExtraHw(student,date)` | 직전 수업의 학생별 추가과제 텍스트 |
+| `autoFillAll()` | 학생+날짜 전체 채우기 (과제 재구성·이행률·그래프·미니테스트·코멘트·A4 맞춤) |
 
 ## js/report.js
-| 함수 | 역할 |
+| 함수/상수 | 역할 |
 |---|---|
-| `MASCOT_IMGS` | 티어별(high/mid/low) 마스코트 이미지 경로 배열 |
-| `registerMascots(tier,files)` | 마스코트 이미지 등록 (tier: high/mid/low) |
-| `updateRateFace()` | 이행률 기반 마스코트 이미지 표시 (75↑high, 30↑mid, 30↓low). 현재 티어에 선택값이 없으면 다른 티어에 설정한 캐릭터(동일 idx)로 대체 → 한 번 설정한 캐릭터가 모든 날짜에 표시 |
-| `openMascotPicker()` | 마스코트 클릭 시 선택 팝업 열기 (같은 티어 이미지 그리드 표시) |
-| `rebuildGraph()` | SVG 이행률 꺾은선 그래프 재빌드 (결석 날짜는 % 대신 `결석` 표시) |
-| `renderHwEditor()` | 과제 에디터 UI 렌더링 (base/carry만, 저번 주차 체크) |
-| `addExtraHw()` | 이번 주차 추가 과제 항목 추가 (G.extraHw) |
-| `removeExtraHw(idx)` | 이번 주차 추가 과제 항목 삭제 |
-| `updateExtraHwText(idx,val)` | 이번 주차 추가 과제 텍스트 수정 |
-| `autoCalcRate()` | 과제 상태에서 이행률 자동 계산 (완료=100%, 부분=50%, 미완료=0%) |
-| `onRateManual()` | 이행률 수동입력 핸들러 (출결은 더 이상 자동 변경하지 않음) |
-| `renderHwEditor()` | 저번 주차 과제 체크 에디터 렌더 — 직전 주차 OFF 과제(`isHwOff`)는 제외 |
-| `hwBtnLabel(s)` | 상태 → 버튼 라벨 문자열 반환 |
-| `cycleHwStatus(i)` | 과제 상태 순환 (없음→완료→부분→미완료→없음) |
-| `updateHeaderDate(cur,next)` | 리포트 날짜 헤더 업데이트 |
-| `updateHwDisplay()` | 저번 과제 리포트 UI 업데이트 (직전 주차 OFF 과제 제외) |
-| `updateHwBadge()` | 과제 뱃지 업데이트 (현재 미구현) |
-| `updateNoticeList(text)` | 이번 과제 목록 리포트 UI 업데이트 |
-| `updateCommentSign()` | 강사 서명 업데이트 |
-| `updateWrongTags(tagStr)` | 오답 번호 태그 UI 업데이트 |
-| `applyReportEdits()` | 리포트카드 contenteditable 직접편집 오버라이드 적용 |
-| `initReportListeners()` | 리포트카드 편집 리스너 (현재 비활성화 — 안정성 확보) |
-| `setAttend(val)` | 출결 상태 설정 (2=출석,1=지각,0=결석, 같은 버튼 재클릭 시 해제) |
-| `updateAttendUI()` | 출결 토글 버튼 UI 갱신 — 실제로 선택한 값만 활성화(미선택은 비활성) |
+| `MASCOT_IMGS` / `MASCOT_DIR` / `registerMascots(tier,files)` | 마스코트 이미지 등록 |
+| `updateRateFace()` | 이행률 등급별 마스코트 표시 (학생이 고른 캐릭터만) |
+| `openMascotPicker(e)` | 마스코트 선택 팝업 |
+| `rebuildGraph()` | 최근 4회 이행률 그래프 (결석은 회색 '결석') |
+| `renderHwEditor()` | 패널 과제 검사 목록 (`data-i`) + 상태 개수 `#hwCounts` |
+| `addExtraHw()` / `removeExtraHw(i)` / `updateExtraHwText(i,v)` | 학생별 추가 과제 관리 |
+| `_rateStatuses()` | 이행률 계산 대상 상태 (이월·(선택)·OFF 제외) |
+| `applyRate(v,manual)` | 이행률 값 적용 (입력칸·G.rates·리포트·그래프) |
+| `autoCalcRate()` | ↻ 재계산 (과제 상태 기준으로 되돌림) |
+| `onRateManual()` | 이행률 직접 입력 (0~100 보정) |
+| `refreshRateSection()` | 리포트 이행률 영역 (첫 수업·미입력 숨김, 결석은 '이번 수업 결석' + 진도 라벨 '빠진 수업 내용') |
+| `hwBtnLabel(s)` | 상태 버튼 라벨 |
+| `cycleHwStatus(i)` | 과제 상태 순환 (없음→완료→부분완료→미완료) |
+| `markAllHwDone()` | 비어 있는 과제를 모두 '완료' (이월·선택 과제 제외) |
+| `markAllStudentsHwDone()` | 결석 아닌 학생 전원의 검사 안 한 과제를 '완료' + 이행률 재계산 (전원 과제 완료) |
+| `confirmMissingInputs(date)` | 일괄 PDF·ZIP 전 빠진 입력(출결·숙제 검사·미니테스트·한마디) 점검 확인창 |
+| `_queueCarry(i,status)` / `_afterHwStatusChange(before)` | 이월 전파 예약 / 상태 변경 공통 후처리 (계산 대상 상태가 바뀐 경우에만 이행률 자동 계산) |
+| `updateHeaderDate(cur,next)` | 리포트 헤더 날짜·진도 날짜 |
+| `updateHwDisplay()` | 리포트 '지난 수업 과제' (이월 2단 레이아웃) |
+| `updateNoticeList(text)` | 과제 기본 목록 (학생 미선택 시) |
+| `renderMiniPanel()` / `onMiniInput()` / `onWrongInput(v)` | 미니테스트 입력칸 채우기 / 문항 수·범위·맞힌 수 저장 / 오답 즉시 저장 |
+| `updateMiniSection()` | 리포트 미니테스트 (점수·범위·다시 볼 문제, 기록 없으면 숨김) |
+| `renderCommentPanel()` / `onCommentInput()` / `onTeacherInput()` | 선생님 한마디 입력칸 / 코멘트 저장(G.journalNote) / 서명 저장 |
+| `updateCommentSection()` | 리포트 선생님 한마디 (코멘트 있을 때만) |
+| `fitReportCard()` | A4 넘치면 `.dense` → `.dense2`(2단 목록)로 자동 맞춤 |
+| `setAttend(val)` | 출결 토글 (재클릭 = 미선택) |
+| `markAllPresent()` | 출결 미체크 학생 전원 출석 |
+| `updateAttendUI()` | 출결 버튼·미체크 인원 표시 (첫 수업일 포함) |
 
 ## js/pdf.js
-| 함수 | 역할 |
+| 함수/상수 | 역할 |
 |---|---|
-| `_processPdfFile(file)` | PDF 파일 → 첫 페이지 캔버스 + PNG bytes 추출 (내부 함수) |
-| `_addPdfToStudent(student,pdfData)` | 학생별 PDF 데이터 추가 |
-| `_getStudentPdfCanvases(student)` | 학생별 PDF 캔버스 배열 반환 |
-| `_getStudentPdfPageCount(student)` | 학생별 PDF 총 페이지 수 반환 |
-| `_syncGlobalPdf()` | 현재 학생 기준 전역 pdfCanvases/pdfPageCount 동기화 |
-| `handlePdfInput(input)` | PDF 파일 입력 핸들러 (학생별/전체 분기) |
-| `inlinePdfAttach()` | 리포트 옆 + 버튼 핸들러 (항상 메뉴 표시: 이 학생에게만/모든 학생에게/이행률 요약표) |
-| `_showInlineMenu()` | PDF 첨부 인라인 메뉴 표시 (내부 함수) |
-| `_closePdfMenu()` | PDF 첨부 메뉴 닫기 (내부 함수) |
-| `_closePdfMenuOnClick(e)` | 외부 클릭 시 PDF 메뉴 닫기 (내부 함수) |
-| `_attachSummaryForCurrent()` | + 버튼에서 현재 학생의 이행률 요약표를 바로 첨부 |
-| `attachPdfForStudent(name)` | 특정 학생에게 PDF 직접 첨부 (기존 PDF 있으면 교체 모드) |
-| `_attachStudentReportToView(student,dates)` | 이행률 요약표를 PNG로 캡처하여 학생 PDF로 첨부 |
-| `removeStudentPdf(student,idx)` | 학생별 PDF 개별 삭제 (confirm) |
-| `removeAllStudentPdfs(student)` | 학생별 PDF 전체 삭제 (confirm) |
-| `_savePdfData()` | 학생별 PDF bytes → IndexedDB 저장 |
-| `restorePdfData()` | IndexedDB → 학생별 PDF 복원 (PNG/레거시 PDF 지원) |
-| `renderSpread()` | 현재 spread 페이지 표시 업데이트 |
-| `_addPdfDelBtn(slot,studentName)` | PDF 슬롯에 삭제 버튼 추가 (내부 함수) |
-| `drawPdfPrev(tgt,src)` | PDF 캔버스 → 미리보기 캔버스 그리기 |
-| `prevSpread()` | 이전 spread 이동 |
-| `nextSpread()` | 다음 spread 이동 |
-| `dlPdf()` | 리포트+첨부PDF 합성 → 다운로드 |
-| `toggleToolbarMenu(id)` | 툴바 드롭다운 메뉴 토글 |
-| `closeToolbarMenus()` | 모든 툴바 메뉴 닫기 |
-| `dlSummaryPdf()` | 전체 과제 요약 이미지 생성 (확인 모달 표시) |
-| `_doSummaryImage()` | 과제 요약 PNG 캡처 및 다운로드 (내부 함수) |
-| `showConfirmModal(title,desc,fn)` | 범용 확인/취소 모달 |
-| `dataUrlToBytes(u)` | DataURL → Uint8Array 변환 |
-| `dlBatchPdf()` | 일괄 PDF 내보내기 진입점 (확인 모달 → _doBatchPdf) |
-| `_doBatchPdf()` | 결석 제외 전체 학생 리포트 → 세로 A4 멀티페이지 PDF 생성·다운로드 |
-| `dlGradeSummary()` | 성적 요약표 날짜 범위 선택 모달 열기 |
-| `_renderGradeTable(dates,container)` | 학생×날짜 성적 테이블 HTML 렌더링 |
-| `_downloadGradeImage(dates)` | 성적 요약표 PNG 캡처·다운로드 |
-| `_buildJournalAttendHtml(date)` | 수업 일지 출결 현황 HTML (프리뷰용) |
-| `dlClassJournal()` | 수업 일지 날짜 선택 모달 열기 |
-| `_downloadJournalImage(date)` | 수업 일지 PNG 캡처·다운로드 |
-| `_buildJournalAttendImageHtml(date)` | 수업 일지 출결 현황 HTML (이미지 다운로드용) |
-| `dlJournalReport()` | **수업 일지표** 입력 모달 (날짜·오늘 진도/과제·다음 수업 계획·학생별 코멘트, 날짜별 저장) |
-| `_journalReportDates(date)` | 수업 일지표 집계 기간 — 선택 날짜 포함 직전 최대 6회차 날짜 배열 |
-| `_renderJournalInputs(date)` | 모달 입력칸 채움 — 진도/과제는 편집값 우선·없으면 레슨 기본값, 코멘트/계획은 저장값 (대상=출석 학생) |
-| `_saveJournalInputs(date)` | 입력칸 → `G.journalInfo`(진도·과제)/`G.journalNote`/`G.journalPlan` 저장 + saveAppData |
-| `_buildJournalReportPages(date)` | 수업 일지표 페이지 HTML 배열 생성 (1쪽: 수업정보[편집값 우선]·출결·이행률표 / 2쪽~: 코멘트·다음 계획) |
-| `_journalCanvas(html)` | 페이지 HTML → html2canvas 캔버스 |
-| `_renderJournalPdf(date)` | 페이지들 → A4 세로 멀티페이지 PDF 생성·다운로드 (`수업일지표_날짜.pdf`) |
-| `_stuRptRemoveItem(key)` | 이행률 표 미리보기에서 과제 항목 임시 제외 (저장 안 됨) |
-| `dlStudentReport()` | 학생별 리포트 요약 모달 열기 (학생·날짜 범위 선택) |
-| `_renderStudentReport(student,s,e,container,opts)` | 학생별 종합 요약 + 날짜별 과제 상세 HTML 렌더링 (compact/interactive/removedSet 옵션) |
-| `_downloadStudentReportPdf(student,dates,removedSet)` | 학생별 리포트 요약 PDF 캡처·다운로드 (컴팩트 테이블, 한 페이지 맞춤) |
-| `showUpdateModal()` | 업데이트 내역 모달 (updates.md 로드·표시) |
+| `_processPdfFile(file)` | 첨부 PDF 첫 페이지 → 캔버스 (세션 한정) |
+| `_addPdfToStudent` / `_getStudentPdfCanvases` / `_syncGlobalPdf` | 학생별 첨부 관리 / 캔버스 목록 / 현재 학생 첨부를 `G.pdfCanvases`로 |
+| `handlePdfInput(input)` | 첨부 파일 처리 (이 학생 / 모든 학생) |
+| `inlinePdfAttach()` / `_showInlineMenu()` / `_closePdfMenu()` / `_closePdfMenuOnClick(e)` | 리포트 옆 + 버튼 메뉴 |
+| `attachPdfForStudent(name)` / `removeAllStudentPdfs(name)` | 학생 첨부 교체 / 삭제 |
+| `renderSpread()` / `_addPdfDelBtn(slot,name)` / `drawPdfPrev(tgt,src)` | 리포트 + 첨부 미리보기 |
+| `_downloadBlob(blob,name)` | 다운로드 (1.5초 후 URL 해제) |
+| `_canvasToBlob` / `_canvasToJpgBlob(cv,w)` | 캔버스 → Blob / 폭 w JPG |
+| `_safeName(s)` / `_mmdd(date)` / `KAKAO_W` | 파일명 정리 / MMDD / 카톡 이미지 폭(1080) |
+| `_captureReportCard(scale)` | 리포트카드 원본 크기 캡처 |
+| `_captureOffscreen(elOrHtml,width)` | 화면 밖 캡처 (try/finally 정리) |
+| `_addReportPages(doc,report,attach)` | 첨부 없으면 세로 A4 1쪽, 있으면 가로 A4 2장 나란히 (JPEG) |
+| `dlPdf()` | 현재 학생 리포트 PDF |
+| `toggleToolbarMenu(id)` / `closeToolbarMenus()` | 툴바 드롭다운 |
+| `dataUrlToBytes(u)` | dataURL → Uint8Array |
+| `_eachStudentCapture(names,label,scale,fn)` | 학생을 차례로 바꿔 캡처 (진행 표시, 끝나면 원래 학생 복원) |
+| `_doBatchPdf()` | 일괄 PDF (결석 제외, 대상 0명이면 중단) |
+| `dlReportImage()` | 카톡용 JPG 저장 (첨부 있으면 시험자료 JPG도) |
+| `dlKakaoZip()` | 학생별 JPG 묶음 ZIP (JSZip) |
+| `dlGradeSummary()` / `_renderGradeTable` / `_downloadGradeImage` | 이행률 요약표(전체) 모달·표·이미지 |
+| `_journalReportDates(date)` | 일지표 집계 기간 (최근 6회) |
+| `_defaultJournalPlan(date)` | '다음 수업 계획' 기본값 = 다음 수업의 단원 — 상세진도 |
+| `dlJournalReport()` / `_renderJournalInputs` / `_saveJournalInputs` | 수업 일지표 입력 모달 (진도 편집값은 기본값과 다른 항목만 저장) |
+| `_buildJournalReportPages(date)` | 일지표 페이지 HTML (출결 분류·이행률표·오답 집계·학생별 숙제 검사·미니테스트·코멘트) |
+| `_renderJournalPdf(date)` | 일지표 A4 PDF |
+| `_stuRptRemoveItem(key)` / `dlStudentReport(pre)` / `_renderStudentReport(...)` | 학생별 이행률 요약표 모달·렌더 ('기록 회차', 분모에서 '없음' 제외) |
+| `_collectIncomplete(student,dates,removed)` / `_incompleteHtml(inc,boxed)` | 미완료 과제 수집 / HTML (공용) |
+| `_buildStudentReportEl(...)` | 요약표 캡처용 요소 |
+| `_attachSummaryForCurrent()` / `_attachStudentReportToView(...)` | 요약표를 리포트 옆에 첨부 |
+| `_downloadStudentReportPdf(...)` | 요약표 PDF |
+| `showUpdateModal()` | 업데이트 내역(updates.md) 모달 |
 
 ## js/init.js
 | 함수 | 역할 |
 |---|---|
-| `loadMascotImages()` | 마스코트 이미지 수동 등록 (하드코딩된 파일 목록) |
-| `document keydown` | 전역 키보드: ESC(모달 닫기), Ctrl+S(저장) |
-| `initPanelResize()` | 좌측 패널 드래그 리사이즈 핸들 초기화 |
-| `window.onload` | 앱 초기화 진입점: DB오픈→updateScale→initCE→loadMascotImages→initPanelResize→restorePdfData |
+| `loadMascotImages()` | 마스코트 이미지 파일 등록 |
+| `initPanelResize()` | 패널 드래그 리사이즈 |
+| `window.onload` | 앱 진입점 (IndexedDB → 배율 → 마스코트 → 보기 설정 → 지난 작업 확인) |
+| (keydown) | ESC: 동적 모달·수업설정 닫기 / Ctrl+S: 엑셀 저장 |

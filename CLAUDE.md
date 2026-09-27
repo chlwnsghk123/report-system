@@ -17,17 +17,17 @@ css/
   layout.css        패널·탭·인풋·버튼·페이지네비·뷰탭·수업카드·날짜요약 등 앱 UI 스타일
   report.css        리포트카드 A4 스타일 (:root 변수 포함)
 js/
-  state.js          G 객체, 상수(DB/STORE), $$ 헬퍼
-  utils.js          getCurL/getPrevL/getNextL, setAuto, rmAuto, setBar, shortD, fmtKo, esc
-  domain.js         도메인 계층(순수 규칙): 출결 판정(attOf·isAbsent·isPresent·isReportEligible·attendCategory), 과제 ON/OFF(hwOffSet·isHwOff) — docs/architecture.md
+  state.js          G 객체, DATA_KEYS(저장 필드 목록), 상수(DB/STORE), $$ 헬퍼
+  utils.js          getCurL/getPrevL/getNextL, setAuto, setBar, toast, shortD, ymd, fmtKo, isCarryItem, parseHwRef, esc, todayKST
+  domain.js         도메인 계층(순수 규칙): 출결(attOf·isAbsent·isReportEligible·attendCategory), 과제 ON/OFF(hwOffSet·isHwOff), 이행률(RATE_TIER·rateTier·calcRate·hwStatusCounts·isOptionalHw), 미니테스트(miniResult) — docs/architecture.md
   db.js             openDB, dbSet, dbGet
-  excel.js          triggerLoad, loadExcel, toDS, normalizeRate, stFromExcel, stToExcel, parseWB, saveToExcel, createTemplate
-  ui.js             updateScale, initCE, fp, switchView, openLessonModal, closeLessonModal, selectDate, getLessonHwKeys, renderLessonCards, updateLessonField, syncLessonToReport, addLessonHw, removeLessonHw, addLesson, removeLesson, renderDateSummary, renderDateSidebar, renderDateNav, navDatePrev, navDateNext, toggleDateDropdown, renderTabs, switchTab, saveTabData, syncHwRecItems, restoreTabData, _getCarryAutoText, openMemo, closeMemo, saveMemo, updateMemoBtn, _openModal, _closeModal, _showModalToast, toggleSec
-  session.js        saveAppData, saveAppDataNow, saveSession, restoreSession, showGroups, autoSelectDate, renderStudentList, addStudent, removeStudent, toggleStudentSec
-  autofill.js       computeCarryover, updateNoticeWithCarry, autoFillCommon, stFromExcel, autoFillAll
-  report.js         rebuildGraph, renderHwEditor, addExtraHw, removeExtraHw, updateExtraHwText, onRateManual, cycleHwStatus, hwBtnLabel, updateHeaderDate, updateHwDisplay, updateHwBadge, updateNoticeList, updateCommentSign, updateWrongTags, registerMascots, updateRateFace, openMascotPicker, applyReportEdits, initReportListeners
-  pdf.js            loadAttachPdf, renderSpread, drawPdfPrev, prevSpread, nextSpread, dlPdf, toggleToolbarMenu, closeToolbarMenus, dlSummaryPdf, _doSummaryImage, showConfirmModal, dataUrlToBytes, dlBatchPdf, _doBatchPdf, dlGradeSummary, _renderGradeTable, _downloadGradeImage, dlClassJournal, _downloadJournalImage
-  init.js           window.onload (앱 진입점), loadMascotImages, initPanelResize
+  excel.js          triggerLoad, loadExcel(실패 시 롤백), toDS, normalizeRate, stFromExcel, stToExcel, parseWB, rebuildAllHwItems, saveToExcel, removeExcelData, _clearAllData, createSampleExcel
+  ui.js             updateScale, switchView, open/close/exitLessonModal, selectDate, renderLessonCards, updateLessonField, add/removeLessonHw, updateLessonDate, add/removeLesson, renameDateData, removeDateData, _remapLessonHwRefs, renderDateSummary, renderTabs, switchTab, saveTabData, syncHwRecItems, restoreTabData, applyViewSettings, toggleColorMode, toggleSec, renderDateNav, navDatePrev/Next, 학생 추가·제거·renameStudent, saveAttachAsImage, openHelpModal, openBatchPdfModal
+  session.js        자동 백업·복구(_appSnapshot, saveAppData, saveSession, saveAppDataNow, checkRecovery, restoreFromBackup, dismissRecovery), showGroups, zeroStart, autoSelectDate, markUnsaved/markSaved
+  autofill.js       이월(propagateCarryover, flushPropagations, buildAllCarryover, computeCarryover), 과제 ON/OFF(_curHwOnOffItems, autoSyncHwDisabled, toggleHwDisabled), updateNoticeWithCarry, renderLessonInfo, autoFillCommon, autoFillAll
+  report.js         마스코트(updateRateFace, openMascotPicker), rebuildGraph, renderHwEditor, 추가과제, 이행률(applyRate, autoCalcRate, onRateManual, refreshRateSection), cycleHwStatus, markAllHwDone, markAllStudentsHwDone, confirmMissingInputs, updateHwDisplay, 미니테스트(renderMiniPanel, onMiniInput, onWrongInput, updateMiniSection), 선생님 한마디(onCommentInput, onTeacherInput, updateCommentSection), fitReportCard, setAttend, markAllPresent, updateAttendUI
+  pdf.js            첨부(handlePdfInput, renderSpread), 공용(_downloadBlob, _captureReportCard, _captureOffscreen, _addReportPages, _eachStudentCapture), dlPdf, _doBatchPdf, dlReportImage, dlKakaoZip, dlGradeSummary, dlJournalReport(_buildJournalReportPages), dlStudentReport, showUpdateModal
+  init.js           window.onload (앱 진입점), loadMascotImages, initPanelResize, 전역 단축키(ESC·Ctrl+S)
 docs/               참조 문서 (필요 시만 읽기)
 ```
 
@@ -56,9 +56,14 @@ docs/               참조 문서 (필요 시만 읽기)
 | "그래프", "이행률 차트", "꺾은선" | `js/report.js` |
 | "과제 버튼", "완료/부분완료/미완료", "순환" | `js/report.js` |
 | "점수 계산", "맞힌 수", "오답 태그" | `js/autofill.js` + `js/report.js` |
-| "출석/결석 기준", "출결 판정", "결석 표시" | `js/domain.js` (규칙) + `js/report.js`·`js/pdf.js` (표시) |
+| "출석/결석 기준", "출결 판정", "결석 표시", "전원 출석" | `js/domain.js` (규칙) + `js/report.js`·`js/pdf.js` (표시) |
+| "이행률 계산", "이행률 색 기준", "모두 완료" | `js/domain.js` (calcRate·RATE_TIER) + `js/report.js` |
+| "미니 테스트 점수", "다시 볼 문제", "문항 수" | `js/domain.js` (miniResult) + `js/report.js` + `js/excel.js` (▼ 미니테스트) |
+| "선생님 한마디", "코멘트 서명" | `js/report.js` + `index.html` (G.journalNote 공유) |
+| "카톡 이미지", "이미지 저장", "ZIP" | `js/pdf.js` (dlReportImage·dlKakaoZip) |
+| "지난 작업 이어하기", "자동 백업", "복구" | `js/session.js` + `js/init.js` |
 | "이번 주차 과제 ON/OFF", "숙제 켜고 끄기" | `js/domain.js`·`js/autofill.js`·`js/report.js` + `js/excel.js` (영속) |
-| "수업 일지표", "수업일지 PDF", "코멘트 입력 일지" | `js/pdf.js` (dlJournalReport) + `index.html` (메뉴) + `js/excel.js`·`js/state.js` (코멘트 저장) |
+| "수업 일지표", "수업일지 PDF", "코멘트 입력 일지" | `js/pdf.js` (dlJournalReport·_buildJournalReportPages) + `index.html` (메뉴) + `js/excel.js`·`js/state.js` (코멘트 저장) |
 | "미니 테스트" 표시/숨김, 토글 | `js/ui.js` + `index.html` |
 | "코멘트" 표시/숨김, 토글 | `js/ui.js` + `index.html` |
 | "탭 전환", "학생 선택" 동작 | `js/ui.js` |
@@ -69,7 +74,7 @@ docs/               참조 문서 (필요 시만 읽기)
 | "엑셀 저장", "저장 버튼" 동작 | `js/excel.js` |
 | "PDF 저장", "PDF 생성", "합성" | `js/pdf.js` |
 | "시험자료 첨부", "PDF 뷰어" | `js/pdf.js` + `index.html` |
-| "IndexedDB", "새로고침 후 복원" | `js/session.js` |
+| "IndexedDB", "새로고침 후 복원" | `js/session.js` (checkRecovery·restoreFromBackup) |
 | "날짜 선택", "날짜 네비게이션", "날짜 사이드바" | `js/ui.js` + `index.html` |
 | "패널 크기", "패널 리사이즈" | `js/init.js` + `css/layout.css` |
 
@@ -103,7 +108,7 @@ docs/               참조 문서 (필요 시만 읽기)
 ## 업데이트 내역 관리 (절대 생략 금지)
 - 파일: `updates.md` (프로젝트 루트)
 - **모든 코드 변경 시** 반드시 새 버전 항목을 `updates.md` 최상단에 추가
-- 버전 형식: `v1.XX` (0.01씩 증가, 현재 최신: v1.50)
+- 버전 형식: `v1.XX` (0.01씩 증가, 현재 최신: v1.80)
 - 항목 형식: `## v1.XX (YYYY-MM-DD)` + `- 변경 내용` 목록
 - 최근 10개 버전만 유지 (오래된 것은 삭제)
 - `index.html`의 업데이트 확인 버튼 텍스트도 새 버전으로 갱신

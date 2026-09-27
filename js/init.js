@@ -30,27 +30,17 @@ function loadMascotImages(){
 
 // ─── 전역 키보드 핸들러 ───
 document.addEventListener('keydown',function(e){
-  // ESC: 열려있는 모달 닫기 (비고 > 수업설정 우선순위)
+  // ESC: 열려있는 모달 닫기 (동적 모달 > 수업설정 우선순위)
   if(e.key==='Escape'){
-    // 동적 모달 닫기 (학생관리, 도움말 등)
-    const dynModals=document.querySelectorAll('.stu-modal-overlay,.help-overlay');
+    const dynModals=document.querySelectorAll('.stu-modal-overlay,.help-overlay,.mascot-settings-overlay');
     if(dynModals.length){dynModals.forEach(m=>m.remove());e.preventDefault();return;}
-    const memo=$$('memoModalOverlay');
-    if(memo&&memo.style.display==='flex'){closeMemo();e.preventDefault();return;}
     const lesson=$$('lessonModalOverlay');
-    if(lesson&&lesson.style.display==='flex'){
-      // 수업설정은 날짜 뷰가 있을 때만 닫기
-      if(G.selDate&&G.lessons.length){closeLessonModal();switchView('date');e.preventDefault();}
-      return;
-    }
+    if(lesson&&lesson.style.display==='flex'&&G.lessons.length){exitLessonModal();e.preventDefault();}
+    return;
   }
   // Ctrl+S: 저장
-  if((e.ctrlKey||e.metaKey)&&e.key==='s'){
+  if((e.ctrlKey||e.metaKey)&&(e.key==='s'||e.key==='S')){
     e.preventDefault();
-    const memo=$$('memoModalOverlay');
-    if(memo&&memo.style.display==='flex'){
-      saveMemo();return;
-    }
     const lesson=$$('lessonModalOverlay');
     if(lesson&&lesson.style.display==='flex'){
       _showModalToast('lessonModalOverlay','저장되었습니다');
@@ -89,17 +79,19 @@ function initPanelResize(){
 
 // ─── 앱 진입점 ───
 window.onload=async()=>{
-  db=await openDB();
+  // IndexedDB는 자동 백업용 — 사용할 수 없는 환경(사생활 보호 모드 등)에서도 앱은 동작해야 함
+  try{db=await openDB();}catch(e){db=null;console.warn('IndexedDB 사용 불가 — 자동 백업 없이 동작:',e);}
   updateScale();window.addEventListener('resize',updateScale);
-  initCE();initReportListeners();
   loadMascotImages();
   initPanelResize();
-  // PDF 데이터 초기화 (매 로드 시 리셋)
+  applyViewSettings();
+  // 첨부 PDF는 세션 한정 — 구버전이 IndexedDB에 남긴 첨부 데이터 정리
   G.studentPdfs={};
   try{await dbSet('studentPdfs',null);}catch(e){}
-  // 항상 새로 시작 — 이전 세션 자동 복원 없음
+  // 지난 작업(자동 백업)이 있으면 '이어하기' 배너 표시 — 자동으로 복원하지는 않음
+  checkRecovery();
   // 미저장 상태에서 사이트 닫기 경고
   window.addEventListener('beforeunload',e=>{
-    if(G.unsaved){e.preventDefault();}
+    if(G.unsaved){e.preventDefault();e.returnValue='';}
   });
 };
