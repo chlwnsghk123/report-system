@@ -22,7 +22,7 @@ body (flex, 100vh)
 │        │  └─ .panel-card > #gCurHw   다음 수업까지 과제 (ON/OFF) + 추가 과제 입력
 │        └─ .panel-section "선택 항목"
 │           ├─ #toggleMini      미니 테스트 토글
-│           ├─ #gMini > .panel-card  #miniTotal(문항 수)·#miniRange(범위) — 날짜 공통 / #inputWrong(오답)·#miniCorrect(맞힌 수) — 학생별
+│           ├─ #gMini > .panel-card  #miniTotal(문항 수)·#miniRange(범위) — 날짜 공통 / #inputWrong(오답)·#miniCorrect(맞힌 수) — 학생별 · #miniWarn(문항 수를 벗어난 오답 번호 경고)
 │           ├─ #toggleComment   선생님 한마디 토글
 │           └─ #gComment > .panel-card  #inputComment(학생별 코멘트) · #inputTeacher(서명)
 ├─ .panel-resize (#panelResize)  드래그 리사이즈 핸들

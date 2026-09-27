@@ -83,7 +83,7 @@ function parseWB(wb){
       rows.slice(1).forEach(r=>{
         const d=toDS(r[s]);
         // 날짜 형식이 아니거나 중복된 행은 건너뜀 (잘못된 값이 화면 HTML에 섞이지 않도록)
-        if(!DATE_RE.test(d)||G.lessons.some(l=>l.날짜===d))return;
+        if(!isValidDate(d)||G.lessons.some(l=>l.날짜===d))return;
         const id=(hasId&&String(r[0]||'').trim())||genLessonId();
         const lesson={id,날짜:d,
           교재:String(r[off]||'').trim(),
@@ -166,8 +166,9 @@ function parseWB(wb){
           const bigoVal=String(r[bigoIdx]||'').trim();
           if(bigoVal){
             // 저장 형식: "[이월] 자동요약, … | 사용자 메모" — 자동요약으로 시작할 때만 ' | ' 앞부분을 버림
+            // (옛 버전에서 자동요약이 여러 번 쌓인 칸도 앞에서부터 모두 떼어냄)
             let memo=bigoVal;
-            if(/^(\[이월\]|\(전)/.test(bigoVal)){const p=bigoVal.indexOf(' | ');memo=p>=0?bigoVal.slice(p+3).trim():'';}
+            while(/^(\[이월\]|\(전)/.test(memo)){const p=memo.indexOf(' | ');memo=p>=0?memo.slice(p+3).trim():'';}
             if(memo)G.memos[key]=memo;
           }
         }
@@ -307,7 +308,7 @@ function parseWB(wb){
       if(section==='▼ 미니테스트'){
         // 미니 테스트 정보 (col0=날짜, col1=문항 수, col2=범위)
         const total=parseInt(r[1]),range=String(r[2]??'').trim();
-        if(DATE_RE.test(col0)&&((total>0)||range))G.miniTest[col0]={total:total>0?total:null,range};
+        if(isValidDate(col0)&&((total>0)||range))G.miniTest[col0]={total:total>0?total:null,range};
       }
       if(section==='▼ 미니테스트점수'){
         // 직접 입력한 맞힌 수 (col0="학생||날짜", col1=맞힌 수)

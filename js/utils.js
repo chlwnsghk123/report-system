@@ -22,6 +22,12 @@ function toast(msg){
 
 // ─── 날짜 포맷 ───
 const DATE_RE=/^\d{4}-\d{2}-\d{2}$/;
+// 형식뿐 아니라 달력에 있는 날짜인지 (2026-13-45 같은 값 거름)
+function isValidDate(s){
+  if(!DATE_RE.test(s))return false;
+  const[y,m,d]=s.split('-').map(Number),t=new Date(Date.UTC(y,m-1,d));
+  return t.getUTCFullYear()===y&&t.getUTCMonth()===m-1&&t.getUTCDate()===d;
+}
 function shortD(d){if(!d)return'';const p=d.split('-');return`${p[1]}.${p[2]}`;}
 // Date → 'YYYY-MM-DD'
 function ymd(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}

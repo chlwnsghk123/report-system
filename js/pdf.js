@@ -1045,12 +1045,12 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
   if(interactive)container.querySelectorAll('button[data-rm-idx]').forEach(b=>b.addEventListener('click',()=>_stuRptRemoveItem(`${student}||${b.dataset.rmDate}||${b.dataset.rmIdx}`)));
 }
 
-// + 버튼에서 이행률 요약표 바로 첨부
+// + 버튼에서 이행률 요약표 바로 첨부 — 보고 있는 리포트 날짜까지
 async function _attachSummaryForCurrent(){
   const student=G.selStudent;
   if(!student){alert('학생을 선택해주세요.');return;}
-  const todayStr=todayKST();
-  const dates=G.lessons.filter((l,i)=>i>0&&l.날짜<=todayStr).map(l=>l.날짜);
+  const upTo=G.selDate||todayKST();
+  const dates=G.lessons.filter((l,i)=>i>0&&l.날짜<=upTo).map(l=>l.날짜);
   if(!dates.length){alert('해당 학생의 수업 데이터가 없습니다.');return;}
   await _attachStudentReportToView(student,dates,{btn:null,closeModal:false});
 }
@@ -1100,6 +1100,7 @@ function _buildStudentReportEl(student,dates,removedSet,withFooter){
 }
 
 // 요약표를 현재 학생 PDF로 첨부 (세션 한정)
+const SUMMARY_ATTACH_MAX=6; // 리포트 옆에 첨부하는 요약표의 최대 회차
 async function _attachStudentReportToView(student,dates,opts){
   // opts.btn: 진행 표시용 버튼 (없으면 상태바 사용), opts.closeModal: 모달 닫기 여부
   const btn=opts?.btn||$$('stuRptDl');
@@ -1107,6 +1108,8 @@ async function _attachStudentReportToView(student,dates,opts){
   if(btn){btn.textContent='⏳ 첨부 중...';btn.disabled=true;}
   else setBar('wait','⏳ 요약표 생성 중...');
   try{
+    // 리포트 옆 반쪽에 들어가므로 최근 6회까지만 (전체 기간을 넣으면 글자를 읽을 수 없을 만큼 작아짐)
+    if(dates.length>SUMMARY_ATTACH_MAX){dates=dates.slice(-SUMMARY_ATTACH_MAX);toast(`요약표는 최근 ${SUMMARY_ATTACH_MAX}회만 첨부합니다 (전체 기간은 요약표 PDF로)`);}
     const canvas=await _captureOffscreen(_buildStudentReportEl(student,dates,opts?.removedSet,false),460);
     // A4 캔버스 생성 (리포트카드와 동일 비율)
     const a4w=794*2.5,a4h=1123*2.5;
@@ -1132,20 +1135,42 @@ async function _attachStudentReportToView(student,dates,opts){
   if(btn){btn.textContent=origText;btn.disabled=false;}
 }
 
+// 긴 캔버스를 여러 쪽으로 나눌 위치 — 쪽 끝 근처의 '흰 줄'(카드 사이 여백)에서 잘라 글자가 잘리지 않게
+function _pageCuts(canvas,pageH){
+  const ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height,cuts=[0];
+  let y=0;
+  while(H-y>pageH){
+    let cut=y+pageH;
+    for(let c=cut;c>y+pageH*0.6;c-=2){
+      const row=ctx.getImageData(0,c,W,1).data;let white=true;
+      for(let i=0;i<row.length;i+=16){if(row[i]<245||row[i+1]<245||row[i+2]<245){white=false;break;}}
+      if(white){cut=c;break;}
+    }
+    cuts.push(cut);y=cut;
+  }
+  cuts.push(H);
+  return cuts;
+}
+
 async function _downloadStudentReportPdf(student,dates,removedSet){
   const btn=$$('stuRptDl');
   const origText=btn?btn.textContent:'';if(btn){btn.textContent='⏳ 생성 중...';btn.disabled=true;}
   try{
     const canvas=await _captureOffscreen(_buildStudentReportEl(student,dates,removedSet,true),460);
-    // A4 PDF (세로) — 전체를 한 페이지에 맞추도록 축소
+    // A4 PDF (세로) — 읽을 수 있는 크기(폭 400pt)로 두고, 길면 카드 사이에서 잘라 여러 쪽으로
     const pdfDoc=await PDFLib.PDFDocument.create();
     const pW=595.28,pH=841.89,margin=30;
-    const scale=Math.min((pW-margin*2)/canvas.width,(pH-margin*2)/canvas.height,1);
-    const dw=canvas.width*scale,dh=canvas.height*scale;
-    const pngImg=await pdfDoc.embedPng(dataUrlToBytes(canvas.toDataURL('image/png')));
-    const page=pdfDoc.addPage([pW,pH]);
-    page.drawImage(pngImg,{x:margin,y:pH-margin-dh,width:dw,height:dh});
-    _downloadBlob(new Blob([await pdfDoc.save()],{type:'application/pdf'}),`이행률요약_${student}_${dates[0]}_${dates[dates.length-1]}.pdf`);
+    const dw=Math.min(400,pW-margin*2),scale=dw/canvas.width;
+    const cuts=_pageCuts(canvas,Math.floor((pH-margin*2)/scale));
+    for(let i=0;i<cuts.length-1;i++){
+      const h=cuts[i+1]-cuts[i];
+      const part=document.createElement('canvas');part.width=canvas.width;part.height=h;
+      part.getContext('2d').drawImage(canvas,0,cuts[i],canvas.width,h,0,0,canvas.width,h);
+      const pngImg=await pdfDoc.embedPng(dataUrlToBytes(part.toDataURL('image/png')));
+      const page=pdfDoc.addPage([pW,pH]);
+      page.drawImage(pngImg,{x:(pW-dw)/2,y:pH-margin-h*scale,width:dw,height:h*scale});
+    }
+    _downloadBlob(new Blob([await pdfDoc.save()],{type:'application/pdf'}),`이행률요약_${_safeName(student)}_${dates[0]}_${dates[dates.length-1]}.pdf`);
   }catch(e){alert('PDF 오류: '+e.message);console.error(e);}
   if(btn){btn.textContent=origText;btn.disabled=false;}
 }
