@@ -536,3 +536,6 @@ body.modal-open .preview{overflow:hidden!important;}
 .app-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 .hw-btn{white-space:nowrap;min-width:92px;}
 .rate-input-row{flex-wrap:wrap;row-gap:6px;}
+/* 좁은 창에서 출결 버튼 글자가 세로로 쪼개지지 않도록 — 버튼은 줄바꿈 없이, 넘치면 다음 줄로 */
+.attend-bar{flex-wrap:wrap;row-gap:6px;}
+.att-btn,.att-all-btn,.attend-unset{white-space:nowrap;}
