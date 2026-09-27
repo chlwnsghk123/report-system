@@ -99,6 +99,12 @@ function parseWrongList(str){
   });
   return out.map(t=>t.replace(/^(\d+(?:-\d+)?)번$/,'$1')).filter(s=>!MINI_PERFECT_MARKS.includes(s));
 }
+// 문항 수 범위를 벗어난 오답 번호 (입력 실수 확인용) — '1-2' 같은 소문항은 앞 번호로 판단, 글자 항목은 제외
+function miniOutOfRange(student,date){
+  const total=Number(G.miniTest?.[date]?.total);
+  if(!(total>0))return[];
+  return parseWrongList(G.wrong?.[student]?.[date]).filter(t=>{const n=parseInt(t,10);return!isNaN(n)&&(n<1||n>total);});
+}
 // 학생·날짜의 미니테스트 결과 (결석이거나 그 학생 입력이 없으면 null)
 // ★ 반 공통 문항 수만 있고 학생 입력(오답·만점 표시·맞힌 수)이 없으면 '만점'으로 보지 않음 (미입력)
 // 반환: {total, correct, wrong:[...], range, pct, perfect}

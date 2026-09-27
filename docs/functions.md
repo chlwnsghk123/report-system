@@ -17,7 +17,7 @@
 | `setAuto(id,val)` | 인풋에 자동채우기 값 설정 + `.auto` 클래스 (입력하면 해제) |
 | `setBar(t,m)` | 상태바 타입·메시지 업데이트 |
 | `toast(msg)` | 화면 하단 짧은 알림 (2초) |
-| `DATE_RE` | `YYYY-MM-DD` 형식 정규식 (엑셀 날짜 검증) |
+| `DATE_RE` / `isValidDate(s)` | `YYYY-MM-DD` 형식 정규식 / 형식 + 달력에 있는 날짜인지 검사 (`2026-13-45` 같은 값 거름 — 수업정보·미니테스트·백업 복구에 사용) |
 | `shortD(d)` | YYYY-MM-DD → MM.DD |
 | `ymd(d)` | Date → YYYY-MM-DD |
 | `fmtKo(d)` | YYYY-MM-DD → 한글날짜 (요일 포함) |
@@ -45,6 +45,7 @@ DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 �
 | `calcRate(statuses)` | 과제 상태 배열 → 이행률 (완료 100·부분 50·미완료 0 평균, 없으면 null) |
 | `hwStatusCounts(statuses)` | 상태 배열 → `{done, partial, miss}` 개수 |
 | `MINI_PERFECT_MARKS` / `parseWrongList(str)` | 오답칸 만점 표시('0'·'없음'·'만점') / 오답 문자열 → 번호 배열 (쉼표 구분, 번호만 나열한 조각은 띄어쓰기·마침표로도 나눔, '4번'→'4') |
+| `miniOutOfRange(student,date)` | 문항 수 범위(1~문항 수)를 벗어난 오답 번호 배열 — 입력칸 경고·보내기 전 점검용 (글자 항목은 제외, '1-2'는 앞 번호로 판단) |
 | `miniResult(student,date)` | 미니테스트 결과 `{total,correct,wrong,range,pct,perfect}` — 결석이거나 **그 학생 입력이 없으면 null** (문항 수만으로 만점 처리하지 않음) |
 
 ## js/db.js
@@ -164,12 +165,12 @@ DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 �
 | `cycleHwStatus(i)` | 과제 상태 순환 (없음→완료→부분완료→미완료) |
 | `markAllHwDone()` | 비어 있는 과제를 모두 '완료' (이월·선택 과제 제외) |
 | `markAllStudentsHwDone()` | 결석 아닌 학생 전원의 검사 안 한 과제를 '완료' + 이행률 재계산 (전원 과제 완료) |
-| `confirmMissingInputs(date)` | 일괄 PDF·ZIP 전 빠진 입력(출결·숙제 검사·미니테스트·한마디) 점검 확인창 |
+| `confirmMissingInputs(date)` | 일괄 PDF·ZIP 전 빠진 입력(출결·숙제 검사·미니테스트·한마디)과 문항 수를 벗어난 오답 번호 점검 확인창 |
 | `_queueCarry(i,status)` / `_afterHwStatusChange(before)` | 이월 전파 예약 / 상태 변경 공통 후처리 (계산 대상 상태가 바뀐 경우에만 이행률 자동 계산) |
 | `updateHeaderDate(cur,next)` | 리포트 헤더 날짜·진도 날짜 |
 | `updateHwDisplay()` | 리포트 '지난 수업 과제' (이월 2단 레이아웃) |
 | `updateNoticeList(text)` | 과제 기본 목록 (학생 미선택 시) |
-| `renderMiniPanel()` / `onMiniInput()` / `onWrongInput(v)` | 미니테스트 입력칸 채우기 / 문항 수·범위·맞힌 수 저장 / 오답 즉시 저장 |
+| `renderMiniPanel()` / `onMiniInput()` / `onWrongInput(v)` | 미니테스트 입력칸 채우기 + 범위 밖 오답 번호 경고(`#miniWarn`) / 문항 수·범위·맞힌 수 저장 / 오답 즉시 저장 |
 | `updateMiniSection()` | 리포트 미니테스트 (점수·범위·다시 볼 문제, 기록 없으면 숨김) |
 | `renderCommentPanel()` / `onCommentInput()` / `onTeacherInput()` | 선생님 한마디 입력칸 / 코멘트 저장(G.journalNote) / 서명 저장 |
 | `updateCommentSection()` | 리포트 선생님 한마디 (코멘트 있을 때만) |
@@ -209,8 +210,9 @@ DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 �
 | `_stuRptRemoveItem(key)` / `dlStudentReport(pre)` / `_renderStudentReport(...)` | 학생별 이행률 요약표 모달·렌더 ('기록 회차', 분모에서 '없음' 제외) |
 | `_collectIncomplete(student,dates,removed)` / `_incompleteHtml(inc,boxed)` | 미완료 과제 수집 / HTML (공용) |
 | `_buildStudentReportEl(...)` | 요약표 캡처용 요소 |
-| `_attachSummaryForCurrent()` / `_attachStudentReportToView(...)` | 요약표를 리포트 옆에 첨부 |
-| `_downloadStudentReportPdf(...)` | 요약표 PDF |
+| `_attachSummaryForCurrent()` / `_attachStudentReportToView(...)` | 요약표를 리포트 옆에 첨부 — 보고 있는 리포트 날짜까지, 최근 `SUMMARY_ATTACH_MAX`(6)회만 (반쪽에 들어가도 글자를 읽을 수 있게) |
+| `_pageCuts(canvas,pageH)` | 긴 캔버스를 여러 쪽으로 나눌 위치 계산 — 쪽 끝 근처의 흰 줄(카드 사이 여백)에서 자름 |
+| `_downloadStudentReportPdf(...)` | 요약표 PDF — 폭 400pt로 두고 길면 `_pageCuts`로 여러 쪽 A4 세로로 나눔 (파일명은 `_safeName`) |
 | `showUpdateModal()` | 업데이트 내역(updates.md) 모달 |
 
 ## js/init.js

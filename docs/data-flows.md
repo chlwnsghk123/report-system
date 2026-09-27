@@ -165,6 +165,8 @@ PDF 첨부 흐름 (세션 한정 — 저장·복원하지 않음):
     → 첫 페이지만 추출 (pdfjsLib로 렌더, 상5%·하6% 크롭) → 캔버스
     → G.studentPdfs[학생명].push({name, canvases, pageCount:1})
   학생 전환 시: _syncGlobalPdf() → G.pdfCanvases를 현재 학생 기준 갱신
+  이행률 요약표 첨부: _attachStudentReportToView() — 리포트 날짜까지 최근 6회(SUMMARY_ATTACH_MAX)만 캡처해 A4 반쪽에 배치
+  요약표 PDF: _downloadStudentReportPdf() — 폭 400pt 고정, 길면 _pageCuts()로 카드 사이에서 잘라 여러 쪽
 
 dlPdf()
   → _captureReportCard(2) → reportCanvas

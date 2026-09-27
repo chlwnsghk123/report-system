@@ -344,6 +344,11 @@ function renderMiniPanel(){
     const r=miniResult(G.selStudent,G.selDate);
     cor.placeholder=r&&r.total!=null&&ov==null?`자동 ${Math.max(0,r.total-r.wrong.length)}`:'맞힌 수';
   }
+  // 문항 수보다 큰 오답 번호는 입력 실수일 가능성이 커서 바로 알려줌
+  const bad=G.selStudent?miniOutOfRange(G.selStudent,G.selDate):[];
+  const w=$$('miniWarn'),inp=$$('inputWrong');
+  if(inp)inp.classList.toggle('input-warn',bad.length>0);
+  if(w){w.style.display=bad.length?'':'none';w.textContent=bad.length?`⚠ 문항 수(${t.total})를 벗어난 번호: ${bad.map(b=>b+'번').join(', ')}`:'';}
 }
 function onMiniInput(){
   if(!G.selDate)return;
@@ -484,6 +489,8 @@ function confirmMissingInputs(date){
   if(G.showMini&&(G.miniTest[date]?.total>0)){
     const noMini=present.filter(s=>!miniResult(s,date));
     if(noMini.length)lines.push(`• 미니테스트 미입력 ${noMini.length}명: ${names(noMini)} (다 맞았으면 오답칸에 0)`);
+    const badMini=present.filter(s=>miniOutOfRange(s,date).length);
+    if(badMini.length)lines.push(`• 미니테스트 오답 번호 확인 ${badMini.length}명: ${names(badMini)} (문항 수보다 큰 번호)`);
   }
   if(G.showComment){
     const noNote=present.filter(s=>!G.journalNote[`${s}||${date}`]);

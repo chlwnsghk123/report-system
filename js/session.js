@@ -50,7 +50,7 @@ function restoreFromBackup(){
   ['rates','wrong','hwRec','memos','attend','mascotChoices','hwDisabled','journalNote','journalPlan','journalInfo','miniTest','miniScore']
     .forEach(k=>{if(!G[k]||typeof G[k]!=='object')G[k]={};});
   // 날짜 형식이 아닌 수업은 버림 (화면 HTML에 그대로 들어가지 않도록)
-  G.lessons=Array.isArray(G.lessons)?G.lessons.filter(l=>l&&DATE_RE.test(l.날짜)):[];
+  G.lessons=Array.isArray(G.lessons)?G.lessons.filter(l=>l&&isValidDate(l.날짜)):[];
   if(!Array.isArray(G.students))G.students=[];
   G.excelFileName=snap.fileName||G.excelFileName;
   G.pendingPropagations=Array.isArray(snap.pendingPropagations)?snap.pendingPropagations:[];

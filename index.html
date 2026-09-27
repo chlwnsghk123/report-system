@@ -115,6 +115,7 @@
                 <input type="text" id="inputWrong" placeholder="예: 3, 7, 12 (다 맞으면 0)" oninput="onWrongInput(this.value)">
                 <input type="number" id="miniCorrect" min="0" placeholder="맞힌 수" title="비워두면 '문항 수 − 오답 수'로 자동 계산" oninput="onMiniInput()" style="width:100px;flex:none;">
               </div>
+              <div id="miniWarn" class="mini-warn" style="display:none;"></div>
             </div>
           </div>
         </div>
@@ -187,7 +188,7 @@
           <div style="padding:8px 14px 6px;font-size:11px;font-weight:700;color:#8a8f9e;">리포트 테마</div>
           <button id="btnColorMode" onclick="toggleColorMode();closeToolbarMenus()">🎨 컬러 모드로 보기</button>
           <div class="tb-menu-sep"></div>
-          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.81)</button>
+          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.82)</button>
         </div>
       </div>
       <button class="tb-btn tb-help-btn" onclick="openHelpModal()" title="도움말">?</button>
