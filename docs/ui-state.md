@@ -18,7 +18,7 @@ body (flex, 100vh)
 │        │  ├─ .panel-card > #gPrevHw  지난 수업 과제 검사 + 이행률
 │        │  │  ├─ .hw-all-done  ✓ 모두 완료 (markAllHwDone)
 │        │  │  ├─ #hwEditor    과제 에디터 (.hw-item[data-i] + 상태 버튼)
-│        │  │  └─ .rate-input-row > #inputRate(자동 계산·직접 입력 0~100) · #hwCounts(완료/부분/미완료 개수) · ⚡ 다시 계산
+│        │  │  └─ .rate-input-row > #inputRate(자동 계산·직접 입력 0~100) · #hwCounts(완료/부분/미완료 개수) · ↻ 재계산
 │        │  └─ .panel-card > #gCurHw   다음 수업까지 과제 (ON/OFF) + 추가 과제 입력
 │        └─ .panel-section "선택 항목"
 │           ├─ #toggleMini      미니 테스트 토글
@@ -40,7 +40,7 @@ body (flex, 100vh)
       │  ├─ #spreadRow
       │  │  ├─ #leftSlot
       │  │  │  ├─ #reportCard  A4 캡처 대상 (.dense/.dense2: A4 넘칠 때 자동 맞춤)
-      │  │  │  │  ├─ #secRate      숙제 이행률 + 그래프 + 마스코트 (.absent → '결석' 표시)
+      │  │  │  │  ├─ #secRate      숙제 이행률 + 그래프 + 마스코트 (.absent → '이번 수업 결석' 표시, 마스코트 숨김)
       │  │  │  │  ├─ #secPrevHw    지난 수업 과제 (#rHwList)
       │  │  │  │  ├─ .sec          수업 진도 (오늘 배운 내용 / 지난 수업 내용)
       │  │  │  │  ├─ .sec          다음 수업까지 과제 (#rNoticeList, 없으면 '별도 과제 없음')

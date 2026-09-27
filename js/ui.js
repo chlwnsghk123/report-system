@@ -39,12 +39,12 @@ function switchView(view){
   if(view==='config'){
     openLessonModal();
   }else if(view==='date'){
-    closeLessonModal();
+    const refilled=closeLessonModal();
     renderDateSummary();
     renderTabs();
     renderDateNav();
     _updateStudentNav();
-    if(G.selDate&&G.selStudent)autoFillAll();
+    if(G.selDate&&G.selStudent){if(!refilled)autoFillAll();}
     else if(G.selDate)autoFillCommon();
     updateAttendUI();
   }
@@ -68,8 +68,9 @@ function closeLessonModal(){
     G.tabData={};
     if(G.lessons.length)rebuildAllHwItems();
     // 재구성된 기록으로 현재 학생 작업 상태도 즉시 다시 채움 (옛 상태가 나중에 덮어쓰지 않도록)
-    if(G.selStudent&&G.selDate&&getCurL())autoFillAll();
+    if(G.selStudent&&G.selDate&&getCurL()){autoFillAll();return true;}
   }
+  return false;
 }
 // 수업설정 모달 ✕/ESC — 선택 날짜가 없으면(직접 시작·선택 날짜 삭제) 가장 가까운 날짜로 이동
 function exitLessonModal(){

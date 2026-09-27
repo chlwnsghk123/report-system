@@ -893,13 +893,13 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
   const stColor={2:'#166534',1:'#92400e',0:'#991b1b'};
   const stBg={2:'#dcfce7',1:'#fef3c7',0:'#fee2e2'};
 
-  // 통계 계산 — 상태가 지정된 과제만 집계('없음'·이월 제외), 결석한 회차는 평균에서 제외
+  // 통계 계산 — 상태가 지정된 과제만 집계('없음'·이월·(선택) 과제 제외 — 이행률 규칙과 동일), 결석한 회차는 평균에서 제외
   let rateSum=0,rateCount=0,totalHw=0,doneHw=0,partialHw=0,missHw=0;
   dates.forEach(d=>{
     const rate=G.rates[student]?.[d];
     if(rate!=null&&!isNaN(rate)&&rate>=0&&!isAbsent(student,d)){rateSum+=rate;rateCount++;}
     (G.hwRec[`${student}||${d}`]?.items||[]).forEach((it,origIdx)=>{
-      if(isCarryForDate(it.fromDate,d)||isNone(it.status))return;
+      if(isCarryForDate(it.fromDate,d)||isNone(it.status)||isOptionalHw(it.text))return;
       if(removedSet&&removedSet.has(`${student}||${d}||${origIdx}`))return;
       totalHw++;
       if(it.status===2)doneHw++;else if(it.status===1)partialHw++;else if(it.status===0)missHw++;
@@ -958,6 +958,7 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
       const visible=items.filter(it=>!isNone(it.status));
       const hwParts=visible.map(it=>{
         const st=it.status;
+        if(st===0&&isOptionalHw(it.text))return`<span style="color:#9ca3af;white-space:nowrap;">–${esc(it.text)} 안 함</span>`;
         return`<span style="color:${stColor[st]};white-space:nowrap;">${stIcons[st]}${esc(it.text)}</span>`;
       }).join('&nbsp; ');
       html+=`<tr style="background:${bg};border-bottom:1px solid #eee;">
@@ -1000,7 +1001,7 @@ function _renderStudentReport(student,startDate,endDate,container,opts){
             const showDel=interactive&&st!==2;
             html+=`<div style="display:flex;align-items:center;gap:6px;padding:2px 6px;border-radius:4px;background:#fff;">
               <span style="flex:1;font-size:12px;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.text)}</span>
-              <span style="padding:0px 5px;border-radius:3px;font-size:10px;font-weight:700;color:${stColor[st]};background:${stBg[st]};flex-shrink:0;">${stLabel[st]}</span>
+              <span style="padding:0px 5px;border-radius:3px;font-size:10px;font-weight:700;color:${st===0&&isOptionalHw(it.text)?'#6b7280':stColor[st]};background:${st===0&&isOptionalHw(it.text)?'#f1f3f5':stBg[st]};flex-shrink:0;">${st===0&&isOptionalHw(it.text)?'안 함':stLabel[st]}</span>
               ${showDel?`<button data-rm-date="${d}" data-rm-idx="${it._oi}" style="width:18px;height:18px;border-radius:50%;border:1px solid #fca5a5;background:#fef2f2;color:#ef4444;font-size:13px;font-weight:700;cursor:pointer;padding:0;line-height:16px;flex-shrink:0;" title="이 과제 제외">−</button>`:''}
             </div>`;
           });
@@ -1060,7 +1061,7 @@ function _collectIncomplete(student,dates,removedSet){
   const inc=[];
   dates.forEach(d=>{
     (G.hwRec[`${student}||${d}`]?.items||[]).forEach((it,i)=>{
-      if(isCarryForDate(it.fromDate,d)||isNone(it.status))return;
+      if(isCarryForDate(it.fromDate,d)||isNone(it.status)||isOptionalHw(it.text))return; // (선택) 과제는 미완료로 모으지 않음
       if(removedSet&&removedSet.has(`${student}||${d}||${i}`))return;
       if(it.status===0||it.status===1)inc.push({text:it.text,status:it.status,date:d});
     });

@@ -42,18 +42,17 @@ showGroups()
       → switchView('date')
         → renderDateSummary()   수업정보 요약
         → renderTabs()          학생 사이드바
+        → closeLessonModal()    (수업설정이 열려 있었으면 과제 목록 재구성 + 다시 채움)
         → renderDateNav()       상단 날짜 네비게이션 바
-        → renderDateSidebar()   우측 세로 날짜 사이드바
-        → autoFillAll()         전체 자동채우기
+        → autoFillAll()         전체 자동채우기 (closeLessonModal에서 이미 채웠으면 생략)
 
 switchView('config')
   → openLessonModal()    수업설정 전체화면 모달 열기
-    → renderLessonCards()   수업 날짜별 카드 UI
-    → renderStudentList()   학생 목록 UI
+    → renderLessonCards()   수업 날짜별 카드 UI (학생 관리는 ☰ 메뉴 → 학생 관리)
 
-날짜 선택 (3가지 경로):
-  1. 상단 네비: navDatePrev()/navDateNext() 또는 날짜 클릭 드롭다운
-  2. 우측 세로 날짜 사이드바: 직접 클릭
+날짜 선택:
+  1. 상단 네비: navDatePrev()/navDateNext() 또는 날짜 클릭 드롭다운(data-date)
+  2. 키보드 ←→
   → 모두 selectDate(date) 호출
 
 수업설정 접근:
@@ -62,8 +61,7 @@ switchView('config')
 수업설정 뷰에서 레슨 편집:
   updateLessonField(idx, field, value)
     → G.lessons[idx][field] = value
-    → if (현재 선택 날짜) syncLessonToReport()
-      → hidden inputs 갱신 → fp() → 리포트카드 동기화
+    → if (현재 날짜 또는 직전 수업) renderLessonInfo()   리포트카드 진도·과제 직접 갱신
 ```
 
 ## 3. IndexedDB 자동 백업·복구 (v1.80)
@@ -147,10 +145,10 @@ cycleHwStatus(i) / markAllHwDone()
                             → updateNoticeWithCarry() → syncHwRecItems() → saveAppData()
 
 onRateManual()  (직접 입력) → 0~100 보정 → applyRate(값,true) (hwRateManual=값)
-autoCalcRate()  (⚡ 다시 계산) → 과제 상태 기준으로 되돌림
+autoCalcRate()  (↻ 재계산) → 과제 상태 기준으로 되돌림
 applyRate()     → #inputRate · G.rates · refreshRateSection() · rebuildGraph()
 
-refreshRateSection(): 첫 수업·값 없음 → 숨김 / 결석 → '결석' / -1 → '-' / 그 외 숫자
+refreshRateSection(): 첫 수업·값 없음 → 숨김 / 결석 → '이번 수업 결석'(회색) + 진도 라벨 '빠진 수업 내용' / -1 → '-' / 그 외 숫자
 
 rebuildGraph()
   → G.rates[학생][날짜] (현재 날짜 이하, 첫 날짜 제외, -1 제외) + 결석일
@@ -241,7 +239,6 @@ saveTabData()
 판정 규칙은 js/domain.js (도메인 계층)에 단일화:
   attOf(s,d)            → 2/1/0, 미선택은 undefined (구버전 -1도 미선택)
   isAbsent(s,d)         → attOf===0 (명시적 결석만)
-  isPresent(s,d)        → 2 또는 1
   isReportEligible(s,d) → 결석이 아니면 true (일괄 PDF·이미지 ZIP 대상)
   attendCategory(s,d)   → 'present'|'late'|'absent'|'none'
 
@@ -249,7 +246,7 @@ setAttend(v): 같은 버튼 재클릭 → 키 삭제(미선택). (v1.80 이전�
 markAllPresent(): 미체크 학생만 출석(2)으로 — 결석·지각만 따로 누르면 됨
 updateAttendUI(): 첫 수업일에도 표시, #attendUnset에 '미체크 N명'
 영향 받는 화면(모두 domain 규칙 호출):
-  리포트 이행률('결석')·그래프, saveToExcel(출결 열), 이행률 요약표·수업일지표·일괄 PDF·이미지 ZIP 대상 판정
+  리포트 이행률('이번 수업 결석')·그래프, saveToExcel(출결 열), 이행률 요약표·수업일지표·일괄 PDF·이미지 ZIP 대상 판정
 ```
 
 ## 10-1. 날짜·학생 키 데이터 이동 (v1.80)

@@ -75,7 +75,7 @@ DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 �
 |---|---|
 | `updateScale()` | 미리보기 배율 계산 (첨부 있으면 2장 나란히) |
 | `switchView(view)` | `'config'`(수업설정 모달) / `'date'`(날짜 뷰) 전환 |
-| `openLessonModal()` / `closeLessonModal()` | 수업설정 모달 열기/닫기 — 실제로 열려 있었을 때만 과제 목록 재구성 |
+| `openLessonModal()` / `closeLessonModal()` | 수업설정 모달 열기/닫기 — 실제로 열려 있었을 때만 과제 목록 재구성 + 다시 채움 (채웠으면 true) |
 | `exitLessonModal()` | 모달 ✕/ESC — 선택 날짜가 없으면 가장 가까운 날짜로 이동 |
 | `openLessonModalFocused(date)` | 특정 날짜 카드에 포커스한 채 수업설정 열기 |
 | `selectDate(date)` | 날짜 전환 (이월 전파 적용 + 현재 학생 작업 반영) |
@@ -116,14 +116,14 @@ DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 �
 ## js/session.js
 | 함수 | 역할 |
 |---|---|
-| `_appSnapshot()` / `_writeSnapshot()` | 자동 백업 스냅샷 생성 / IndexedDB 저장 (빈 상태로 덮어쓰지 않음) |
+| `_appSnapshot()` / `_writeSnapshot()` | 자동 백업 스냅샷 생성 / IndexedDB 저장 ('지난 작업' 배너 대기 중엔 쓰지 않음, 이번 세션에 직접 다 지운 경우만 백업 비움) |
 | `saveAppData()` | 데이터 변경 → 미저장 표시 + 백업 예약(300ms) |
 | `saveSession()` | 선택 변경 → 백업 예약만 |
 | `saveAppDataNow()` | 즉시 백업 |
 | `checkRecovery()` | 시작 시 백업이 있으면 '지난 작업 이어하기' 배너 표시 |
 | `restoreFromBackup()` / `dismissRecovery(byUser)` | 백업 복구 / 배너 닫기 (저장 안 된 백업이면 확인) |
 | `showGroups(keepSelection)` | 데이터 로드 후 버튼 표시 + 날짜 뷰 진입 |
-| `zeroStart()` | 엑셀 없이 직접 시작 |
+| `zeroStart()` | 엑셀 없이 직접 시작 (저장 안 된 '지난 작업' 백업이 있으면 확인) |
 | `autoSelectDate()` | 오늘 이후 가장 가까운 수업 날짜 선택 |
 | `markUnsaved()` / `markSaved()` | ⚠ 미저장 표시 |
 
@@ -155,11 +155,11 @@ DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 �
 | `rebuildGraph()` | 최근 4회 이행률 그래프 (결석은 회색 '결석') |
 | `renderHwEditor()` | 패널 과제 검사 목록 (`data-i`) + 상태 개수 `#hwCounts` |
 | `addExtraHw()` / `removeExtraHw(i)` / `updateExtraHwText(i,v)` | 학생별 추가 과제 관리 |
-| `_rateStatuses()` | 이행률 계산 대상 상태 (이월·OFF 제외) |
+| `_rateStatuses()` | 이행률 계산 대상 상태 (이월·(선택)·OFF 제외) |
 | `applyRate(v,manual)` | 이행률 값 적용 (입력칸·G.rates·리포트·그래프) |
-| `autoCalcRate()` | ⚡ 다시 계산 (과제 상태 기준으로 되돌림) |
+| `autoCalcRate()` | ↻ 재계산 (과제 상태 기준으로 되돌림) |
 | `onRateManual()` | 이행률 직접 입력 (0~100 보정) |
-| `refreshRateSection()` | 리포트 이행률 영역 (첫 수업·미입력 숨김, 결석 '결석') |
+| `refreshRateSection()` | 리포트 이행률 영역 (첫 수업·미입력 숨김, 결석은 '이번 수업 결석' + 진도 라벨 '빠진 수업 내용') |
 | `hwBtnLabel(s)` | 상태 버튼 라벨 |
 | `cycleHwStatus(i)` | 과제 상태 순환 (없음→완료→부분완료→미완료) |
 | `markAllHwDone()` | 비어 있는 과제를 모두 '완료' (이월·선택 과제 제외) |

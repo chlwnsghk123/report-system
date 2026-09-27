@@ -442,8 +442,9 @@ function markAllStudentsHwDone(){
   const prevDate=idx>0?G.lessons[idx-1].날짜:'';
   if(!prevDate){toast('첫 수업에는 검사할 지난 과제가 없습니다');return;}
   const targets=G.students.filter(s=>!isAbsent(s,date));
-  if(!confirm(`결석하지 않은 학생 ${targets.length}명의 '검사 안 한' 과제를 모두 완료로 표시할까요?\n(이월·선택 과제는 제외, 이후 예외 학생만 고치면 됩니다)`))return;
   if(G.selStudent)saveTabData();
+  if(targets.some(s=>!G.hwRec[`${s}||${date}`]?.items))rebuildAllHwItems(); // 로드 후 추가한 학생의 과제 기록 생성
+  if(!confirm(`결석하지 않은 학생 ${targets.length}명의 '검사 안 한' 과제를 모두 완료로 표시할까요?\n(이월·선택 과제는 제외, 이후 예외 학생만 고치면 됩니다)`))return;
   let n=0;
   targets.forEach(s=>{
     const rec=G.hwRec[`${s}||${date}`];if(!rec?.items)return;
@@ -467,6 +468,7 @@ function confirmMissingInputs(date){
   const idx=G.lessons.findIndex(l=>l.날짜===date);
   const prevDate=idx>0?G.lessons[idx-1].날짜:'';
   if(G.selStudent&&G.selDate===date)saveTabData();
+  if(prevDate&&G.students.some(s=>!G.hwRec[`${s}||${date}`]?.items))rebuildAllHwItems();
   const names=arr=>arr.length>4?arr.slice(0,4).join(', ')+` 외 ${arr.length-4}명`:arr.join(', ');
   const lines=[];
   const unset=G.students.filter(s=>attOf(s,date)==null);

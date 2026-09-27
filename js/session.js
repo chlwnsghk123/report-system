@@ -88,6 +88,9 @@ function showGroups(keepSelection){
 
 // ─── 직접 시작하기 (엑셀 없이) ───
 function zeroStart(){
+  // 저장 안 한 '지난 작업' 백업이 있으면 새로 시작하기 전에 확인 (새 작업이 백업을 덮어씀)
+  const rb=$$('recoverBanner');
+  if(rb?._snap?.unsaved&&!confirm('엑셀에 저장하지 않은 지난 작업이 있습니다.\n새로 시작하면 그 백업은 사라집니다. 계속할까요?'))return;
   showGroups();
   $$('sbar').className='sbar ok';
   $$('sbar').textContent='✏️ 직접 입력 모드';

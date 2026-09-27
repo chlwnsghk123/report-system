@@ -79,7 +79,7 @@
 도메인 계층(`js/domain.js`)을 신설하고, **이번 수정과 직접 맞닿은 비즈니스 규칙**을 순수 함수로 추출했다.
 (추출 범위를 "지금 고치는 규칙"으로 한정해 변경 폭과 위험을 최소화)
 
-- **출결 규칙**: `attOf` / `isAbsent` / `isPresent` / `isExcluded` / `isReportEligible` / `attendCategory`
+- **출결 규칙**: `attOf` / `isAbsent` / `isReportEligible` / `attendCategory` (v1.80에서 -1 '제외' 개념과 `isExcluded`·미사용 `isPresent` 제거)
   → 출결은 **이행률이 아니라 "실제 선택한 값"** 으로만 판정. 흩어져 있던 추정 로직을 한 곳으로 통일.
 - **이번 주차 과제 ON/OFF 규칙**: `hwOffSet` / `isHwOff`
   → OFF한 과제를 리포트·다음 주차 체크목록에서 일관되게 제외.

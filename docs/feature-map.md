@@ -109,7 +109,7 @@ B 미리보기 (우측)
 | 시험자료 PDF 뷰어 | `js/pdf.js` | `handlePdfInput()`, `renderSpread()` |
 | 마스코트 이미지 로드 | `js/init.js` | `loadMascotImages()` |
 | 날짜 자동 선택 | `js/session.js` | `autoSelectDate()` |
-| 앱 저장/복원 | `js/session.js` | `saveAppData()`, `saveAppDataNow()`, `restoreSession()` |
+| 자동 백업/복구 | `js/session.js` | `saveAppData()`, `saveAppDataNow()`, `checkRecovery()`, `restoreFromBackup()` |
 | 상단 날짜 네비게이션 | `js/ui.js` | `renderDateNav()`, `navDatePrev()`, `navDateNext()`, `toggleDateDropdown()` |
 | 패널 드래그 리사이즈 | `js/init.js` | `initPanelResize()` |
 | 학생 전환 애니메이션 | `js/ui.js` + `css/layout.css` | `switchTab()` (.rc-transition) |

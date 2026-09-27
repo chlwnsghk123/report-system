@@ -288,17 +288,19 @@ function parseWB(wb){
       }
       if(section==='▼ 수업일지코멘트'){
         // 수업 일지표 학생별 코멘트 복원 (col0="학생||날짜", col1=코멘트)
-        const key=col0,note=String(r[1]||'');
-        if(key&&note.trim())G.journalNote[key]=note;
+        const key=col0,note=String(r[1]||'').replace(/\r/g,'').trim();
+        if(key&&note)G.journalNote[key]=note;
       }
       if(section==='▼ 수업일지계획'){
         // 수업 일지표 다음 수업 계획 복원 (col0=날짜, col1=계획)
-        const key=col0,plan=String(r[1]||'');
-        if(key&&plan.trim())G.journalPlan[key]=plan;
+        const key=col0,plan=String(r[1]||'').replace(/\r/g,'').trim();
+        if(key&&plan)G.journalPlan[key]=plan;
       }
       if(section==='▼ 수업일지진도'){
         // 수업 일지표 오늘 진도·과제 편집값 복원 (col0=날짜, col1=필드, col2=값)
-        const d=col0,field=String(r[1]||'').trim(),val=r[2]!=null?String(r[2]):'';
+        const d=col0,field=String(r[1]||'').trim();
+        const raw=r[2]!=null?String(r[2]).replace(/\r/g,''):'';
+        const val=field==='book'||field==='chapter'?raw.trim():raw.split('\n').map(s=>s.trim()).filter(Boolean).join('\n');
         const fmap={book:'book',chapter:'chapter',detail:'detail',hw:'hwText'};
         if(d&&fmap[field]){G.journalInfo[d]=G.journalInfo[d]||{};G.journalInfo[d][fmap[field]]=val;}
       }
@@ -362,7 +364,7 @@ function rebuildAllHwItems(fromExcel){
       });
       // 이월 항목 — 원본 수업이 삭제된 항목은 버림
       const carryItems=(rec.items||[]).filter(it=>{
-        if(!isCarryForDate(it.fromDate,date)||isOptionalHw(it.text))return false;
+        if(!isCarryForDate(it.fromDate,date))return false;
         const p=parseHwRef(it.ref);
         return!p||lessonIds.has(p.lessonId);
       });
@@ -374,7 +376,7 @@ function rebuildAllHwItems(fromExcel){
           if(!it.fromDate)it.fromDate=r.fromDate;
         }
       });
-      rec.items=[...baseItems,...carryItems];
+      rec.items=[...baseItems,...carryItems.filter(it=>!isOptionalHw(it.text))]; // 구버전 파일의 (선택) 이월 정리 (텍스트 해석 후)
       // 순번 필드를 base 과제(지난 수업 과제+추가과제) 순서로 다시 만듦 — 엑셀 과제N 열과 일치 (이월은 이월과제 시트에 저장)
       Object.keys(rec).forEach(k=>{if(/^과제\d+_상태$/.test(k))delete rec[k];});
       baseItems.forEach((it,i)=>{rec[`과제${i+1}_상태`]=it.status??-1;});
