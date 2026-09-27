@@ -10,10 +10,10 @@
 
 | 항목 | 현황 |
 |---|---|
-| 규모 | JS ~3.5천 줄 / 전체 ~6.3천 줄 (중소 규모) |
+| 규모 | JS ~4천 줄 (v1.80 기준) / 전체 ~6천 줄 (중소 규모) |
 | 실행 환경 | 빌드도구·npm 금지, CDN 전용, 순수 프론트엔드 (`start.bat` → localhost) |
 | 상태 | 전역 단일 스토어 `G` (state.js) |
-| 영속화 | **Excel 파일**(주 저장소, excel.js) + **IndexedDB**(`appData` 백업·`studentPdfs`, db.js) |
+| 영속화 | **Excel 파일**(주 저장소, excel.js) + **IndexedDB**(`appData` 자동 백업·복구, db.js/session.js) |
 | 코드 구성 | **기능별 파일 분리**(feature-sliced): state/utils/db/excel/ui/session/autofill/report/pdf/init |
 | UI | 명령형 DOM 조작 + `innerHTML` 템플릿 (가상 DOM·바인딩 라이브러리 없음) |
 | 유지보수 | 1인 + AI 에이전트 협업 (CLAUDE.md 프로토콜 기반) |
@@ -97,11 +97,17 @@
 
 | 단계 | 내용 | 비고 |
 |---|---|---|
-| **P1 (완료)** | 도메인 계층 신설, 출결·과제ON/OFF 규칙 추출 | 본 작업 |
-| P2 | 이월(carryover)·이행률 계산 규칙을 domain.js로 추가 이전 | 현재 autofill.js·report.js 분산 |
+| **P1 (완료)** | 도메인 계층 신설, 출결·과제ON/OFF 규칙 추출 | v1.72 |
+| **P2 (일부 완료)** | 이행률 계산·등급(`calcRate`·`RATE_TIER`)과 미니테스트(`miniResult`) 규칙을 domain.js로 이전. 출결 -1(제외) 개념 폐기 | v1.80 — 이월(carryover) 규칙은 아직 autofill.js |
 | P3 | 스토어 형식화: `setState/subscribe` 도입해 MVVM 양방향성 강화 | 수동 `update*()` 호출 감소 |
-| P4 | 인프라 어댑터 분리: pdf.js를 export 종류별 모듈로 슬라이스 | 1,300줄 파일 분할 |
-| P5 | IndexedDB `appData` 복원 경로 정비(현재 write-only) | 세션 자동 복구 옵션화 |
+| **P4 (일부 완료)** | pdf.js 공용 헬퍼 추출(`_captureReportCard`·`_captureOffscreen`·`_addReportPages`·`_eachStudentCapture`·`_downloadBlob`), 중복 출력물 제거 → 1,573줄 → 약 1,170줄 | v1.80 — 파일 분할은 다음 단계 |
+| **P5 (완료)** | IndexedDB `appData` 자동 백업 + 시작 시 '지난 작업 이어하기' 배너(`checkRecovery`·`restoreFromBackup`) | v1.80 |
+
+### v1.80 대대적 리팩토링 (검수팀 QA·수학강사·개발팀 2라운드)
+- **데이터 무결성**: 날짜 키 데이터 일괄 이동/삭제(`renameDateData`·`removeDateData`), 과제 삭제 시 ref 재매핑, 재구성 시 ref 우선 상태 매칭, 학생 삭제·이름 변경 시 모든 키 저장소 처리, 엑셀 파싱 실패 롤백, 저장 결과 반환, IndexedDB 오류 처리.
+- **저장 필드 단일화**: `DATA_KEYS`(state.js) 하나로 백업·복구·파싱 롤백이 같은 필드 목록을 사용.
+- **죽은 코드 제거**: 숨김 input 우회(`fp`)·뷰탭·날짜 사이드바·페이지 네비·비고 모달·빈 함수·PDF IndexedDB 저장 등 약 500줄 삭제.
+- **검증**: 번들 ESLint(no-undef/no-redeclare) + Playwright 회귀 하네스(실사용 엑셀로 36개 시나리오, 왕복·복구 포함).
 
 ---
 

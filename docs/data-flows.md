@@ -153,28 +153,30 @@ rebuildGraph()
   → 결석 점은 가운데 높이에 회색 점선 원 + '결석' (0%와 구분)
 ```
 
-## 7. PDF 생성 (학생별 첨부)
+## 7. PDF·이미지 생성 (학생별 첨부)
 
 ```
-PDF 첨부 흐름:
+PDF 첨부 흐름 (세션 한정 — 저장·복원하지 않음):
   inlinePdfAttach() → _showInlineMenu() → "이 학생" / "모든 학생" / "이행률 요약표" 선택
   → handlePdfInput() → _processPdfFile(file)
-    → 첫 페이지만 추출 (pdfjsLib로 렌더, 상5%·하6% 크롭)
-    → PNG bytes로 저장 (용량 최적화)
-    → G.studentPdfs[학생명].push({bytes, name, canvases, pageCount:1, isPng:true})
-  → _savePdfData() → IndexedDB 'studentPdfs' 키에 저장
-
-  복원: restorePdfData() → PNG → Image → canvas 재생성
-
-  학생 전환 시: _syncGlobalPdf() → G.pdfCanvases/pdfPageCount을 현재 학생 기준 갱신
+    → 첫 페이지만 추출 (pdfjsLib로 렌더, 상5%·하6% 크롭) → 캔버스
+    → G.studentPdfs[학생명].push({name, canvases, pageCount:1})
+  학생 전환 시: _syncGlobalPdf() → G.pdfCanvases를 현재 학생 기준 갱신
 
 dlPdf()
-  → html2canvas(#reportCard, scale:2) → reportCanvas
-  → allPages = [reportCanvas, ...G.pdfCanvases] (현재 학생 PDF)
-  → pdf-lib: A4 가로 (841.89×595.28pt), 마진20, 갭12
-  → 2개씩 spread 페이지
-  → Blob → <a> 클릭 다운로드
+  → _captureReportCard(2) → reportCanvas
+  → _addReportPages(doc, reportCanvas, G.pdfCanvases)
+      첨부 없음: A4 세로 1쪽 (여백 18pt) / 첨부 있음: A4 가로에 리포트+시험자료 2장 나란히
+      이미지는 JPEG로 임베드 (용량 축소)
   파일명: {학생명}_{날짜}_리포트.pdf
+
+_doBatchPdf()  (메뉴 > 일괄 PDF, 대상 = isReportEligible, 0명이면 중단)
+  → _eachStudentCapture(): 학생을 차례로 G.selStudent 전환 + autoFillAll() → 캡처 (진행 표시)
+     try/finally로 원래 학생·미리보기 opacity 복원
+  → 학생별 _addReportPages → 일괄리포트_{날짜}.pdf
+
+dlReportImage()   → 폭 1080px JPG `{학생}_{MMDD}.jpg` (+ 첨부 있으면 `_시험자료.jpg`)
+dlKakaoZip()      → 대상 학생 전원 JPG(+시험자료) → JSZip → 리포트이미지_{날짜}.zip
 ```
 
 ## 8. 엑셀 저장
@@ -272,23 +274,23 @@ toggleHwDisabled(idx)
   → "이번 주차에 OFF한 과제는 다음 주차 숙제로 나타나지 않음"
 ```
 
-## 12. 수업 일지표 (이행률 + 코멘트, 멀티페이지 PDF)
+## 12. 수업 일지표 (원장님 보고용, 멀티페이지 PDF)
 
 ```
 dlJournalReport()  [메뉴 > 리포트 모아보기 > 📓 수업 일지표]
-  → 모달: 날짜 선택 + 오늘 진도/과제(기본=레슨, 수정 가능) + 다음 수업 계획 + 학생별 코멘트(출석 학생)
-  → 입력값은 날짜별 저장:
-      G.journalInfo["날짜"] = {book,chapter,detail,hwText}(진도·과제 편집값),
-      G.journalNote["학생||날짜"] = 코멘트, G.journalPlan["날짜"] = 계획 → saveAppData
-  → 영속화: 엑셀 설정 시트 ▼ 수업일지진도 / ▼ 수업일지코멘트 / ▼ 수업일지계획 (parseWB에서 복원)
-  → 진도·과제 표시: G.journalInfo[날짜] 있으면 사용, 없으면 레슨(G.lessons) 기본값
+  → 모달: 날짜 선택 + 오늘 진도/과제(기본=레슨, 수정 가능) + 다음 수업 계획 + 학생별 코멘트(결석 포함 전원)
+  → 입력값은 날짜별 저장 (_saveJournalInputs):
+      G.journalInfo["날짜"] = 레슨 기본값과 **다른** 항목만 {book?,chapter?,detail?,hwText?}
+      G.journalNote["학생||날짜"] = 코멘트 (리포트 '선생님 한마디'와 같은 데이터), G.journalPlan["날짜"] = 계획
+  → 영속화: 엑셀 설정 시트 ▼ 수업일지진도 / ▼ 수업일지코멘트 / ▼ 수업일지계획
 
 PDF 생성: _renderJournalPdf(date)
   → _buildJournalReportPages(date): 페이지 HTML 배열
-      1쪽: 헤더 + 수업정보(진도·과제) + 출결현황(attend 기준) + 숙제 이행률표(최근 6회차)
-      2쪽~: 학생별 코멘트 카드(6명/쪽) + 마지막 쪽에 '다음 수업 계획'
-  → 각 페이지 html2canvas → pdf-lib A4 세로 페이지에 맞춰 배치
+      1쪽: 헤더 + 수업정보(진도·과제) + 출결현황(출석·지각(표기)·결석, 미체크는 회색 줄)
+           + 숙제 이행률표(최근 6회차, 결석 회차는 평균 제외) + 반 전체 오답 집계(상위 8개)
+      2쪽~: 학생별 카드(출결 배지·기간평균·숙제 검사 칩 ✓△✗/이월·미니테스트 결과·코멘트)
+            카드 예상 높이로 쪽 나눔 + 마지막 쪽에 '다음 수업 계획'
+  → 각 페이지 _captureOffscreen → pdf-lib A4 세로
   → 파일명: 수업일지표_{날짜}.pdf
-  집계 기간 = _journalReportDates(date): 선택 날짜 포함 직전 최대 6회차
-  이행률 등급(표·평균): 70%+ 양호 / 40~69% 보통 / 40%미만 미흡, 결석은 attend로만 판정
+  이행률 등급 = domain RATE_TIER (75% 이상 양호 / 30~74% 보통 / 30% 미만 미흡)
 ```
