@@ -20,8 +20,6 @@ function attOf(student,date){
 }
 // 명시적으로 '결석'을 선택한 경우에만 결석으로 판정
 function isAbsent(student,date){return attOf(student,date)===0;}
-// 출석 또는 지각을 선택한 경우 (실제 출석)
-function isPresent(student,date){const v=attOf(student,date);return v===2||v===1;}
 // 리포트/PDF 생성 대상 여부 — 명시적 결석만 제외
 function isReportEligible(student,date){return attOf(student,date)!==0;}
 // 출결 분류 문자열 ('present'|'late'|'absent'|'none')
@@ -67,6 +65,8 @@ function rateTier(v){
 }
 function rateFg(v){return RATE_STYLE[rateTier(v)]?.fg||'#9ca3af';}
 function rateBg(v){return RATE_STYLE[rateTier(v)]?.bg||'#f1f3f5';}
+// '(선택)'으로 시작하는 과제 = 선택 과제 → 이행률 계산·이월 대상에서 제외 (안 해도 불이익 없음)
+function isOptionalHw(text){return/^\s*[(（]\s*선택\s*[)）]/.test(String(text||''));}
 // 과제 상태 배열 → 이행률(0~100 정수), 상태가 하나도 없으면 null
 function calcRate(statuses){
   const sc=(statuses||[]).filter(s=>s===0||s===1||s===2).map(s=>s===2?100:s===1?50:0);
@@ -84,20 +84,24 @@ function hwStatusCounts(statuses){
 // ════════════════════════════════════════
 // 저장 구조: G.wrong[학생][날짜]="3, 7"(오답 번호), G.miniTest[날짜]={total:문항수, range:범위},
 //           G.miniScore["학생||날짜"]=맞힌 수(직접 입력 시에만, 없으면 문항수-오답수로 자동 계산)
-// 오답 문자열 → 번호 배열
-function parseWrongList(str){return String(str||'').split(/[,，]/).map(s=>s.trim()).filter(Boolean);}
-// 학생·날짜의 미니테스트 결과 (시험 기록이 없거나 결석이면 null)
+// 오답칸에 '0'·'없음'·'만점'을 적으면 다 맞음(만점)을 뜻함
+const MINI_PERFECT_MARKS=['0','없음','만점'];
+// 오답 문자열 → 번호 배열 (만점 표시는 제외)
+function parseWrongList(str){return String(str||'').split(/[,，]/).map(s=>s.trim()).filter(s=>s&&!MINI_PERFECT_MARKS.includes(s));}
+// 학생·날짜의 미니테스트 결과 (결석이거나 그 학생 입력이 없으면 null)
+// ★ 반 공통 문항 수만 있고 학생 입력(오답·만점 표시·맞힌 수)이 없으면 '만점'으로 보지 않음 (미입력)
 // 반환: {total, correct, wrong:[...], range, pct, perfect}
 function miniResult(student,date){
   if(!student||!date||isAbsent(student,date))return null;
-  const wrong=parseWrongList(G.wrong?.[student]?.[date]);
+  const raw=String(G.wrong?.[student]?.[date]||'').trim();
+  const wrong=parseWrongList(raw);
   const t=G.miniTest?.[date]||{};
   const total=Number(t.total)>0?Math.round(Number(t.total)):null;
   const ov=G.miniScore?.[`${student}||${date}`];
   const hasOv=ov!=null&&ov!==''&&!isNaN(ov);
-  if(total==null&&!wrong.length&&!hasOv)return null;
-  let correct=hasOv?Number(ov):(total!=null?Math.max(0,total-wrong.length):null);
+  if(!raw&&!hasOv)return null;
+  let correct=hasOv?Math.max(0,Number(ov)):(total!=null?Math.max(0,total-wrong.length):null);
   if(correct!=null&&total!=null)correct=Math.min(correct,total);
   const pct=(correct!=null&&total)?Math.round(correct/total*100):null;
-  return{total,correct,wrong,range:String(t.range||'').trim(),pct,perfect:total!=null&&correct===total};
+  return{total,correct,wrong,range:String(t.range||'').trim(),pct,perfect:total!=null&&correct===total&&!wrong.length};
 }

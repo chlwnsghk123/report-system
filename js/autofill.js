@@ -30,6 +30,7 @@ function propagateCarryover(student,date,refStr,newStatus){
     if(!nr.items)nr.items=[];
     if(nr.items.some(it=>it.ref===refStr))return;
     const r=_resolveCarryRef(refStr,student);
+    if(isOptionalHw(r.text))return; // (선택) 과제는 이월하지 않음
     nr.items.push({text:r.text,status:-1,ref:refStr,fromDate:r.fromDate});
   }else if(newStatus===2||newStatus===-1){
     for(let i=curIdx+1;i<G.lessons.length;i++){
@@ -76,7 +77,7 @@ function computeCarryover(student,date){
   const rec=G.hwRec[key];
   if(!rec?.items?.length)return[];
   return rec.items
-    .filter(it=>(it.status===0||it.status===1)&&it.ref)
+    .filter(it=>(it.status===0||it.status===1)&&it.ref&&!isOptionalHw(it.text))
     .map(it=>({text:it.text,ref:it.ref,fromDate:it.fromDate||prevDate}));
 }
 
@@ -112,6 +113,7 @@ function _curHwOnOffItems(){
     const carry=isCarryItem(G.hwItemRefs[i]?.fromDate);
     const st=G.hwStatus[i];
     const ref=G.hwItemRefs[i]?.ref;
+    if(isOptionalHw(text))return; // (선택) 과제는 다음 수업 과제로 넘기지 않음
     if(carry){
       out.push({text,ref:ref||`carry#${i}`,kind:'carry',st});
     }else if(!isNone(st)&&(st===0||st===1)){
@@ -268,13 +270,15 @@ function autoFillAll(){
     });
     G.hwItems=allItems.map(it=>it.text);
     G.hwItemRefs=allItems.map(it=>({ref:it.ref,fromDate:it.fromDate}));
+    // 순번 필드는 rec.items가 아예 없을 때만 사용 (있으면 ref로만 매칭 — 새 과제가 남의 상태를 물려받지 않도록)
+    const useLegacy=!hwR?.items?.length;
     let li=0;
     G.hwStatus=allItems.map(it=>{
       li++;
       // 1순위: rec.items의 ref 매칭으로 status 복원
       if(it.ref&&existingStatus.has(it.ref))return existingStatus.get(it.ref);
       // 2순위: 레거시 과제N_상태 (rec.items가 없는 경우)
-      const st=hwR?.[`과제${li}_상태`];
+      const st=useLegacy?hwR?.[`과제${li}_상태`]:null;
       return st!=null?stFromExcel(st):-1;
     });
     // 이번 날짜의 학생별 추가 과제 로드

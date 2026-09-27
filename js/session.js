@@ -10,9 +10,11 @@ function _appSnapshot(){
   return o;
 }
 async function _writeSnapshot(){
-  if(!G.lessons.length&&!G.students.length)return; // 빈 상태로 기존 백업을 덮어쓰지 않음
-  try{await dbSet('appData',_appSnapshot());}
-  catch(e){console.error('자동 백업 실패:',e);setBar('err','❌ 자동 백업 실패 (엑셀 저장은 가능)');}
+  try{
+    // 수업·학생을 모두 지운 상태면 백업도 비움 (지운 데이터가 '지난 작업'으로 다시 뜨지 않도록)
+    if(!G.lessons.length&&!G.students.length){await dbSet('appData',null);return;}
+    await dbSet('appData',_appSnapshot());
+  }catch(e){console.error('자동 백업 실패:',e);setBar('err','❌ 자동 백업 실패 (엑셀 저장은 가능)');}
 }
 // 데이터 변경 → 미저장 표시 + 백업 예약(디바운스)
 function saveAppData(){markUnsaved();saveSession();}
@@ -42,7 +44,8 @@ function restoreFromBackup(){
   DATA_KEYS.forEach(k=>{if(snap[k]!==undefined)G[k]=snap[k];});
   ['rates','wrong','hwRec','memos','attend','mascotChoices','hwDisabled','journalNote','journalPlan','journalInfo','miniTest','miniScore']
     .forEach(k=>{if(!G[k]||typeof G[k]!=='object')G[k]={};});
-  if(!Array.isArray(G.lessons))G.lessons=[];
+  // 날짜 형식이 아닌 수업은 버림 (화면 HTML에 그대로 들어가지 않도록)
+  G.lessons=Array.isArray(G.lessons)?G.lessons.filter(l=>l&&DATE_RE.test(l.날짜)):[];
   if(!Array.isArray(G.students))G.students=[];
   G.excelFileName=snap.fileName||G.excelFileName;
   G.pendingPropagations=Array.isArray(snap.pendingPropagations)?snap.pendingPropagations:[];
@@ -57,7 +60,12 @@ function restoreFromBackup(){
   setBar('ok',`♻ 복구됨: ${G.excelFileName}`);
   $$('sbar').onclick=triggerLoad;
 }
-function dismissRecovery(){const el=$$('recoverBanner');if(el){el.style.display='none';el._snap=null;}}
+// byUser=true: 배너의 '닫기' — 저장 안 된 백업이면 다음 편집 때 덮어써지므로 한 번 확인
+function dismissRecovery(byUser){
+  const el=$$('recoverBanner');if(!el)return;
+  if(byUser&&el._snap?.unsaved&&!confirm('엑셀에 저장하지 않은 지난 작업입니다.\n닫고 새로 작업하면 이 백업은 사라집니다. 닫을까요?'))return;
+  el.style.display='none';el._snap=null;
+}
 
 // ─── 데이터 로드 후 UI 표시 ───
 // keepSelection=true: 복구 시 저장돼 있던 날짜·학생 선택을 유지

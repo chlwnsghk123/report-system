@@ -3,6 +3,10 @@ function triggerLoad(){$$('excelInput').click();}
 
 async function loadExcel(input){
   const file=input.files[0];if(!file)return;
+  // 저장 안 한 작업(현재 화면 또는 '지난 작업' 백업)이 있으면 덮어쓰기 전에 확인
+  const rb=$$('recoverBanner');
+  const pendingBackup=rb&&rb.style.display!=='none'&&rb._snap?.unsaved;
+  if((G.unsaved||pendingBackup)&&!confirm('엑셀에 저장하지 않은 작업이 있습니다.\n다른 파일을 불러오면 그 작업은 사라집니다. 계속할까요?')){input.value='';return;}
   setBar('wait','⏳ 파싱 중...');
   // 파싱 도중 실패하면 기존 데이터로 되돌림 (G가 반쯤 비워진 채 남아 빈 파일로 저장되는 사고 방지)
   const backup={};DATA_KEYS.forEach(k=>{backup[k]=G[k];});
@@ -64,6 +68,8 @@ function stToExcel(v){
 
 // 워크북 파싱 → G 채움
 function parseWB(wb){
+  // 학습 리포트 형식이 아니면 아무것도 바꾸지 않고 중단 (전체가 비워진 채 '성공'으로 보이는 문제 방지)
+  if(!wb.Sheets['수업정보']&&!wb.SheetNames.some(n=>DATE_RE.test(n)))throw new Error('학습 리포트 형식의 엑셀이 아닙니다 (수업정보 시트 없음)');
   G.lessons=[];
   const ws1=wb.Sheets['수업정보'];
   if(ws1){
@@ -98,6 +104,7 @@ function parseWB(wb){
 
   G.students=[];G.wrong={};G.hwRec={};G.rates={};G.memos={};G.attend={};G.mascotChoices={};G.hwDisabled={};
   G.journalNote={};G.journalPlan={};G.journalInfo={};G.miniTest={};G.miniScore={};G.teacherName='';G.lastSaved='';
+  G.showMini=false;G.showComment=false;G.colorMode=false; // 파일에 ▼ 보기설정이 있으면 아래에서 복원
 
   const hasDateSheets=wb.SheetNames.some(n=>/^\d{4}-\d{2}-\d{2}$/.test(n));
 
@@ -335,8 +342,11 @@ function rebuildAllHwItems(){
       // 상태는 ref로 먼저 찾고(과제 순서·개수가 바뀌어도 안전), 없을 때만 엑셀의 순번 필드(과제N_상태)를 사용.
       // 순번은 빈 과제를 건너뛰고 센다 — 저장(syncHwRecItems) 기준과 동일
       const known=new Map();(rec.items||[]).forEach(it=>{if(it.ref)known.set(it.ref,it.status??-1);});
+      // 순번 필드(과제N_상태)는 base 항목이 아직 없을 때(엑셀 로드 직후)만 사용 — 이후엔 ref로만 매칭
+      // (과제를 추가·삭제한 뒤 새 과제가 같은 순번의 다른 과제 상태를 물려받지 않도록)
+      const useLegacy=!(rec.items||[]).some(it=>it.ref&&!isCarryForDate(it.fromDate,date));
       let li=0;
-      const pick=ref=>{const lg=stFromExcel(rec[`과제${++li}_상태`]??'');return known.has(ref)?known.get(ref):lg;};
+      const pick=ref=>{const lg=stFromExcel(rec[`과제${++li}_상태`]??'');return known.has(ref)?known.get(ref):(useLegacy?lg:-1);};
       const baseItems=[];
       prevHwKeys.forEach(k=>{
         const text=prevLesson[k]||'';if(!text)return;
@@ -352,7 +362,7 @@ function rebuildAllHwItems(){
       });
       // 이월 항목 — 원본 수업이 삭제된 항목은 버림
       const carryItems=(rec.items||[]).filter(it=>{
-        if(!isCarryForDate(it.fromDate,date))return false;
+        if(!isCarryForDate(it.fromDate,date)||isOptionalHw(it.text))return false;
         const p=parseHwRef(it.ref);
         return!p||lessonIds.has(p.lessonId);
       });
@@ -365,6 +375,9 @@ function rebuildAllHwItems(){
         }
       });
       rec.items=[...baseItems,...carryItems];
+      // 순번 필드를 items 순서로 다시 만듦 (엑셀 과제N 열이 항상 현재 과제 순서와 일치하도록)
+      Object.keys(rec).forEach(k=>{if(/^과제\d+_상태$/.test(k))delete rec[k];});
+      rec.items.forEach((it,i)=>{rec[`과제${i+1}_상태`]=it.status??-1;});
     });
   });
   buildAllCarryover();
@@ -541,7 +554,7 @@ async function saveToExcel(){
   Object.entries(G.journalInfo||{}).forEach(([d,o])=>{
     if(!o||!liveDate(d))return;
     [['book',o.book],['chapter',o.chapter],['detail',o.detail],['hw',o.hwText]].forEach(([f,v])=>{
-      if(v!=null&&String(v).trim())infoRows.push([d,f,String(v)]);
+      if(v!=null)infoRows.push([d,f,String(v)]); // 일부러 비운 값('')도 저장 — 기본값과 다른 항목만 들어 있음
     });
   });
   if(infoRows.length){

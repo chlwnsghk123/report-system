@@ -53,7 +53,7 @@
       <div class="recover-text"><b>지난 작업이 있습니다</b><span id="recoverInfo"></span></div>
       <div class="recover-btns">
         <button class="recover-ok" onclick="restoreFromBackup()">이어하기</button>
-        <button class="recover-no" onclick="dismissRecovery()">닫기</button>
+        <button class="recover-no" onclick="dismissRecovery(true)">닫기</button>
       </div>
     </div>
     <button id="btnZeroStart" class="btn-zero-start" onclick="zeroStart()">또는 직접 시작하기 →</button>
@@ -112,8 +112,8 @@
               </div>
               <label style="margin-top:6px;">오답 번호 <span class="label-hint">(쉼표 구분)</span></label>
               <div class="mini-row">
-                <input type="text" id="inputWrong" placeholder="예: 3, 7, 12" oninput="onWrongInput(this.value)">
-                <input type="number" id="miniCorrect" min="0" placeholder="맞힌 수" title="비워두면 '문항 수 − 오답 수'로 자동 계산" oninput="onMiniInput()" style="width:84px;flex:none;">
+                <input type="text" id="inputWrong" placeholder="예: 3, 7, 12 (다 맞으면 0)" oninput="onWrongInput(this.value)">
+                <input type="number" id="miniCorrect" min="0" placeholder="맞힌 수" title="비워두면 '문항 수 − 오답 수'로 자동 계산" oninput="onMiniInput()" style="width:100px;flex:none;">
               </div>
             </div>
           </div>
@@ -211,6 +211,7 @@
           <button class="att-btn att-absent" data-att="0" onclick="setAttend(0)">결석</button>
         </div>
         <button class="att-all-btn" onclick="markAllPresent()" title="출결을 아직 체크하지 않은 학생을 모두 출석으로 표시">전원 출석</button>
+        <button class="att-all-btn" onclick="markAllStudentsHwDone()" title="결석하지 않은 학생 전원의 검사 안 한 과제를 완료로 표시 (이월·선택 과제 제외)">전원 과제 완료</button>
         <span id="attendUnset" class="attend-unset"></span>
       </div>
       <div class="spread-row" id="spreadRow">
@@ -229,7 +230,7 @@
 
             <!-- ① 이행률 -->
             <div class="sec" id="secRate">
-              <div class="sec-title green"><span class="sec-icon">·</span> 숙제 이행률</div>
+              <div class="sec-title green"><span class="sec-icon">📊</span> 숙제 이행률</div>
               <div class="rate-wrap">
                 <div class="rate-num"><span id="rRate">—</span></div>
                 <div class="rate-unit">%</div>
@@ -255,7 +256,7 @@
               <div class="sec-title"><span class="sec-icon">📖</span> 수업 진도</div>
               <div class="prog-row">
                 <div class="prog-card current">
-                  <div class="prog-label">오늘 배운 내용 <span id="rCurDt" style="text-transform:none;font-weight:500;"></span></div>
+                  <div class="prog-label"><span id="rCurLbl">오늘 배운 내용</span> <span id="rCurDt" style="text-transform:none;font-weight:500;"></span></div>
                   <div>
                     <span class="prog-book eh" id="rCurBook"></span>
                     <span class="prog-chap eh" id="rCurChap"></span>
@@ -296,7 +297,7 @@
 
             <!-- ⑥ 코멘트 (선택) -->
             <div class="sec" id="secComment" style="display:none;">
-              <div class="sec-title"><span class="sec-icon">·</span> 선생님 한마디</div>
+              <div class="sec-title"><span class="sec-icon">💬</span> 선생님 한마디</div>
               <div class="comment-wrap">
                 <div class="comment-text eh" id="commentBody"></div>
                 <div class="teacher-sign eh" id="commentSign"></div>

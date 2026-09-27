@@ -117,9 +117,10 @@ switchTab(name)
   맞힌 수      → G.miniScore["학생||날짜"]        (직접 입력한 경우만)
 
 miniResult(학생,날짜)  (js/domain.js)
-  → 결석이거나 기록(문항 수·오답·맞힌 수)이 없으면 null → 리포트 #secMini 숨김
-  → correct = 직접 입력값 ?? (문항 수 − 오답 개수), pct = correct/total
-  → perfect: 문항 수가 있고 오답이 없으면 '만점'
+  → 결석이거나 그 학생 입력(오답·'0' 만점 표시·맞힌 수)이 없으면 null → 리포트 #secMini 숨김
+     (반 공통 문항 수만 있고 학생 입력이 없으면 '만점'이 아니라 미입력)
+  → correct = 직접 입력값 ?? (문항 수 − 오답 개수), 문항 수를 넘지 않게 보정, pct = correct/total
+  → perfect: 문항 수가 있고 맞힌 수 = 문항 수이며 오답이 없을 때 (오답칸 '0'·'없음'·'만점' = 다 맞음)
 
 updateMiniSection() → #rMiniScore(3/5 · 60%) · #rMiniRange(범위) · #rWrongTags(다시 볼 문제)
 ```
@@ -133,7 +134,9 @@ updateMiniSection() → #rMiniScore(3/5 · 60%) · #rMiniRange(범위) · #rWron
   0~100             = 정상 이행률 (직접 입력은 0~100으로 보정)
 
 계산 규칙 (js/domain.js calcRate):
-  완료=100, 부분완료=50, 미완료=0 의 평균(반올림). '없음'·이월과제·직전 회차 OFF 과제는 제외
+  완료=100, 부분완료=50, 미완료=0 의 평균(반올림). '없음'·이월과제·(선택) 과제·직전 회차 OFF 과제는 제외
+  모든 상태를 '없음'으로 되돌리면 자동 계산값도 비움 (직접 입력값은 유지)
+  markAllStudentsHwDone(): 결석 아닌 학생 전원의 '없음' 과제만 완료로 + 학생별 이행률 재계산
 등급 (RATE_TIER): 75% 이상 양호 / 30~74% 보통 / 30% 미만 미흡 — 리포트·요약표·일지표·마스코트 공통
 
 cycleHwStatus(i) / markAllHwDone()
@@ -199,7 +202,9 @@ saveToExcel()  → 성공 true / 실패 false 반환 ('저장 후 제거'는 성
   → 다운로드 → markSaved() → saveAppDataNow() (백업에 '저장됨' 반영, 결과를 기다리지 않음)
 
 loadExcel()
+  → 저장 안 한 작업(현재 또는 '지난 작업' 백업)이 있으면 확인창
   → 파싱 전 DATA_KEYS 백업 → parseWB() 실패 시 원래 데이터로 되돌림
+     (수업정보·날짜 시트가 없는 파일은 '학습 리포트 형식이 아님' 오류)
   → 성공 시 이전 파일의 작업 상태(tabData·pendingPropagations·첨부·현재 학생 과제 상태) 초기화
   → .xls 파일은 .xlsx 이름으로 저장
 ```
@@ -248,15 +253,16 @@ updateAttendUI(): 첫 수업일에도 표시, #attendUnset에 '미체크 N명'
 ## 10-1. 날짜·학생 키 데이터 이동 (v1.80)
 
 ```
-updateLessonDate(idx,new) → renameDateData(old,new)
+updateLessonDate(idx,new) → 앞뒤 수업을 건너뛰어 순서가 바뀌면 차단(alert) → renameDateData(old,new)
   → "학생||날짜" 키(hwRec·memos·hwDisabled·journalNote·miniScore), 학생→날짜(rates·wrong·attend),
     날짜 키(journalPlan·journalInfo·miniTest), 과제 항목 fromDate, 이월 예약(date)을 모두 새 날짜로
 removeLesson(idx) → removeDateData(date) 같은 범위를 삭제
 removeLessonHw(idx,hwIdx) → _remapLessonHwRefs(lessonId,n): 삭제된 과제 ref 기록 제거, 뒤 번호 ref 당김
 renameStudent(old) / _doRemoveStudent(idx) → 학생 키가 들어간 모든 저장소 이동/삭제
-rebuildAllHwItems() → 상태는 rec.items의 ref로 먼저 찾고, 없을 때만 순번 필드(빈 과제 건너뜀) 사용,
-                      원본 수업이 삭제된 이월 항목은 제거
-closeLessonModal() → 모달이 실제로 열려 있었을 때만 tabData 초기화 + rebuildAllHwItems()
+rebuildAllHwItems() → 상태는 rec.items의 ref로 찾고, base 항목이 하나도 없을 때(엑셀 로드 직후)만
+                      순번 필드(빈 과제 건너뜀) 사용 → 끝에서 순번 필드(과제N_상태)를 items 순서로 재생성,
+                      원본 수업이 삭제된 이월·(선택) 과제 이월 항목은 제거
+closeLessonModal() → 모달이 실제로 열려 있었을 때만 tabData 초기화 + rebuildAllHwItems() + autoFillAll()
 ```
 
 ## 11. 이번 주차 과제 ON/OFF 영속화

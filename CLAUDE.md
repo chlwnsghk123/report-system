@@ -19,13 +19,13 @@ css/
 js/
   state.js          G 객체, DATA_KEYS(저장 필드 목록), 상수(DB/STORE), $$ 헬퍼
   utils.js          getCurL/getPrevL/getNextL, setAuto, setBar, toast, shortD, ymd, fmtKo, isCarryItem, parseHwRef, esc, todayKST
-  domain.js         도메인 계층(순수 규칙): 출결(attOf·isAbsent·isReportEligible·attendCategory), 과제 ON/OFF(hwOffSet·isHwOff), 이행률(RATE_TIER·rateTier·calcRate·hwStatusCounts), 미니테스트(miniResult) — docs/architecture.md
+  domain.js         도메인 계층(순수 규칙): 출결(attOf·isAbsent·isReportEligible·attendCategory), 과제 ON/OFF(hwOffSet·isHwOff), 이행률(RATE_TIER·rateTier·calcRate·hwStatusCounts·isOptionalHw), 미니테스트(miniResult) — docs/architecture.md
   db.js             openDB, dbSet, dbGet
   excel.js          triggerLoad, loadExcel(실패 시 롤백), toDS, normalizeRate, stFromExcel, stToExcel, parseWB, rebuildAllHwItems, saveToExcel, removeExcelData, _clearAllData, createSampleExcel
   ui.js             updateScale, switchView, open/close/exitLessonModal, selectDate, renderLessonCards, updateLessonField, add/removeLessonHw, updateLessonDate, add/removeLesson, renameDateData, removeDateData, _remapLessonHwRefs, renderDateSummary, renderTabs, switchTab, saveTabData, syncHwRecItems, restoreTabData, applyViewSettings, toggleColorMode, toggleSec, renderDateNav, navDatePrev/Next, 학생 추가·제거·renameStudent, saveAttachAsImage, openHelpModal, openBatchPdfModal
   session.js        자동 백업·복구(_appSnapshot, saveAppData, saveSession, saveAppDataNow, checkRecovery, restoreFromBackup, dismissRecovery), showGroups, zeroStart, autoSelectDate, markUnsaved/markSaved
   autofill.js       이월(propagateCarryover, flushPropagations, buildAllCarryover, computeCarryover), 과제 ON/OFF(_curHwOnOffItems, autoSyncHwDisabled, toggleHwDisabled), updateNoticeWithCarry, renderLessonInfo, autoFillCommon, autoFillAll
-  report.js         마스코트(updateRateFace, openMascotPicker), rebuildGraph, renderHwEditor, 추가과제, 이행률(applyRate, autoCalcRate, onRateManual, refreshRateSection), cycleHwStatus, markAllHwDone, updateHwDisplay, 미니테스트(renderMiniPanel, onMiniInput, onWrongInput, updateMiniSection), 선생님 한마디(onCommentInput, onTeacherInput, updateCommentSection), fitReportCard, setAttend, markAllPresent, updateAttendUI
+  report.js         마스코트(updateRateFace, openMascotPicker), rebuildGraph, renderHwEditor, 추가과제, 이행률(applyRate, autoCalcRate, onRateManual, refreshRateSection), cycleHwStatus, markAllHwDone, markAllStudentsHwDone, confirmMissingInputs, updateHwDisplay, 미니테스트(renderMiniPanel, onMiniInput, onWrongInput, updateMiniSection), 선생님 한마디(onCommentInput, onTeacherInput, updateCommentSection), fitReportCard, setAttend, markAllPresent, updateAttendUI
   pdf.js            첨부(handlePdfInput, renderSpread), 공용(_downloadBlob, _captureReportCard, _captureOffscreen, _addReportPages, _eachStudentCapture), dlPdf, _doBatchPdf, dlReportImage, dlKakaoZip, dlGradeSummary, dlJournalReport(_buildJournalReportPages), dlStudentReport, showUpdateModal
   init.js           window.onload (앱 진입점), loadMascotImages, initPanelResize, 전역 단축키(ESC·Ctrl+S)
 docs/               참조 문서 (필요 시만 읽기)

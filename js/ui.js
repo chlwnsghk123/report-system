@@ -67,6 +67,8 @@ function closeLessonModal(){
   if(wasOpen){
     G.tabData={};
     if(G.lessons.length)rebuildAllHwItems();
+    // 재구성된 기록으로 현재 학생 작업 상태도 즉시 다시 채움 (옛 상태가 나중에 덮어쓰지 않도록)
+    if(G.selStudent&&G.selDate&&getCurL())autoFillAll();
   }
 }
 // 수업설정 모달 ✕/ESC — 선택 날짜가 없으면(직접 시작·선택 날짜 삭제) 가장 가까운 날짜로 이동
@@ -214,6 +216,12 @@ function updateLessonDate(idx,newDate){
   const oldDate=G.lessons[idx].날짜;
   if(oldDate===newDate)return;
   if(G.lessons.some((l,i)=>i!==idx&&l.날짜===newDate)){alert('이미 같은 날짜가 있습니다.');renderLessonCards();return;}
+  // 앞뒤 수업을 건너뛰어 순서가 바뀌면 '지난 수업 과제' 연결이 모두 달라지므로 막음
+  const prevD=G.lessons[idx-1]?.날짜,nextD=G.lessons[idx+1]?.날짜;
+  if((prevD&&newDate<prevD)||(nextD&&newDate>nextD)){
+    alert(`수업 순서가 바뀌는 날짜 변경은 할 수 없습니다.\n(${prevD?fmtKo(prevD):'처음'} ~ ${nextD?fmtKo(nextD):'끝'} 사이 날짜만 가능)\n\n다른 위치로 옮기려면 이 수업을 삭제하고 새로 추가해 주세요.`);
+    renderLessonCards();return;
+  }
   renameDateData(oldDate,newDate);
   G.lessons[idx].날짜=newDate;
   G.lessons.sort((a,b)=>a.날짜.localeCompare(b.날짜));
@@ -463,7 +471,7 @@ function _showModalToast(modalId,msg){
 // ─── 보기 설정 (미니테스트·선생님 한마디 표시, 컬러 모드) → 화면 반영 ───
 // 이 설정은 엑셀 '설정' 시트(▼ 보기설정)에 저장되어 다음에 열어도 유지됨
 function applyViewSettings(){
-  const set=(id,on,disp)=>{const t=$$(id);if(t)t.classList.toggle('on',on);};
+  const set=(id,on)=>{const t=$$(id);if(t)t.classList.toggle('on',on);};
   set('toggleMini',G.showMini);set('toggleComment',G.showComment);
   const gm=$$('gMini');if(gm)gm.style.display=G.showMini?'flex':'none';
   const gc=$$('gComment');if(gc)gc.style.display=G.showComment?'flex':'none';
@@ -499,7 +507,7 @@ function toggleDateDropdown(){
   dd.classList.toggle('open');
   if(!isOpen){
     dd.innerHTML=G.lessons.map(l=>
-      `<button class="${l.날짜===G.selDate?'active':''}" onclick="selectDate('${l.날짜}');$$('dnDropdown').classList.remove('open');">${fmtKo(l.날짜)}</button>`
+      `<button class="${l.날짜===G.selDate?'active':''}" data-date="${esc(l.날짜)}" onclick="selectDate(this.dataset.date);$$('dnDropdown').classList.remove('open');">${fmtKo(l.날짜)}</button>`
     ).join('');
   }
 }

@@ -276,6 +276,7 @@ async function _doBatchPdf(){
   const date=G.selDate;
   const eligible=G.students.filter(n=>isReportEligible(n,date));
   if(!date||!eligible.length){alert('해당 날짜에 리포트를 만들 학생이 없습니다. (전원 결석)');return;}
+  if(!confirmMissingInputs(date))return;
   try{
     const outDoc=await PDFLib.PDFDocument.create();
     await _eachStudentCapture(eligible,'PDF',2,(name,cv)=>_addReportPages(outDoc,cv,_getStudentPdfCanvases(name)));
@@ -311,6 +312,7 @@ async function dlKakaoZip(){
   if(!date||!G.students.length){alert('날짜와 학생 데이터가 필요합니다.');return;}
   const eligible=G.students.filter(n=>isReportEligible(n,date));
   if(!eligible.length){alert('해당 날짜에 리포트를 만들 학생이 없습니다. (전원 결석)');return;}
+  if(!confirmMissingInputs(date))return;
   try{
     const zip=new JSZip(),mmdd=_mmdd(date);
     await _eachStudentCapture(eligible,'이미지',KAKAO_W/794,async(name,cv)=>{
@@ -488,6 +490,13 @@ function dlJournalReport(){
   $$('jrDl').onclick=async()=>{const d=overlay.dataset.curDate;_saveJournalInputs(d);await _renderJournalPdf(d);};
 }
 
+// 다음 수업 계획 기본값: 다음 수업의 '단원 — 상세진도' (직접 입력하면 그 값 사용)
+function _defaultJournalPlan(date){
+  const i=G.lessons.findIndex(l=>l.날짜===date);
+  const nx=i>=0?G.lessons[i+1]:null;if(!nx)return'';
+  const detail=String(nx.상세진도||'').split('\n').map(s=>s.trim()).filter(Boolean).join(' / ');
+  return[nx.단원,detail].filter(Boolean).join(' — ');
+}
 function _renderJournalInputs(date){
   const overlay=$$('jrModalOverlay');if(!overlay)return;
   const dts=_journalReportDates(date);
@@ -500,7 +509,7 @@ function _renderJournalInputs(date){
   $$('jrChap').value=info.chapter!=null?info.chapter:(les?.단원||'');
   $$('jrDetail').value=info.detail!=null?info.detail:(les?.상세진도||'');
   $$('jrHw').value=info.hwText!=null?info.hwText:defHws.join('\n');
-  $$('jrPlan').value=G.journalPlan[date]||'';
+  $$('jrPlan').value=G.journalPlan[date]||_defaultJournalPlan(date);
   // 코멘트 대상: 결석 학생 포함 전원 (결석자도 코멘트 작성 가능)
   const eligible=[...G.students];
   overlay._jrStudents=eligible;
@@ -518,6 +527,9 @@ function _saveJournalInputs(date){
   const overlay=$$('jrModalOverlay');if(!overlay)return;
   // 오늘 진도·과제 편집값 저장 (날짜별) — 수업 정보(기본값)와 "다른" 항목만 저장.
   // 기본값까지 저장하면 이후 수업 진도 설정에서 고친 내용이 일지표에 반영되지 않음.
+  // 실제로 바뀐 경우에만 저장(미저장 표시) — 열었다 닫기만 하면 그대로
+  const snap=()=>JSON.stringify([G.journalInfo[date]||null,G.journalPlan[date]||null,G.students.map(n=>G.journalNote[`${n}||${date}`]||'')]);
+  const before=snap();
   const les=G.lessons.find(l=>l.날짜===date);
   const normLines=v=>String(v||'').replace(/\r/g,'').split('\n').map(s=>s.trim()).filter(Boolean).join('\n');
   const def={book:(les?.교재||'').trim(),chapter:(les?.단원||'').trim(),detail:normLines(les?.상세진도),
@@ -527,14 +539,18 @@ function _saveJournalInputs(date){
   const info={};
   Object.keys(cur).forEach(k=>{if(cur[k]!==def[k])info[k]=cur[k];});
   if(Object.keys(info).length)G.journalInfo[date]=info;else delete G.journalInfo[date];
+  // 기본값(다음 수업 진도)과 같으면 저장하지 않음 — 수업 진도를 고치면 따라가도록
   const plan=($$('jrPlan')?.value||'').trim();
-  if(plan)G.journalPlan[date]=plan;else delete G.journalPlan[date];
+  if(plan&&plan!==_defaultJournalPlan(date))G.journalPlan[date]=plan;else delete G.journalPlan[date];
   (overlay._jrStudents||[]).forEach((n,i)=>{
     const el=$$(`jrNote_${i}`);if(!el)return;
     const v=el.value.trim(),k=`${n}||${date}`;
     if(v)G.journalNote[k]=v;else delete G.journalNote[k];
   });
-  saveAppData();
+  if(snap()!==before){
+    saveAppData();
+    if(G.selDate===date){renderCommentPanel();updateCommentSection();fitReportCard();} // 선생님 한마디와 같은 데이터
+  }
 }
 
 // 페이지 HTML 배열 생성 (각 항목 = A4 한 쪽)
@@ -581,7 +597,7 @@ function _buildJournalReportPages(date){
           </div>`).join('')}
       </div>
       <div style="flex:1;border:1px solid #e7e9ec;border-radius:14px;padding:18px 20px;background:#fafbfc;">
-        <div style="font-size:12px;color:#9aa0a8;font-weight:700;margin-bottom:10px;">과제</div>
+        <div style="font-size:12px;color:#9aa0a8;font-weight:700;margin-bottom:10px;">다음 수업까지 과제</div>
         ${hws.length?hws.map((h,i)=>`
           <div style="display:flex;gap:12px;align-items:center;padding:7px 0;${i<hws.length-1?'border-bottom:1px dashed #eef0f2;':''}">
             <span style="width:22px;height:22px;border-radius:7px;background:#dcfce7;color:#16a34a;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${i+1}</span>
@@ -672,7 +688,7 @@ function _buildJournalReportPages(date){
       </div>
       ${hc?`<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:10px;">${rowLabel('숙제 검사')}${hc.cur.map(it=>chip(it,false)).join('')}${hc.carry.map(it=>chip(it,true)).join('')}</div>`:''}
       ${mr?`<div style="font-size:13px;color:#445;margin-bottom:10px;">${rowLabel('미니테스트')} ${miniText(mr)}</div>`:''}
-      <div style="font-size:14px;color:#333;line-height:1.7;white-space:pre-line;min-height:22px;">${note?esc(note):'<span style="color:#c0c4cb;">코멘트 미입력</span>'}</div>
+      ${note?`<div style="font-size:14px;color:#333;line-height:1.7;white-space:pre-line;min-height:22px;">${esc(note)}</div>`:''}
     </div>`;
   };
   // 카드 예상 높이(px) — 쪽 나눔용 (카드 본문 폭 약 640px, 한글 1em·영숫자 0.58em으로 줄 수 추정)
@@ -684,7 +700,7 @@ function _buildJournalReportPages(date){
     const hwRows=hc?Math.ceil((64+hc.cur.reduce((w,it)=>w+46+textW(it.text,12),0)+hc.carry.reduce((w,it)=>w+72+textW(it.text,12),0))/640):0;
     return 94+noteLines*24+(hc?10+hwRows*26:0)+(miniResult(n,date)?30:0);
   };
-  const planText=G.journalPlan[date]||'';
+  const planText=G.journalPlan[date]||_defaultJournalPlan(date);
   const planHtml=`<div style="background:#f3fbf5;border:1px solid #cdeed6;border-radius:14px;padding:18px 22px;margin-top:6px;">
     <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px;"><span style="width:5px;height:18px;background:#16a34a;border-radius:3px;"></span><span style="font-size:16px;font-weight:800;color:#111;">다음 수업 계획</span></div>
     <div style="font-size:15px;font-weight:700;color:#1a7d3a;line-height:1.6;white-space:pre-line;">${planText?'→  '+esc(planText):'<span style="color:#9bbfa6;font-weight:500;">미입력</span>'}</div>

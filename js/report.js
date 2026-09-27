@@ -10,6 +10,7 @@ function registerMascots(tier,fileNames){
 
 function updateRateFace(){
   const el=$$('rateMascot');if(!el)return;
+  if(isAbsent(G.selStudent,G.selDate)){el.innerHTML='';el.style.display='none';return;}
   const rate=parseFloat($$('rRate')?.innerText);
   const tier=rateTier(rate)||'mid';
   const imgs=MASCOT_IMGS[tier];
@@ -174,12 +175,12 @@ function updateExtraHwText(idx,val){
 }
 
 // ─── 이행률 ───
-// 계산 대상 상태: 이월 과제·직전 회차에서 OFF한 과제 제외 (domain.js calcRate 규칙)
+// 계산 대상 상태: 이월 과제·(선택) 과제·직전 회차에서 OFF한 과제 제외 (domain.js calcRate 규칙)
 function _rateStatuses(){
   const prevDate=getPrevL()?.날짜||'';
   return G.hwStatus.filter((s,i)=>{
     const r=G.hwItemRefs[i];
-    return!isCarryForDate(r?.fromDate,G.selDate)&&!isHwOff(G.selStudent,prevDate,r?.ref||'');
+    return!isCarryForDate(r?.fromDate,G.selDate)&&!isOptionalHw(G.hwItems[i])&&!isHwOff(G.selStudent,prevDate,r?.ref||'');
   });
 }
 // 이행률 값 적용 (manual=true: 선생님이 직접 입력한 값)
@@ -222,8 +223,9 @@ function refreshRateSection(){
   const isFirst=G.lessons.length>0&&G.selDate===G.lessons[0].날짜;
   const absent=isAbsent(G.selStudent,G.selDate);
   sec.classList.toggle('absent',absent);
+  const lbl=$$('rCurLbl');if(lbl)lbl.textContent=absent?'빠진 수업 내용':'오늘 배운 내용';
   if(isFirst){sec.style.display='none';}
-  else if(absent){sec.style.display='';$$('rRate').innerText='결석';}
+  else if(absent){sec.style.display='';$$('rRate').innerText='이번 수업 결석';}
   else if(v===''){sec.style.display='none';}
   else if(Number(v)===-1){sec.style.display='';$$('rRate').innerText='-';}
   else{sec.style.display='';$$('rRate').innerText=v;}
@@ -245,7 +247,7 @@ function markAllHwDone(){
   let changed=0;
   G.hwItems.forEach((_,i)=>{
     const r=G.hwItemRefs[i];
-    if(isHwOff(G.selStudent,prevDate,r?.ref||'')||isCarryItem(r?.fromDate))return;
+    if(isHwOff(G.selStudent,prevDate,r?.ref||'')||isCarryItem(r?.fromDate)||isOptionalHw(G.hwItems[i]))return;
     if(isNone(G.hwStatus[i])){G.hwStatus[i]=2;_queueCarry(i,2);changed++;}
   });
   if(!changed){toast('상태가 비어 있는 과제가 없습니다');return;}
@@ -264,7 +266,9 @@ function _afterHwStatusChange(){
   renderHwEditor();
   // 과제 상태가 바뀌면 이행률도 자동으로 다시 계산 (직접 입력값은 새 상태로 대체됨)
   const rate=calcRate(_rateStatuses());
-  if(rate!=null)applyRate(rate,false);else rebuildGraph();
+  if(rate!=null)applyRate(rate,false);
+  else if(G.hwRateManual==null)applyRate(null,false); // 검사한 과제가 없으면 이행률도 비움
+  else rebuildGraph();
   updateNoticeWithCarry();fitReportCard();
   syncHwRecItems(G.selStudent,G.selDate);
   saveAppData();
@@ -300,7 +304,7 @@ function updateHwDisplay(){
       <span class="hw-icon">${icons[st]||'?'}</span>
       ${isCarry?'<span class="hw-carry-mark">(이월)</span>':''}
       <span class="hw-text">${esc(item.trim())}</span>
-      <span class="hw-chip">${stName[st]||''}</span>
+      <span class="hw-chip">${st===0&&isOptionalHw(item)?'안 함':(stName[st]||'')}</span>
     </div>`;
     if(isCarry)carryHtml.push(li);
     else baseHtml.push(li); // extra도 일반 과제와 동일 취급
@@ -340,8 +344,11 @@ function onMiniInput(){
   if(total>0||range)G.miniTest[G.selDate]={total:total>0?total:null,range};
   else delete G.miniTest[G.selDate];
   const key=`${G.selStudent}||${G.selDate}`,cv=$$('miniCorrect').value.trim();
-  if(G.selStudent&&cv!==''&&!isNaN(cv))G.miniScore[key]=Math.max(0,parseInt(cv));
-  else delete G.miniScore[key];
+  if(G.selStudent&&cv!==''&&!isNaN(cv)){
+    let n=Math.max(0,parseInt(cv));
+    if(total>0&&n>total){n=total;toast(`맞힌 수는 문항 수(${total})를 넘을 수 없습니다`);}
+    G.miniScore[key]=n;
+  }else delete G.miniScore[key];
   renderMiniPanel();updateMiniSection();fitReportCard();saveAppData();
 }
 // 오답 번호 입력 — 입력 즉시 G.wrong에 저장 (수업설정을 열고 닫아도 유실되지 않도록)
@@ -420,6 +427,63 @@ function setAttend(val){
   refreshRateSection();rebuildGraph();updateMiniSection(); // 결석 여부가 리포트에 바로 반영되도록
   saveAppData();
 }
+// 결석이 아닌 학생 전원의 '검사 안 한' 과제를 완료로 (예외 학생만 찾아가 △/✗ 수정)
+// 이월·(선택)·OFF 과제는 건드리지 않고, 과제 상태가 바뀐 학생은 이행률을 다시 계산
+function markAllStudentsHwDone(){
+  const date=G.selDate;if(!date||!G.students.length)return;
+  const idx=G.lessons.findIndex(l=>l.날짜===date);
+  const prevDate=idx>0?G.lessons[idx-1].날짜:'';
+  if(!prevDate){toast('첫 수업에는 검사할 지난 과제가 없습니다');return;}
+  const targets=G.students.filter(s=>!isAbsent(s,date));
+  if(!confirm(`결석하지 않은 학생 ${targets.length}명의 '검사 안 한' 과제를 모두 완료로 표시할까요?\n(이월·선택 과제는 제외, 이후 예외 학생만 고치면 됩니다)`))return;
+  if(G.selStudent)saveTabData();
+  let n=0;
+  targets.forEach(s=>{
+    const rec=G.hwRec[`${s}||${date}`];if(!rec?.items)return;
+    let changed=false;
+    rec.items.forEach((it,i)=>{
+      if(isCarryForDate(it.fromDate,date)||isOptionalHw(it.text)||isHwOff(s,prevDate,it.ref))return;
+      if(isNone(it.status)){it.status=2;rec[`과제${i+1}_상태`]=2;changed=true;}
+    });
+    if(!changed)return;
+    n++;
+    const rate=calcRate(rec.items.filter(it=>!isCarryForDate(it.fromDate,date)&&!isOptionalHw(it.text)&&!isHwOff(s,prevDate,it.ref)).map(it=>it.status));
+    if(rate!=null){G.rates[s]=G.rates[s]||{};G.rates[s][date]=rate;rec.이행률=rate;}
+  });
+  G.tabData={};
+  if(G.selStudent)autoFillAll();
+  if(n)saveAppData();
+  toast(n?`${n}명의 과제를 완료로 표시했습니다`:'검사 안 한 과제가 없습니다');
+}
+// 일괄 출력 전 빠진 입력 점검 — 있으면 목록을 보여주고 계속할지 묻기
+function confirmMissingInputs(date){
+  const idx=G.lessons.findIndex(l=>l.날짜===date);
+  const prevDate=idx>0?G.lessons[idx-1].날짜:'';
+  if(G.selStudent&&G.selDate===date)saveTabData();
+  const names=arr=>arr.length>4?arr.slice(0,4).join(', ')+` 외 ${arr.length-4}명`:arr.join(', ');
+  const lines=[];
+  const unset=G.students.filter(s=>attOf(s,date)==null);
+  if(unset.length)lines.push(`• 출결 미체크 ${unset.length}명: ${names(unset)}`);
+  const present=G.students.filter(s=>!isAbsent(s,date));
+  if(prevDate){
+    const noCheck=present.filter(s=>{
+      const its=(G.hwRec[`${s}||${date}`]?.items||[]).filter(it=>!isCarryForDate(it.fromDate,date)&&!isOptionalHw(it.text)&&!isHwOff(s,prevDate,it.ref));
+      return its.length&&its.every(it=>isNone(it.status));
+    });
+    if(noCheck.length)lines.push(`• 숙제 검사 안 함 ${noCheck.length}명: ${names(noCheck)}`);
+  }
+  if(G.showMini&&(G.miniTest[date]?.total>0)){
+    const noMini=present.filter(s=>!miniResult(s,date));
+    if(noMini.length)lines.push(`• 미니테스트 미입력 ${noMini.length}명: ${names(noMini)} (다 맞았으면 오답칸에 0)`);
+  }
+  if(G.showComment){
+    const noNote=present.filter(s=>!G.journalNote[`${s}||${date}`]);
+    if(noNote.length)lines.push(`• 선생님 한마디 없음 ${noNote.length}명: ${names(noNote)}`);
+  }
+  if(!lines.length)return true;
+  return confirm(`${fmtKo(date)} — 확인해 주세요:\n\n${lines.join('\n')}\n\n그대로 만들까요?`);
+}
+
 // 출결 미체크 학생을 한 번에 '출석'으로 (결석·지각만 따로 누르면 됨)
 function markAllPresent(){
   if(!G.selDate||!G.students.length)return;

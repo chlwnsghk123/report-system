@@ -35,17 +35,17 @@ DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 �
 |---|---|
 | `attOf(student,date)` | 출결값 반환 (2/1/0, 미선택·구버전 -1은 undefined) |
 | `isAbsent(student,date)` | **명시적으로 '결석' 선택**한 경우만 결석 판정 (이행률로 추정 안 함) |
-| `isPresent(student,date)` | 출석(2)·지각(1) 선택 시 true |
 | `isReportEligible(student,date)` | 리포트/일괄 PDF·이미지 대상 여부 — 결석만 제외 |
 | `attendCategory(student,date)` | 출결 분류 문자열 `'present'|'late'|'absent'|'none'` |
 | `hwOffSet(student,date)` | 해당 학생·날짜의 OFF된 과제 ref 집합 (읽기 전용) |
 | `isHwOff(student,date,ref)` | 특정 과제 ref가 OFF인지 |
 | `RATE_TIER` / `RATE_STYLE` | 이행률 등급 기준(75/30)과 등급별 라벨·색 — 모든 화면·출력물 공통 |
 | `rateTier(v)` / `rateFg(v)` / `rateBg(v)` | 이행률 → 등급 / 글자색 / 배경색 |
+| `isOptionalHw(text)` | '(선택)'으로 시작하는 선택 과제인지 — 이행률 계산·이월 대상에서 제외 |
 | `calcRate(statuses)` | 과제 상태 배열 → 이행률 (완료 100·부분 50·미완료 0 평균, 없으면 null) |
 | `hwStatusCounts(statuses)` | 상태 배열 → `{done, partial, miss}` 개수 |
-| `parseWrongList(str)` | 오답 문자열 → 번호 배열 |
-| `miniResult(student,date)` | 미니테스트 결과 `{total,correct,wrong,range,pct,perfect}` (결석·기록 없음이면 null) |
+| `MINI_PERFECT_MARKS` / `parseWrongList(str)` | 오답칸 만점 표시('0'·'없음'·'만점') / 오답 문자열 → 번호 배열 |
+| `miniResult(student,date)` | 미니테스트 결과 `{total,correct,wrong,range,pct,perfect}` — 결석이거나 **그 학생 입력이 없으면 null** (문항 수만으로 만점 처리하지 않음) |
 
 ## js/db.js
 | 함수 | 역할 |
@@ -121,7 +121,7 @@ DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 �
 | `saveSession()` | 선택 변경 → 백업 예약만 |
 | `saveAppDataNow()` | 즉시 백업 |
 | `checkRecovery()` | 시작 시 백업이 있으면 '지난 작업 이어하기' 배너 표시 |
-| `restoreFromBackup()` / `dismissRecovery()` | 백업 복구 / 배너 닫기 |
+| `restoreFromBackup()` / `dismissRecovery(byUser)` | 백업 복구 / 배너 닫기 (저장 안 된 백업이면 확인) |
 | `showGroups(keepSelection)` | 데이터 로드 후 버튼 표시 + 날짜 뷰 진입 |
 | `zeroStart()` | 엑셀 없이 직접 시작 |
 | `autoSelectDate()` | 오늘 이후 가장 가까운 수업 날짜 선택 |
@@ -162,7 +162,9 @@ DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 �
 | `refreshRateSection()` | 리포트 이행률 영역 (첫 수업·미입력 숨김, 결석 '결석') |
 | `hwBtnLabel(s)` | 상태 버튼 라벨 |
 | `cycleHwStatus(i)` | 과제 상태 순환 (없음→완료→부분완료→미완료) |
-| `markAllHwDone()` | 비어 있는 과제를 모두 '완료' (이월 과제 제외) |
+| `markAllHwDone()` | 비어 있는 과제를 모두 '완료' (이월·선택 과제 제외) |
+| `markAllStudentsHwDone()` | 결석 아닌 학생 전원의 검사 안 한 과제를 '완료' + 이행률 재계산 (전원 과제 완료) |
+| `confirmMissingInputs(date)` | 일괄 PDF·ZIP 전 빠진 입력(출결·숙제 검사·미니테스트·한마디) 점검 확인창 |
 | `_queueCarry(i,status)` / `_afterHwStatusChange()` | 이월 전파 예약 / 상태 변경 공통 후처리 (이행률 자동 계산 포함) |
 | `updateHeaderDate(cur,next)` | 리포트 헤더 날짜·진도 날짜 |
 | `updateHwDisplay()` | 리포트 '지난 수업 과제' (이월 2단 레이아웃) |
@@ -200,6 +202,7 @@ DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 �
 | `dlKakaoZip()` | 학생별 JPG 묶음 ZIP (JSZip) |
 | `dlGradeSummary()` / `_renderGradeTable` / `_downloadGradeImage` | 이행률 요약표(전체) 모달·표·이미지 |
 | `_journalReportDates(date)` | 일지표 집계 기간 (최근 6회) |
+| `_defaultJournalPlan(date)` | '다음 수업 계획' 기본값 = 다음 수업의 단원 — 상세진도 |
 | `dlJournalReport()` / `_renderJournalInputs` / `_saveJournalInputs` | 수업 일지표 입력 모달 (진도 편집값은 기본값과 다른 항목만 저장) |
 | `_buildJournalReportPages(date)` | 일지표 페이지 HTML (출결 분류·이행률표·오답 집계·학생별 숙제 검사·미니테스트·코멘트) |
 | `_renderJournalPdf(date)` | 일지표 A4 PDF |
