@@ -2,6 +2,7 @@
 // 편집할 때마다 전체 데이터를 IndexedDB에 스냅샷으로 저장해 두고,
 // 다음 실행 시 '지난 작업 이어하기' 배너로 복구할 수 있게 한다. (엑셀이 주 저장소, IndexedDB는 백업)
 let _saveTimer=null;
+let _hadData=false; // 이번 세션에 데이터가 있었는지 (빈 상태로 백업을 지우는 것은 '직접 다 지운 경우'만)
 function _appSnapshot(){
   const o={};DATA_KEYS.forEach(k=>{o[k]=G[k];});
   o.fileName=G.excelFileName;o.savedAt=nowKSTStr();o.unsaved=G.unsaved;
@@ -10,14 +11,18 @@ function _appSnapshot(){
   return o;
 }
 async function _writeSnapshot(){
+  // '지난 작업' 배너가 복구 대기 중이면 백업을 건드리지 않음 (보기 설정만 바꿔도 백업이 사라지던 문제 방지)
+  if($$('recoverBanner')?._snap)return;
   try{
-    // 수업·학생을 모두 지운 상태면 백업도 비움 (지운 데이터가 '지난 작업'으로 다시 뜨지 않도록)
-    if(!G.lessons.length&&!G.students.length){await dbSet('appData',null);return;}
+    const empty=!G.lessons.length&&!G.students.length;
+    // 이번 세션에 있던 데이터를 사용자가 모두 지운 경우에만 백업도 비움
+    if(empty){if(_hadData){await dbSet('appData',null);_hadData=false;}return;}
+    _hadData=true;
     await dbSet('appData',_appSnapshot());
   }catch(e){console.error('자동 백업 실패:',e);setBar('err','❌ 자동 백업 실패 (엑셀 저장은 가능)');}
 }
 // 데이터 변경 → 미저장 표시 + 백업 예약(디바운스)
-function saveAppData(){markUnsaved();saveSession();}
+function saveAppData(){if(G.lessons.length||G.students.length)markUnsaved();saveSession();}
 // 화면 선택(날짜·학생 등)만 바뀐 경우 → 미저장 표시 없이 백업만 예약
 function saveSession(){
   if(_saveTimer)clearTimeout(_saveTimer);

@@ -409,9 +409,12 @@ function syncHwRecItems(student,date){
     const fromDate=G.hwItemRefs[i]?.fromDate||'';
     return{text,status:G.hwStatus[i]??-1,ref,fromDate};
   });
-  // 레거시 필드도 업데이트
+  // 순번 필드(엑셀 과제N 열) — base 과제만, 이월 과제는 이월과제 시트에 저장되므로 제외
+  Object.keys(rec).forEach(k=>{if(/^과제\d+_상태$/.test(k))delete rec[k];});
+  let li=0;
   G.hwItems.forEach((_,i)=>{
-    rec[`과제${i+1}_상태`]=G.hwStatus[i]??-1;
+    if(isCarryForDate(G.hwItemRefs[i]?.fromDate,date))return;
+    rec[`과제${++li}_상태`]=G.hwStatus[i]??-1;
   });
   // 이번 주차 추가 과제 저장
   rec.extraHw=(G.extraHw||[]).map(it=>({...it}));

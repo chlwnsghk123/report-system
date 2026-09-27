@@ -91,7 +91,7 @@ restoreFromBackup()  (배너 '이어하기')
 | `saveAppDataNow()` | 즉시 백업 | 엑셀 로드·저장 직후 |
 | `saveTabData()` | 현재 학생 작업 → G.tabData + hwRec 동기화 | 학생·날짜 전환, 엑셀 저장 |
 
-`_writeSnapshot()`은 수업·학생이 모두 비어 있으면 기존 백업을 덮어쓰지 않는다. `dbSet`은 트랜잭션 오류·중단 시 reject한다(무한 대기 방지).
+`_writeSnapshot()`은 ① '지난 작업' 배너가 복구 대기 중이면 백업을 건드리지 않고, ② 수업·학생이 모두 비어 있으면 이번 세션에 데이터가 있다가 사용자가 모두 지운 경우에만 백업을 비운다(빈 화면에서 보기 설정만 바꿔도 백업이 사라지지 않도록). `dbSet`은 트랜잭션 오류·중단 시 reject한다(무한 대기 방지).
 
 ## 4. 학생 탭 전환
 
@@ -141,7 +141,9 @@ updateMiniSection() → #rMiniScore(3/5 · 60%) · #rMiniRange(범위) · #rWron
 
 cycleHwStatus(i) / markAllHwDone()
   → _queueCarry()          이월 전파 예약 (pendingPropagations)
-  → _afterHwStatusChange() → renderHwEditor() → calcRate(_rateStatuses()) → applyRate(값,false) (자동 계산)
+  → _afterHwStatusChange(before) → renderHwEditor() → 계산 대상(이월·선택·OFF 제외) 상태가 실제로 바뀐 경우에만
+                              calcRate(_rateStatuses()) → applyRate(값,false) (자동 계산)
+                              ※ 이월·선택 과제만 눌렀을 때는 직접 입력한 이행률을 건드리지 않음
                             → updateNoticeWithCarry() → syncHwRecItems() → saveAppData()
 
 onRateManual()  (직접 입력) → 0~100 보정 → applyRate(값,true) (hwRateManual=값)
@@ -259,8 +261,9 @@ updateLessonDate(idx,new) → 앞뒤 수업을 건너뛰어 순서가 바뀌면 
 removeLesson(idx) → removeDateData(date) 같은 범위를 삭제
 removeLessonHw(idx,hwIdx) → _remapLessonHwRefs(lessonId,n): 삭제된 과제 ref 기록 제거, 뒤 번호 ref 당김
 renameStudent(old) / _doRemoveStudent(idx) → 학생 키가 들어간 모든 저장소 이동/삭제
-rebuildAllHwItems() → 상태는 rec.items의 ref로 찾고, base 항목이 하나도 없을 때(엑셀 로드 직후)만
-                      순번 필드(빈 과제 건너뜀) 사용 → 끝에서 순번 필드(과제N_상태)를 items 순서로 재생성,
+rebuildAllHwItems(fromExcel) → 상태는 rec.items의 ref로 찾고, 엑셀 로드 직후(parseWB → fromExcel=true)에만
+                      순번 필드(빈 과제 건너뜀) 사용 → 끝에서 순번 필드(과제N_상태)를 base 과제 순서로만 재생성
+                      (이월 과제 상태는 이월과제 시트에 저장되므로 순번 필드에 섞지 않음 — syncHwRecItems도 동일),
                       원본 수업이 삭제된 이월·(선택) 과제 이월 항목은 제거
 closeLessonModal() → 모달이 실제로 열려 있었을 때만 tabData 초기화 + rebuildAllHwItems() + autoFillAll()
 ```

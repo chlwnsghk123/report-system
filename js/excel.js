@@ -262,7 +262,7 @@ function parseWB(wb){
   }
 
   // ─── hwRec items 배열 재구성 (base + carry 병합) + 이월 전파 ───
-  rebuildAllHwItems();
+  rebuildAllHwItems(true); // 로드 직후에만 엑셀의 순번 필드(과제N_상태)로 base 과제 상태를 읽음
 
   // ─── 설정 시트 파싱 ───
   const wsCfg=wb.Sheets['설정'];
@@ -328,7 +328,7 @@ function parseWB(wb){
 // parseWB 직후, 그리고 closeLessonModal(items 캐시 무효화) 직후에 호출.
 // closeLessonModal이 rec.items를 delete하면 prev의 items도 사라져서
 // computeCarryover가 빈 배열을 반환하게 되어 carry 항목이 화면에서 누락되는 문제를 방지.
-function rebuildAllHwItems(){
+function rebuildAllHwItems(fromExcel){
   const lessonIds=new Set(G.lessons.map(l=>l.id));
   G.lessons.forEach((les,idx)=>{
     if(idx===0)return;
@@ -342,9 +342,9 @@ function rebuildAllHwItems(){
       // 상태는 ref로 먼저 찾고(과제 순서·개수가 바뀌어도 안전), 없을 때만 엑셀의 순번 필드(과제N_상태)를 사용.
       // 순번은 빈 과제를 건너뛰고 센다 — 저장(syncHwRecItems) 기준과 동일
       const known=new Map();(rec.items||[]).forEach(it=>{if(it.ref)known.set(it.ref,it.status??-1);});
-      // 순번 필드(과제N_상태)는 base 항목이 아직 없을 때(엑셀 로드 직후)만 사용 — 이후엔 ref로만 매칭
-      // (과제를 추가·삭제한 뒤 새 과제가 같은 순번의 다른 과제 상태를 물려받지 않도록)
-      const useLegacy=!(rec.items||[]).some(it=>it.ref&&!isCarryForDate(it.fromDate,date));
+      // 순번 필드(과제N_상태)는 엑셀 로드 직후(fromExcel)에만 사용 — 이후엔 ref로만 매칭
+      // (과제를 추가·삭제한 뒤 새 과제가 같은 순번의 다른 과제·이월 과제 상태를 물려받지 않도록)
+      const useLegacy=!!fromExcel;
       let li=0;
       const pick=ref=>{const lg=stFromExcel(rec[`과제${++li}_상태`]??'');return known.has(ref)?known.get(ref):(useLegacy?lg:-1);};
       const baseItems=[];
@@ -375,9 +375,9 @@ function rebuildAllHwItems(){
         }
       });
       rec.items=[...baseItems,...carryItems];
-      // 순번 필드를 items 순서로 다시 만듦 (엑셀 과제N 열이 항상 현재 과제 순서와 일치하도록)
+      // 순번 필드를 base 과제(지난 수업 과제+추가과제) 순서로 다시 만듦 — 엑셀 과제N 열과 일치 (이월은 이월과제 시트에 저장)
       Object.keys(rec).forEach(k=>{if(/^과제\d+_상태$/.test(k))delete rec[k];});
-      rec.items.forEach((it,i)=>{rec[`과제${i+1}_상태`]=it.status??-1;});
+      baseItems.forEach((it,i)=>{rec[`과제${i+1}_상태`]=it.status??-1;});
     });
   });
   buildAllCarryover();

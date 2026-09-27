@@ -63,7 +63,7 @@ DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 �
 | `normalizeRate(v)` | 이행률 정규화 ("%"·소수·정수 → 0~100) |
 | `stFromExcel(v)` / `stToExcel(v)` | 엑셀 상태 기호 ↔ 내부 숫자 (2/1/0/-1) |
 | `parseWB(wb)` | 워크북 → G (수업정보·날짜별·이월과제·설정 시트, 구 형식 호환) |
-| `rebuildAllHwItems()` | 모든 학생·날짜의 hwRec.items 재구성 (상태는 ref 우선, 없으면 순번 필드) + 이월 전파 |
+| `rebuildAllHwItems(fromExcel)` | 모든 학생·날짜의 hwRec.items 재구성 (상태는 ref로, 엑셀 로드 직후에만 순번 필드 사용) + 이월 전파 |
 | `updateLastSavedDisplay()` | 마지막 저장 시각 표시 |
 | `saveToExcel()` | 엑셀 저장 (성공 true / 실패 false) — 설정 시트 고아 데이터 정리 포함 |
 | `removeExcelData()` | 데이터 제거 모달 (저장 후 제거 / 그냥 제거 / 취소) |
@@ -165,7 +165,7 @@ DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 �
 | `markAllHwDone()` | 비어 있는 과제를 모두 '완료' (이월·선택 과제 제외) |
 | `markAllStudentsHwDone()` | 결석 아닌 학생 전원의 검사 안 한 과제를 '완료' + 이행률 재계산 (전원 과제 완료) |
 | `confirmMissingInputs(date)` | 일괄 PDF·ZIP 전 빠진 입력(출결·숙제 검사·미니테스트·한마디) 점검 확인창 |
-| `_queueCarry(i,status)` / `_afterHwStatusChange()` | 이월 전파 예약 / 상태 변경 공통 후처리 (이행률 자동 계산 포함) |
+| `_queueCarry(i,status)` / `_afterHwStatusChange(before)` | 이월 전파 예약 / 상태 변경 공통 후처리 (계산 대상 상태가 바뀐 경우에만 이행률 자동 계산) |
 | `updateHeaderDate(cur,next)` | 리포트 헤더 날짜·진도 날짜 |
 | `updateHwDisplay()` | 리포트 '지난 수업 과제' (이월 2단 레이아웃) |
 | `updateNoticeList(text)` | 과제 기본 목록 (학생 미선택 시) |

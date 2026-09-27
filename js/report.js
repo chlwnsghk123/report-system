@@ -237,13 +237,15 @@ function cycleHwStatus(i){
   const order=[-1,2,1,0];
   const cur=G.hwStatus[i]??-1;
   const next=order[(order.indexOf(cur)+1)%order.length];
+  const before=_rateStatuses();
   G.hwStatus[i]=next;
   _queueCarry(i,next);
-  _afterHwStatusChange();
+  _afterHwStatusChange(before);
 }
 // 상태가 비어 있는 과제를 모두 '완료'로 (이월 과제는 개별 확인)
 function markAllHwDone(){
   const prevDate=getPrevL()?.날짜||'';
+  const before=_rateStatuses();
   let changed=0;
   G.hwItems.forEach((_,i)=>{
     const r=G.hwItemRefs[i];
@@ -251,7 +253,7 @@ function markAllHwDone(){
     if(isNone(G.hwStatus[i])){G.hwStatus[i]=2;_queueCarry(i,2);changed++;}
   });
   if(!changed){toast('상태가 비어 있는 과제가 없습니다');return;}
-  _afterHwStatusChange();
+  _afterHwStatusChange(before);
 }
 // 이월 전파 예약 (학생·날짜 전환 시 일괄 적용)
 function _queueCarry(i,status){
@@ -260,15 +262,20 @@ function _queueCarry(i,status){
   if(exists>=0)G.pendingPropagations[exists].status=status;
   else G.pendingPropagations.push({student:G.selStudent,date:G.selDate,ref,status});
 }
-function _afterHwStatusChange(){
+// before: 변경 전 이행률 계산 대상 상태 배열
+function _afterHwStatusChange(before){
   // 이월/저번주차 과제 상태에 따라 이번주차 과제 ON/OFF 자동 동기화
   autoSyncHwDisabled();
   renderHwEditor();
-  // 과제 상태가 바뀌면 이행률도 자동으로 다시 계산 (직접 입력값은 새 상태로 대체됨)
-  const rate=calcRate(_rateStatuses());
-  if(rate!=null)applyRate(rate,false);
-  else if(G.hwRateManual==null)applyRate(null,false); // 검사한 과제가 없으면 이행률도 비움
-  else rebuildGraph();
+  // 이행률 계산 대상(이월·선택·OFF 제외) 과제의 상태가 실제로 바뀐 경우에만 다시 계산 —
+  // 이월·선택 과제만 눌렀을 때 직접 입력한 이행률이 바뀌거나 지워지지 않도록
+  const after=_rateStatuses();
+  if(JSON.stringify(after)!==JSON.stringify(before)){
+    const rate=calcRate(after);
+    if(rate!=null)applyRate(rate,false);
+    else if(calcRate(before)!=null&&G.hwRateManual==null)applyRate(null,false); // 검사한 과제를 모두 되돌리면 자동값도 비움
+    else rebuildGraph();
+  }else rebuildGraph();
   updateNoticeWithCarry();fitReportCard();
   syncHwRecItems(G.selStudent,G.selDate);
   saveAppData();
