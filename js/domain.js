@@ -66,7 +66,7 @@ function rateTier(v){
 function rateFg(v){return RATE_STYLE[rateTier(v)]?.fg||'#9ca3af';}
 function rateBg(v){return RATE_STYLE[rateTier(v)]?.bg||'#f1f3f5';}
 // '(선택)'으로 시작하는 과제 = 선택 과제 → 이행률 계산·이월 대상에서 제외 (안 해도 불이익 없음)
-function isOptionalHw(text){return/^\s*[(（]\s*선택\s*[)）]/.test(String(text||''));}
+function isOptionalHw(text){return/[(（]\s*선택\s*[)）]/.test(String(text||''));}
 // 과제 상태 배열 → 이행률(0~100 정수), 상태가 하나도 없으면 null
 function calcRate(statuses){
   const sc=(statuses||[]).filter(s=>s===0||s===1||s===2).map(s=>s===2?100:s===1?50:0);
@@ -87,7 +87,18 @@ function hwStatusCounts(statuses){
 // 오답칸에 '0'·'없음'·'만점'을 적으면 다 맞음(만점)을 뜻함
 const MINI_PERFECT_MARKS=['0','없음','만점'];
 // 오답 문자열 → 번호 배열 (만점 표시는 제외)
-function parseWrongList(str){return String(str||'').split(/[,，]/).map(s=>s.trim()).filter(s=>s&&!MINI_PERFECT_MARKS.includes(s));}
+// 쉼표로 나누고, '3 7 12'·'3.7.12'·'3번 7번'처럼 번호만 나열한 조각은 띄어쓰기·마침표로도 나눔.
+// '4번'은 '4'로 통일 (표시할 때 '번'을 붙임), '1-2' 같은 소문항은 그대로
+function parseWrongList(str){
+  const out=[];
+  String(str||'').split(/[,，、]/).forEach(part=>{
+    const p=part.trim();if(!p)return;
+    const toks=p.split(/[\s.\/·]+/).filter(Boolean);
+    if(toks.length>1&&toks.every(t=>/^\d+(-\d+)?번?$/.test(t)))out.push(...toks);
+    else out.push(p);
+  });
+  return out.map(t=>t.replace(/^(\d+(?:-\d+)?)번$/,'$1')).filter(s=>!MINI_PERFECT_MARKS.includes(s));
+}
 // 학생·날짜의 미니테스트 결과 (결석이거나 그 학생 입력이 없으면 null)
 // ★ 반 공통 문항 수만 있고 학생 입력(오답·만점 표시·맞힌 수)이 없으면 '만점'으로 보지 않음 (미입력)
 // 반환: {total, correct, wrong:[...], range, pct, perfect}

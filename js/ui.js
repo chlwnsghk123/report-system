@@ -127,7 +127,7 @@ function renderLessonCards(){
     const hwHtml=showKeys.map((k,hi)=>{
       const realIdx=hwKeys.indexOf(k);
       return`<div class="lc-hw-row">
-        <input placeholder="과제 ${realIdx+1}" value="${esc(l[k]||'')}" oninput="updateLessonField(${i},'${k}',this.value)" onfocus="focusLessonCard(${i})">
+        <input placeholder="과제 ${realIdx+1} (선택 과제는 '(선택)' 붙이기)" value="${esc(l[k]||'')}" oninput="updateLessonField(${i},'${k}',this.value)" onfocus="focusLessonCard(${i})">
         ${showKeys.length>1||visibleHw.length>1?`<button class="lc-hw-del" onclick="removeLessonHw(${i},${realIdx})" title="과제 삭제">✕</button>`:''}
       </div>`;
     }).join('');

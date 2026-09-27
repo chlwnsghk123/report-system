@@ -136,7 +136,7 @@ function renderHwEditor(){
     html+=`<div class="hw-item${isCarry?' hw-carry':''} ${stCls}" data-i="${i}" onclick="cycleHwStatus(${i})">
       ${isCarry?`<span class="hw-carry-badge" title="${fromDate?fmtKo(fromDate):''}">(이월)</span>`:''}
       <input type="text" value="${esc(item)}" readonly style="cursor:pointer;opacity:.8;" tabindex="-1">
-      <span class="hw-btn s${st}">${hwBtnLabel(st)}</span>
+      <span class="hw-btn s${st}">${st===0&&isOptionalHw(item)?'✗ 안 함':hwBtnLabel(st)}</span>
     </div>`;
     rendered++;
   });

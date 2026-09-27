@@ -671,18 +671,19 @@ function _buildJournalReportPages(date){
     const carry=items.filter(it=>{if(!isCarryForDate(it.fromDate,date))return false;const k=it.ref||it.text;if(seen.has(k))return false;seen.add(k);return true;});
     return(cur.length||carry.length)?{cur,carry}:null;
   };
-  const chip=(it,carry)=>{const[ic,c,b]=stChip[it.status];return `<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:8px;background:${b};color:${c};font-size:12px;font-weight:700;">${carry?'<span style="font-size:10px;font-weight:800;color:#b45309;">이월</span>':''}${ic} ${esc(it.text)}</span>`;};
+  const chip=(it,carry)=>{let[ic,c,b]=stChip[it.status];const optSkip=it.status===0&&isOptionalHw(it.text);if(optSkip){ic='–';c='#6b7280';b='#f1f3f5';}return `<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:8px;background:${b};color:${c};font-size:12px;font-weight:700;">${carry?'<span style="font-size:10px;font-weight:800;color:#b45309;">이월</span>':''}${ic} ${esc(it.text)}${optSkip?' 안 함':''}</span>`;};
   // 미니테스트: "3/5 (60%) · 다시 볼 문제 3·4번" (문항 수가 없으면 오답 번호만)
   const miniText=r=>[
-    r.total!=null?`<b style="color:#111;">${r.correct}/${r.total}</b> (${r.pct}%)`:(r.correct!=null?`<b style="color:#111;">${r.correct}개 맞힘</b>`:''),
-    r.wrong.length?`다시 볼 문제 <b style="color:#991b1b;">${r.wrong.map(esc).join('·')}번</b>`:''
+    r.total!=null?`<b style="color:#111;">${r.correct}/${r.total}</b> (${r.perfect?'만점':r.pct+'%'})`:(r.correct!=null?`<b style="color:#111;">${r.correct}개 맞힘</b>`:''),
+    r.wrong.length?`다시 볼 문제 <b style="color:#991b1b;">${r.wrong.map(t=>esc(/^\d+$/.test(t)?t+'번':t)).join(' · ')}</b>`:''
   ].filter(Boolean).join(' · ');
   const rowLabel=t=>`<span style="font-size:12px;font-weight:800;color:#8a909a;margin-right:4px;">${t}</span>`;
   const commentCard=n=>{
     const avg=avgRate(n),note=G.journalNote[`${n}||${date}`]||'';
     const hc=hwCheck(n),mr=miniResult(n,date);
+    const hasBody=!!(hc||mr||note); // 본문이 없으면(결석 등) 제목 아래 구분선 생략
     return `<div style="border:1px solid #e7e9ec;border-radius:14px;padding:18px 22px;margin-bottom:14px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f0f2f4;padding-bottom:12px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;${hasBody?'border-bottom:1px solid #f0f2f4;padding-bottom:12px;margin-bottom:12px;':''}">
         <div style="display:flex;align-items:center;gap:9px;"><span style="width:5px;height:18px;background:#16a34a;border-radius:3px;"></span><span style="font-size:17px;font-weight:800;color:#111;">${esc(n)}</span></div>
         <div style="display:flex;align-items:center;gap:8px;">${badge(n)}<span style="padding:3px 12px;border-radius:9px;background:${avg!=null?rateBg(avg):'#f1f3f5'};color:${avg!=null?rateFg(avg):'#9aa0a8'};font-size:12px;font-weight:800;">기간평균 ${avg!=null?avg+'%':'—'}</span></div>
       </div>

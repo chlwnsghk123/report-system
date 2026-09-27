@@ -41,10 +41,10 @@ DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 �
 | `isHwOff(student,date,ref)` | 특정 과제 ref가 OFF인지 |
 | `RATE_TIER` / `RATE_STYLE` | 이행률 등급 기준(75/30)과 등급별 라벨·색 — 모든 화면·출력물 공통 |
 | `rateTier(v)` / `rateFg(v)` / `rateBg(v)` | 이행률 → 등급 / 글자색 / 배경색 |
-| `isOptionalHw(text)` | '(선택)'으로 시작하는 선택 과제인지 — 이행률 계산·이월 대상에서 제외 |
+| `isOptionalHw(text)` | 과제명에 '(선택)'이 있는 선택 과제인지 — 이행률 계산·이월 대상에서 제외 |
 | `calcRate(statuses)` | 과제 상태 배열 → 이행률 (완료 100·부분 50·미완료 0 평균, 없으면 null) |
 | `hwStatusCounts(statuses)` | 상태 배열 → `{done, partial, miss}` 개수 |
-| `MINI_PERFECT_MARKS` / `parseWrongList(str)` | 오답칸 만점 표시('0'·'없음'·'만점') / 오답 문자열 → 번호 배열 |
+| `MINI_PERFECT_MARKS` / `parseWrongList(str)` | 오답칸 만점 표시('0'·'없음'·'만점') / 오답 문자열 → 번호 배열 (쉼표 구분, 번호만 나열한 조각은 띄어쓰기·마침표로도 나눔, '4번'→'4') |
 | `miniResult(student,date)` | 미니테스트 결과 `{total,correct,wrong,range,pct,perfect}` — 결석이거나 **그 학생 입력이 없으면 null** (문항 수만으로 만점 처리하지 않음) |
 
 ## js/db.js

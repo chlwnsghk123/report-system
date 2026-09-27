@@ -76,7 +76,7 @@
               <input type="number" id="inputRate" class="rate-input" min="0" max="100" oninput="onRateManual()" title="과제 상태를 바꾸면 자동 계산됩니다. 직접 입력도 가능합니다">
               <span class="rate-unit-sm">%</span>
               <span id="hwCounts" class="hw-counts"></span>
-              <button class="ab rate-auto-btn" onclick="autoCalcRate()" title="직접 입력한 값을 과제 상태 기준으로 다시 계산합니다" style="margin-left:auto;">⚡ 다시 계산</button>
+              <button class="ab rate-auto-btn" onclick="autoCalcRate()" title="직접 입력한 값을 과제 상태 기준으로 다시 계산합니다" style="margin-left:auto;">↻ 재계산</button>
             </div>
           </div>
         </div>
@@ -107,10 +107,10 @@
             <div class="cg">
               <label>시험 정보 <span class="label-hint">(이 날짜 반 공통)</span></label>
               <div class="mini-row">
-                <input type="number" id="miniTotal" min="1" placeholder="문항 수" oninput="onMiniInput()" style="width:84px;flex:none;">
+                <input type="number" id="miniTotal" min="1" placeholder="문항 수" oninput="onMiniInput()" style="width:100px;flex:none;">
                 <input type="text" id="miniRange" placeholder="범위 (예: 유형 03~06)" oninput="onMiniInput()">
               </div>
-              <label style="margin-top:6px;">오답 번호 <span class="label-hint">(쉼표 구분)</span></label>
+              <label style="margin-top:6px;">오답 번호 <span class="label-hint">(쉼표·띄어쓰기 구분)</span></label>
               <div class="mini-row">
                 <input type="text" id="inputWrong" placeholder="예: 3, 7, 12 (다 맞으면 0)" oninput="onWrongInput(this.value)">
                 <input type="number" id="miniCorrect" min="0" placeholder="맞힌 수" title="비워두면 '문항 수 − 오답 수'로 자동 계산" oninput="onMiniInput()" style="width:100px;flex:none;">
