@@ -654,9 +654,13 @@ function _buildJournalReportPages(date){
   const topWrong=[...wrongCnt].sort((a,b)=>b[1]-a[1]||(parseFloat(a[0])-parseFloat(b[0]))||a[0].localeCompare(b[0])).slice(0,8);
   const mt=G.miniTest?.[date]||{};
   const mtSub=[String(mt.range||'').trim(),Number(mt.total)>0?Math.round(Number(mt.total))+'문항':''].filter(Boolean).map(esc).join(' · ');
-  const wrongHtml=topWrong.length?`<div style="margin-top:22px;">${secLabel('미니테스트 오답 집계',mtSub)}
+  const wrongHtml=(topWrong.length?`<div style="margin-top:22px;">${secLabel('미니테스트 오답 집계',mtSub)}
     <div style="display:flex;flex-wrap:wrap;gap:6px;">${topWrong.map(([q,c])=>`<span style="padding:5px 10px;border-radius:9px;background:#fef4f4;border:1px solid #f6d4d4;font-size:13px;font-weight:800;color:#991b1b;">${esc(q)}번 <span style="font-weight:700;color:#7a808a;">${c}명</span></span>`).join('')}${wrongCnt.size>8?`<span style="padding:6px 4px;font-size:13px;color:#9aa0a8;">외 ${wrongCnt.size-8}문항</span>`:''}</div>
-  </div>`:'';
+  </div>`:'')
+  // 문제 노트 숙제 오답 집계 (숙제별 많이 틀린 문제 — 다음 수업에 풀어 줄 문제, cloud.js)
+    +(typeof noteWrongTally==='function'?noteWrongTally(date):[]).map(g=>`<div style="margin-top:22px;">${secLabel('숙제 오답 집계',esc(g.title))}
+    <div style="display:flex;flex-wrap:wrap;gap:6px;">${g.top.map(([q,c])=>`<span style="padding:5px 10px;border-radius:9px;background:#fef4f4;border:1px solid #f6d4d4;font-size:13px;font-weight:800;color:#991b1b;">${esc(/번$/.test(q)?q:q+'번')} <span style="font-weight:700;color:#7a808a;">${c}명</span></span>`).join('')}</div>
+  </div>`).join('');
 
   // 코멘트 카드
   const catMap={present:['출석','#16a34a','#dcfce7'],late:['지각','#ca8a04','#fef9c3'],absent:['결석','#dc2626','#fee2e2'],none:['미체크','#9aa0a8','#f1f3f5']};
@@ -681,13 +685,15 @@ function _buildJournalReportPages(date){
   const commentCard=n=>{
     const avg=avgRate(n),note=G.journalNote[`${n}||${date}`]||'';
     const hc=hwCheck(n),mr=miniResult(n,date);
-    const hasBody=!!(hc||mr||note); // 본문이 없으면(결석 등) 제목 아래 구분선 생략
+    const nr=typeof noteCheckRows==='function'?noteCheckRows(n,date):[]; // 문제 노트 숙제 채점 결과 (cloud.js)
+    const hasBody=!!(hc||mr||note||nr.length); // 본문이 없으면(결석 등) 제목 아래 구분선 생략
     return `<div style="border:1px solid #e7e9ec;border-radius:14px;padding:18px 22px;margin-bottom:14px;">
       <div style="display:flex;align-items:center;justify-content:space-between;${hasBody?'border-bottom:1px solid #f0f2f4;padding-bottom:12px;margin-bottom:12px;':''}">
         <div style="display:flex;align-items:center;gap:9px;"><span style="width:5px;height:18px;background:#16a34a;border-radius:3px;"></span><span style="font-size:17px;font-weight:800;color:#111;">${esc(n)}</span></div>
         <div style="display:flex;align-items:center;gap:8px;">${badge(n)}<span style="padding:3px 12px;border-radius:9px;background:${avg!=null?rateBg(avg):'#f1f3f5'};color:${avg!=null?rateFg(avg):'#9aa0a8'};font-size:12px;font-weight:800;">기간평균 ${avg!=null?avg+'%':'—'}</span></div>
       </div>
       ${hc?`<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:10px;">${rowLabel('숙제 검사')}${hc.cur.map(it=>chip(it,false)).join('')}${hc.carry.map(it=>chip(it,true)).join('')}</div>`:''}
+      ${nr.length?`<div style="font-size:13px;color:#445;margin-bottom:10px;">${rowLabel('문제 노트')} ${nr.map(r=>`${esc(r.text.replace(/^📘 /,''))} <b style="color:${r.st===0?'#991b1b':'#111'};">${esc(r.chip)}</b>${r.sub?` <span style="color:#7a808a;">· ${esc(r.sub)}</span>`:''}`).join(' <span style="color:#cdd2d8;">/</span> ')}</div>`:''}
       ${mr?`<div style="font-size:13px;color:#445;margin-bottom:10px;">${rowLabel('미니테스트')} ${miniText(mr)}</div>`:''}
       ${note?`<div style="font-size:14px;color:#333;line-height:1.7;white-space:pre-line;min-height:22px;">${esc(note)}</div>`:''}
     </div>`;
@@ -699,7 +705,8 @@ function _buildJournalReportPages(date){
     const noteLines=note?note.split('\n').reduce((s,l)=>s+Math.max(1,Math.ceil(textW(l,14)/640)),0):1;
     const hc=hwCheck(n);
     const hwRows=hc?Math.ceil((64+hc.cur.reduce((w,it)=>w+46+textW(it.text,12),0)+hc.carry.reduce((w,it)=>w+72+textW(it.text,12),0))/640):0;
-    return 94+noteLines*24+(hc?10+hwRows*26:0)+(miniResult(n,date)?30:0);
+    const nrN=typeof noteCheckRows==='function'?noteCheckRows(n,date).length:0;
+    return 94+noteLines*24+(hc?10+hwRows*26:0)+(miniResult(n,date)?30:0)+(nrN?10+nrN*22:0);
   };
   const planText=G.journalPlan[date]||_defaultJournalPlan(date);
   const planHtml=`<div style="background:#f3fbf5;border:1px solid #cdeed6;border-radius:14px;padding:18px 22px;margin-top:6px;">

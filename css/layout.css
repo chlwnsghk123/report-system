@@ -590,3 +590,36 @@ body.modal-open .preview{overflow:hidden!important;}
 /* 지금까지 틀린 횟수 (문제 노트 '학생 기록'과 같은 표시) */
 .note-badge{position:absolute;top:-6px;right:-6px;min-width:14px;height:14px;padding:0 3px;border-radius:999px;background:#fee2e2;color:#dc2626;font-size:9px;font-weight:800;line-height:14px;text-align:center;pointer-events:none;}
 .note-hint{margin-top:6px;}
+/* 문제 노트 숙제 채점 · 오답 다시 풀기 (cloud.js) */
+.note-head{font-weight:700;font-size:13px;color:#475569;display:flex;align-items:center;gap:6px;}
+.note-link{border:none;background:#eff6ff;color:#1d4ed8;border-radius:7px;padding:2px 8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;}
+.note-link:hover{background:#dbeafe;}
+.note-chip.dim{color:#cbd5e1;border-color:#e5e7eb;background:#f9fafb;}
+.note-help{position:absolute;right:-3px;bottom:-3px;width:8px;height:8px;border-radius:50%;background:#f59e0b;border:2px solid #fff;pointer-events:none;}
+.note-ok1{margin-left:3px;font-size:10px;font-weight:700;opacity:.7;}
+.note-wrong{background:#fff7f7;border-color:#fde2e2;}
+.cur-hw-item.note .cur-hw-badge{color:#1d4ed8;}
+.att-note-btn{background:#eff6ff!important;color:#1d4ed8!important;border-color:#bfdbfe!important;}
+/* 반 전체 채점 창 */
+.stu-modal.cg-modal{width:min(1100px,94vw);max-height:88vh;}
+.cg-intro{font-size:12.5px;color:#1e40af;background:#eff6ff;border-radius:10px;padding:9px 12px;line-height:1.6;}
+.cg-sec{display:flex;flex-direction:column;gap:6px;}
+.cg-sec-title{font-size:14px;font-weight:800;color:#111;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
+.cg-scroll{overflow-x:auto;border:1px solid #eef0f3;border-radius:10px;}
+.cg-table{border-collapse:separate;border-spacing:0;width:100%;font-size:12px;}
+.cg-table th,.cg-table td{padding:5px 3px;text-align:center;border-top:1px solid #f1f3f5;}
+.cg-table thead th{border-top:none;color:#6b7280;font-weight:700;font-size:11px;background:#fafbfc;}
+.cg-table .cg-name{position:sticky;left:0;background:#fff;text-align:left;padding:6px 10px;min-width:150px;z-index:1;font-weight:700;color:#111;}
+.cg-table thead .cg-name{background:#fafbfc;}
+.cg-st{font-size:11px;font-weight:700;color:#374151;margin-left:4px;}
+.cg-dim{color:#9ca3af;}
+.cg-bad{color:#dc2626;}
+.cg-acts{display:flex;gap:6px;margin-top:3px;flex-wrap:wrap;}
+.cg-acts button{border:none;background:none;padding:0;font-size:11px;font-weight:700;color:#2563eb;cursor:pointer;font-family:inherit;}
+.cg-acts button:hover{text-decoration:underline;}
+.cg-foot td,.cg-foot th{border-top:2px solid #eef0f3;font-weight:800;color:#6b7280;}
+.cg-foot .cg-hot{color:#dc2626;}
+.cg-wrow{padding:8px 10px;border:1px solid #eef0f3;border-radius:10px;}
+.cg-wname{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#111;}
+.cg-wname .cg-acts{margin:0 0 0 auto;}
+.cg-foot-row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;}

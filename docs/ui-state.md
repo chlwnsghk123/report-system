@@ -19,9 +19,12 @@ body (flex, 100vh)
 │        │  │  ├─ .hw-all-done  ✓ 모두 완료 (markAllHwDone)
 │        │  │  ├─ #hwEditor    과제 에디터 (.hw-item[data-i] + 상태 버튼)
 │        │  │  └─ .rate-input-row > #inputRate(자동 계산·직접 입력 0~100) · #hwCounts(완료/부분/미완료 개수) · ↻ 재계산
-│        │  ├─ .panel-card > #gCurHw   다음 수업까지 과제 (ON/OFF) + 추가 과제 입력
-│        │  └─ .panel-card#noteHwCard  숙제 채점 (학원 저장소 로그인 + 이 학생·날짜 숙제가 있을 때만, js/cloud.js) — .note-asg > .note-unit-row > .note-chip(.wrong·.right) > .note-badge(틀린 횟수)
-│        │     └─ .note-asg × N  (.note-asg-head 제목·상태 .note-st·모두 맞음/채점 취소 + .note-unit-row > .note-unit · .note-chip(.wrong))
+│        │  ├─ .panel-card#noteHwCard  문제 노트 숙제 채점·오답 다시 풀기 (학원 저장소 로그인 + 이 학생·수업에 검사할 것/나간 숙제가 있을 때만, js/cloud.js)
+│        │  │  ├─ .note-head  제목 · ↻ 새로 받기 · .note-link 문제 노트 ↗ (label 아님 — 제목을 눌러도 버튼이 눌리지 않게)
+│        │  │  ├─ .note-asg × N  숙제 (.note-asg-head 제목·(이월)·상태 .note-st·모두 맞음/모두 틀림/안 해 옴/나머지 맞음/채점 지우기
+│        │  │  │   + .note-unit-row > .note-unit · .note-chip(.wrong·.right·.dim) > .note-badge(틀린 횟수)·.note-help(3번 이상))
+│        │  │  └─ .note-asg.note-wrong  오답 다시 풀기 (칩 > .note-ok1 ✓1 = 확인 중)
+│        │  └─ .panel-card > #gCurHw   다음 수업까지 과제 (ON/OFF — 문제 노트 항목은 .cur-hw-item.note '(문제 노트)') + 추가 과제 입력
 │        └─ .panel-section "선택 항목"
 │           ├─ #toggleMini      미니 테스트 토글
 │           ├─ #gMini > .panel-card  #miniTotal(문항 수)·#miniRange(범위) — 날짜 공통 / #inputWrong(오답)·#miniCorrect(맞힌 수) — 학생별 · #miniWarn(문항 수를 벗어난 오답 번호 경고)
@@ -40,14 +43,14 @@ body (flex, 100vh)
    └─ .preview-body (flex row)
       ├─ .preview-content (flex:1)
       │  ├─ #dateNavBar     상단 날짜 네비게이션 (‹ 날짜 › + 클릭 드롭다운 + 날짜 추가)
-      │  ├─ #attendBar      출결 세그먼트 #attendToggle(출석/지각/결석) + 전원 출석 버튼 + #attendUnset(미체크 N명)
+      │  ├─ #attendBar      출결 세그먼트 #attendToggle(출석/지각/결석) + 전원 출석 + 전원 과제 완료 + #btnClassGrade(📘 숙제 채점(반 전체) — 이 수업에 검사할 문제 노트 숙제·오답이 있을 때만, 창 .stu-modal-overlay[data-type="classgrade"] > .stu-modal.cg-modal > .cg-sec > .cg-table) + #attendUnset(미체크 N명)
       │  ├─ #spreadRow
       │  │  ├─ #leftSlot
       │  │  │  ├─ #reportCard  A4 캡처 대상 (.dense/.dense2: A4 넘칠 때 자동 맞춤)
       │  │  │  │  ├─ #secRate      숙제 이행률 + 그래프 + 마스코트 (.absent → '이번 수업 결석' 표시, 마스코트 숨김)
-      │  │  │  │  ├─ #secPrevHw    지난 수업 과제 (#rHwList)
+      │  │  │  │  ├─ #secPrevHw    지난 수업 과제 (#rHwList — 문제 노트 숙제 결과 .hw-li.note-li > .hw-text > .hw-sub(다시 볼 문제) · .hw-chip "12/15 맞음")
       │  │  │  │  ├─ .sec          수업 진도 (오늘 배운 내용 / 지난 수업 내용)
-      │  │  │  │  ├─ .sec          다음 수업까지 과제 (#rNoticeList, 없으면 '별도 과제 없음')
+      │  │  │  │  ├─ .sec          다음 수업까지 과제 (#rNoticeList, 없으면 '별도 과제 없음' — 문제 노트 숙제·오답 다시 풀기 .next-hw-li.note-li)
       │  │  │  │  ├─ #secMini      미니 테스트 (#rMiniScore 점수 · #rMiniRange 범위 · #rWrongTags 다시 볼 문제) — 기록 있을 때만
       │  │  │  │  └─ #secComment   선생님 한마디 (#commentBody · #commentSign) — 코멘트 있을 때만
       │  │  │  ├─ #leftPdfCanvas
@@ -127,8 +130,9 @@ CLOUD = {
   book,          // 열어 둔 리포트 {id,title,rev,updatedAt} — 'rs:book' (+tenant)
   books,         // 리포트 목록 (창 표시용)
   dirty, saving, again, timer, retry, conflict,   // 자동 저장 상태
-  notes,         // {tenant, homework:[…], recs:{[학생]:{items:{[문제 id]:{h}}}}, at} — 'rs:notes' (이 기기 캐시)
+  notes,         // {tenant, homework:[…], recs:{[학생]:{items:{[문제 id]:{h}}, missing:{[숙제 id]:날짜}}}, at} — 'rs:notes' (이 기기 캐시)
   markQ, markBusy, recLoading, notesAt,           // 학생별 채점 저장 줄 · 저장 중 수 · 기록 받는 중 · 마지막 받은 시각
+  goStudent,     // 문제 노트 '학습 리포트에서 보기'로 넘어온 학생 (#go=student:이름 — 리포트를 연 뒤 그 학생으로)
 }
 // localStorage 'rs:apiBase' — 서버 주소 바꾸기 (시험용, 기본 https://mathpro.app)
 ```

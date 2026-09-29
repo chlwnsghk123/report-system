@@ -104,13 +104,15 @@
 | **P5 (완료)** | IndexedDB `appData` 자동 백업 + 시작 시 '지난 작업 이어하기' 배너(`checkRecovery`·`restoreFromBackup`) | v1.80 |
 | **P6 (완료)** | 학원 저장소(`cloud.js`) — 구글 로그인, 리포트 전체를 학원 단위로 저장·공유(rev 충돌 안내), 문제 노트 과제 채점. 서버는 문제 노트 Worker(이 앱엔 서버 코드 없음) | v1.83 |
 | **P7 (완료)** | 숙제 + 학생별 문제 기록(두 앱 같은 채점 규칙), 엑셀 바로 올리기, 문제 노트와 로그인 넘김 이동, ☁ 버튼 상시 표시 | v1.84 |
+| **P8 (완료)** | 강사 사용성 재설계(note-pro docs/CLASSROOM_UX.md): 숙제는 나눠 준 수업의 '다음 수업까지 과제'·검사하는 수업의 카드로, 반 전체 채점 창, 틀린 문제 → '오답 다시 풀기' 자동(다른 날 두 번 맞혀야 해결), 안 해 옴 이월, 숙제 결과는 '지난 수업 과제'·수업 일지표로(미니 테스트는 직접 입력만). 규칙은 cloud.js "공통 규칙" 블록 = 문제 노트 `classroomRules.js` | v1.85 |
 
 ### v1.83 학원 저장소 연결 방식
 - `cloud.js`는 인프라 어댑터다. 기존 파일은 **`typeof 함수==='function'` 확인 후 호출하는 연결점**만 가진다
-  (saveAppData→`cloudOnChange`, _appSnapshot→`cloudSnapshotTag`, miniResult→`noteMiniResult`,
-  confirmMissingInputs→`noteUngradedNames`, autoFillAll·toggleSec→`renderNotePanel`, loadExcel·_clearAllData→`cloudDetach`,
-  Ctrl+S→`cloudSaveNow`, onload→`cloudInit`). cloud.js를 빼도 앱은 예전 그대로 동작한다.
-- 도메인 규칙(`miniResult`)은 저장소를 모른다 — "직접 입력이 없으면 숙제 채점 결과"라는 규칙만 두고, 결과 계산은 어댑터가 준다.
+  (saveAppData→`cloudOnChange`, _appSnapshot→`cloudSnapshotTag`, _curHwOnOffItems→`noteNextItems`,
+  updateHwDisplay·수업 일지표→`noteCheckRows`·`noteWrongTally`, confirmMissingInputs→`noteUngradedNames`,
+  autoFillAll·toggleSec→`renderNotePanel`, loadExcel·_clearAllData→`cloudDetach`, Ctrl+S→`cloudSaveNow`, onload→`cloudInit`).
+  cloud.js를 빼도 앱은 예전 그대로 동작한다.
+- 도메인 규칙(`miniResult`)은 저장소를 모른다 — v1.85부터 미니 테스트는 직접 입력만, 숙제 결과는 과제 섹션에 어댑터가 붙인다.
 - 엑셀 시트 구조는 바꾸지 않았다. 학원 저장소는 같은 데이터(`DATA_KEYS`)를 JSON으로 저장하고, 엑셀 저장은 백업으로 그대로 쓴다.
 
 ### v1.80 대대적 리팩토링 (검수팀 QA·수학강사·개발팀 2라운드)

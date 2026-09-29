@@ -204,3 +204,7 @@ svg.lc{width:100%;height:100%;overflow:visible;}
 .rc.dense .comment-wrap{padding:14px 18px;}
 .rc.dense2 .hw-list:not(.compact),.rc.dense2 .next-hw-list:not(.compact){display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;}
 .rc.dense2 .hw-li,.rc.dense2 .next-hw-li{font-size:12px;}
+/* 문제 노트 숙제 결과 · 오답 다시 풀기 (cloud.js noteCheckRows · noteNextItems) */
+.hw-li .hw-text{min-width:0;}
+.hw-sub{display:block;font-size:11px;font-weight:600;color:#6b7280;margin-top:1px;}
+.rc.dense .hw-sub,.rc.dense2 .hw-sub{font-size:10px;}
