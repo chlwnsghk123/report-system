@@ -46,7 +46,7 @@ DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 �
 | `hwStatusCounts(statuses)` | 상태 배열 → `{done, partial, miss}` 개수 |
 | `MINI_PERFECT_MARKS` / `parseWrongList(str)` | 오답칸 만점 표시('0'·'없음'·'만점') / 오답 문자열 → 번호 배열 (쉼표 구분, 번호만 나열한 조각은 띄어쓰기·마침표로도 나눔, '4번'→'4') |
 | `miniOutOfRange(student,date)` | 문항 수 범위(1~문항 수)를 벗어난 오답 번호 배열 — 입력칸 경고·보내기 전 점검용 (글자 항목은 제외, '1-2'는 앞 번호로 판단) |
-| `miniResult(student,date)` | 미니테스트 결과 `{total,correct,wrong,range,pct,perfect}` — 결석이거나 **그 학생 입력이 없으면 null** (문항 수만으로 만점 처리하지 않음) |
+| `miniResult(student,date)` | 미니테스트 결과 `{total,correct,wrong,range,pct,perfect}` — 결석이거나 **그 학생 입력이 없으면 null** (문항 수만으로 만점 처리하지 않음). 직접 입력이 없을 때는 채점한 노트 과제 결과(`noteMiniResult`, cloud.js)를 대신 씀 |
 
 ## js/db.js
 | 함수 | 역할 |
@@ -117,8 +117,8 @@ DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 �
 ## js/session.js
 | 함수 | 역할 |
 |---|---|
-| `_appSnapshot()` / `_writeSnapshot()` | 자동 백업 스냅샷 생성 / IndexedDB 저장 ('지난 작업' 배너 대기 중엔 쓰지 않음, 이번 세션에 직접 다 지운 경우만 백업 비움) |
-| `saveAppData()` | 데이터 변경 → 미저장 표시 + 백업 예약(300ms) |
+| `_appSnapshot()` / `_writeSnapshot()` | 자동 백업 스냅샷 생성 / IndexedDB 저장 ('지난 작업' 배너 대기 중엔 쓰지 않음, 이번 세션에 직접 다 지운 경우만 백업 비움). 학원 저장소 리포트를 열어 둔 경우 `cloud` 표시(리포트 id·저장본 번호)와 '못 올린 변경' 여부를 함께 저장 |
+| `saveAppData()` | 데이터 변경 → 미저장 표시 + 백업 예약(300ms) + 학원 저장소 자동 저장 예약(`cloudOnChange`) |
 | `saveSession()` | 선택 변경 → 백업 예약만 |
 | `saveAppDataNow()` | 즉시 백업 |
 | `checkRecovery()` | 시작 시 백업이 있으면 '지난 작업 이어하기' 배너 표시 |
@@ -220,5 +220,27 @@ DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 �
 |---|---|
 | `loadMascotImages()` | 마스코트 이미지 파일 등록 |
 | `initPanelResize()` | 패널 드래그 리사이즈 |
-| `window.onload` | 앱 진입점 (IndexedDB → 배율 → 마스코트 → 보기 설정 → 지난 작업 확인) |
-| (keydown) | ESC: 동적 모달·수업설정 닫기 / Ctrl+S: 엑셀 저장 |
+| `window.onload` | 앱 진입점 (IndexedDB → 배율 → 마스코트 → 보기 설정 → 지난 작업 확인 → 학원 저장소 `cloudInit`) |
+| (keydown) | ESC: 동적 모달·수업설정 닫기 / Ctrl+S: 엑셀 저장 (학원 저장소 리포트를 열어 둔 경우 `cloudSaveNow`) |
+
+## js/cloud.js (학원 저장소 · 노트 과제, v1.83)
+서버는 문제 노트 사이트(mathpro.app)의 Worker — 이 앱에는 서버 코드가 없다. 상태는 `G`가 아니라 별도 객체 `CLOUD`.
+| 함수 | 역할 |
+|---|---|
+| `cloudInit()` | 시작 시(지난 작업 확인 뒤) 로그인·학원·노트 캐시 복원 → 서버 설정 확인(`/api/auth/config`, 안 되면 ☁ 버튼 숨김) → 열어 두었던 리포트 이어 열기 |
+| `cloudApiBase()` | 서버 주소 (기본 `https://mathpro.app`, localStorage `rs:apiBase`로 바꿀 수 있음 — 시험용) |
+| `cloudSignIn(credential)` / `cloudSignOut()` | 구글 ID 토큰 → 세션 토큰 저장(`rs:auth`) / 로그아웃 (연결 끊고 노트 캐시 비움) |
+| `cloudChangeTenant(path)` | 학원 바꾸기 (여러 학원에 등록된 선생님) |
+| `openCloudModal()` / `_renderCloudModal()` | ☁ 학원 저장소 창 — 로그인·리포트 목록·열기·올리기·빈 리포트·삭제·연결 끊기 |
+| `cloudOpenBook(id)` / `cloudUploadCurrent()` / `cloudCreateBlank()` / `cloudDeleteBook(id)` / `cloudDisconnect()` | 리포트 열기 / 지금 화면을 새 리포트로 올리기 / 빈 리포트 만들기 / 삭제(휴지통) / 연결 끊기 |
+| `cloudResume()` | 열어 두었던 리포트 이어 열기 — 이 기기 백업에 못 올린 변경이 있으면 이어서 올리거나(저장본 번호 같음) 어느 쪽을 쓸지 묻기 |
+| `cloudOnChange()` / `_cloudSave(force)` / `cloudSaveNow()` | 변경 → 1.5초 뒤 자동 저장 (`baseRev` 확인, 409면 충돌 안내, 실패하면 점점 늦춰 재시도) / 즉시 저장 |
+| `_cloudConflict()` | 저장 충돌 — 학원 저장소 버전 불러오기 · 내 버전으로 덮어쓰기 · 내 버전 엑셀로 받아두기 |
+| `cloudDetach()` / `cloudActive()` / `cloudIsDirty()` / `cloudSnapshotTag()` | 연결 끊기 / 열어 둔 리포트 있음 / 못 올린 변경 있음 / 자동 백업에 붙일 표시 |
+| `_cloudPayload()` / `_cloudApply(src)` | `DATA_KEYS` 전체 ↔ 저장 형식 (hwDisabled의 Set ↔ 배열) |
+| `_cloudStatus()` / `cloudStatusClick()` | 패널 상단 저장 상태(#cloudStatus: 저장됨·저장 중·대기·실패·충돌·로그인 필요) |
+| `cloudLoadNotes()` | 노트 과제·채점 결과 받기 (창으로 돌아올 때 1분에 한 번), 이 기기에 캐시(`rs:notes`) |
+| `renderNotePanel()` / `noteToggle(aid,pid)` / `_noteSet(aid,wrong)` / `_noteSave(aid)` | 노트 과제 카드(#noteHwCard) — 문제 칩을 눌러 오답 표시, 모두 맞음, 채점 취소 → 0.6초 뒤 서버 저장 |
+| `noteMiniResult(student,date)` | 채점한 노트 과제 → 미니 테스트 결과 (직접 입력이 없을 때 `miniResult`가 사용) |
+| `noteUngradedNames(date,students)` | 노트 과제가 있는데 채점 안 한 학생 (보내기 전 점검) |
+| `_noteLessonDate(date)` | 과제 날짜 → 그 날짜 또는 그 뒤 첫 수업 날짜 |

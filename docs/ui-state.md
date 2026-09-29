@@ -6,7 +6,7 @@
 body (flex, 100vh)
 ├─ .panel (좌, 400px, 드래그 리사이즈 가능 280~700px)
 │  ├─ .panel-head (흰색 배경, 하단 보더)
-│  │  ├─ .panel-brand (제목 + 마지막 저장 시간 + ⚠ 미저장 표시 #unsavedInline)
+│  │  ├─ .panel-brand (제목 + 마지막 저장 시간 + ⚠ 미저장 표시 #unsavedInline + 학원 저장소 저장 상태 #cloudStatus)
 │  │  ├─ #sbar          상태바 / 엑셀 불러오기 (클릭 → triggerLoad) + #btnExcelRemove(−)
 │  │  ├─ #excelInput    파일 선택 input (hidden)
 │  │  ├─ #recoverBanner 지난 작업 이어하기 배너 (IndexedDB 자동 백업, #recoverInfo · 이어하기/닫기)
@@ -19,7 +19,9 @@ body (flex, 100vh)
 │        │  │  ├─ .hw-all-done  ✓ 모두 완료 (markAllHwDone)
 │        │  │  ├─ #hwEditor    과제 에디터 (.hw-item[data-i] + 상태 버튼)
 │        │  │  └─ .rate-input-row > #inputRate(자동 계산·직접 입력 0~100) · #hwCounts(완료/부분/미완료 개수) · ↻ 재계산
-│        │  └─ .panel-card > #gCurHw   다음 수업까지 과제 (ON/OFF) + 추가 과제 입력
+│        │  ├─ .panel-card > #gCurHw   다음 수업까지 과제 (ON/OFF) + 추가 과제 입력
+│        │  └─ .panel-card#noteHwCard  노트 과제 채점 (학원 저장소 로그인 + 이 학생·날짜 과제가 있을 때만, js/cloud.js)
+│        │     └─ .note-asg × N  (.note-asg-head 제목·상태 .note-st·모두 맞음/채점 취소 + .note-unit-row > .note-unit · .note-chip(.wrong))
 │        └─ .panel-section "선택 항목"
 │           ├─ #toggleMini      미니 테스트 토글
 │           ├─ #gMini > .panel-card  #miniTotal(문항 수)·#miniRange(범위) — 날짜 공통 / #inputWrong(오답)·#miniCorrect(맞힌 수) — 학생별 · #miniWarn(문항 수를 벗어난 오답 번호 경고)
@@ -28,6 +30,7 @@ body (flex, 100vh)
 ├─ .panel-resize (#panelResize)  드래그 리사이즈 핸들
 └─ .preview (우, flex:1)
    ├─ .toolbar          상단 도구 모음
+   │  ├─ #btnCloud      ☁ 학원 저장소 (서버가 준비됐을 때만 보임, openCloudModal) — 창은 .stu-modal-overlay[data-type="cloud"] > .stu-modal.cloud-modal
    │  ├─ #btnImg        🖼 이미지 (카톡용 JPG 저장, dlReportImage)
    │  ├─ #btnPdf        PDF 내보내기 버튼
    │  ├─ #btnSave       저장 버튼
@@ -112,6 +115,23 @@ DATA_KEYS = ['lessons','students','rates','wrong','hwRec','memos','attend','masc
   'journalNote','journalPlan','journalInfo','miniTest','miniScore','teacherName','showMini','showComment','colorMode','lastSaved']
 ```
 
+## 학원 저장소 상태 CLOUD (js/cloud.js, v1.83)
+`G`와 따로 둔다 (엑셀·리포트 데이터에 섞이지 않음).
+```js
+CLOUD = {
+  config,        // {enabled, clientId} — /api/auth/config
+  auth,          // {token, user:{email,name}, tenants:[{path,name,role}]} — localStorage 'rs:auth'
+  expired,       // 로그인 만료 (다시 로그인하면 멈춘 저장을 이어서)
+  tenant,        // 선택한 학원 "seed/slug" — 'rs:tenant'
+  book,          // 열어 둔 리포트 {id,title,rev,updatedAt} — 'rs:book' (+tenant)
+  books,         // 리포트 목록 (창 표시용)
+  dirty, saving, again, timer, retry, conflict,   // 자동 저장 상태
+  notes,         // {tenant, assignments:[…], results:{…}, at} — 'rs:notes' (이 기기 캐시)
+  notePending, noteTimers, notesAt,               // 채점 저장 대기
+}
+// localStorage 'rs:apiBase' — 서버 주소 바꾸기 (시험용, 기본 https://mathpro.app)
+```
+
 ## CDN 라이브러리
 
 | 라이브러리 | 버전 | 용도 |
@@ -121,10 +141,12 @@ DATA_KEYS = ['lessons','students','rates','wrong','hwRec','memos','attend','masc
 | pdf-lib | 1.17.1 | PDF 생성·이미지 임베드 |
 | pdf.js | 3.11.174 | 첨부 PDF 미리보기 |
 | JSZip | 3.10.1 | 카톡용 이미지 일괄 저장(ZIP) |
+| Google Identity Services | — | 학원 저장소 구글 로그인 버튼 (☁ 창을 열 때만 불러옴, js/cloud.js) |
 
 ## IndexedDB (자동 백업)
 - DB: `reportApp4`, Store: `data`
 - 키 `'appData'`: `DATA_KEYS` 전체 + `fileName`·`savedAt`·`unsaved`·`pendingPropagations`·`selDate`·`selStudent` 스냅샷.
+  학원 저장소 리포트를 열어 둔 경우 `cloud`({tenant,id,rev,title})도 함께 — 다음에 열 때 '못 올린 변경'을 이어서 올리는 데 쓴다(`unsaved` = 엑셀 또는 학원 저장소에 아직 저장 안 됨).
   편집할 때마다 300ms 디바운스로 저장(`saveAppData`/`saveSession`), 엑셀 저장 직후 즉시 갱신(`saveAppDataNow`).
 - 시작 시 `checkRecovery()`가 스냅샷을 찾아 **지난 작업 이어하기** 배너를 띄움 — 자동으로 복원하지는 않고, 사용자가 누르면 `restoreFromBackup()`.
 - 실질 영속화는 여전히 **엑셀 파일**. IndexedDB를 쓸 수 없는 환경에서도 앱은 동작(백업만 비활성).

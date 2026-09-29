@@ -68,7 +68,7 @@
 ├─ Domain (도메인 규칙) ★신설  domain.js
 │    DOM·저장소에 무관한 순수 비즈니스 규칙(출결·과제 ON/OFF 등). G를 읽기만 함.
 ├─ State/Store (상태)          state.js(전역 G) · utils.js(헬퍼)
-└─ Infrastructure (인프라)     db.js(IndexedDB) · excel.js(Excel I/O) · pdf.js(PDF/이미지 출력)
+└─ Infrastructure (인프라)     db.js(IndexedDB) · excel.js(Excel I/O) · pdf.js(PDF/이미지 출력) · cloud.js(학원 저장소 API)
      외부 기술 어댑터. 입출력 담당.
 ```
 
@@ -102,6 +102,15 @@
 | P3 | 스토어 형식화: `setState/subscribe` 도입해 MVVM 양방향성 강화 | 수동 `update*()` 호출 감소 |
 | **P4 (일부 완료)** | pdf.js 공용 헬퍼 추출(`_captureReportCard`·`_captureOffscreen`·`_addReportPages`·`_eachStudentCapture`·`_downloadBlob`), 중복 출력물 제거 → 1,573줄 → 약 1,170줄 | v1.80 — 파일 분할은 다음 단계 |
 | **P5 (완료)** | IndexedDB `appData` 자동 백업 + 시작 시 '지난 작업 이어하기' 배너(`checkRecovery`·`restoreFromBackup`) | v1.80 |
+| **P6 (완료)** | 학원 저장소(`cloud.js`) — 구글 로그인, 리포트 전체를 학원 단위로 저장·공유(rev 충돌 안내), 문제 노트 과제 채점. 서버는 문제 노트 Worker(이 앱엔 서버 코드 없음) | v1.83 |
+
+### v1.83 학원 저장소 연결 방식
+- `cloud.js`는 인프라 어댑터다. 기존 파일은 **`typeof 함수==='function'` 확인 후 호출하는 연결점**만 가진다
+  (saveAppData→`cloudOnChange`, _appSnapshot→`cloudSnapshotTag`, miniResult→`noteMiniResult`,
+  confirmMissingInputs→`noteUngradedNames`, autoFillAll·toggleSec→`renderNotePanel`, loadExcel·_clearAllData→`cloudDetach`,
+  Ctrl+S→`cloudSaveNow`, onload→`cloudInit`). cloud.js를 빼도 앱은 예전 그대로 동작한다.
+- 도메인 규칙(`miniResult`)은 저장소를 모른다 — "직접 입력이 없으면 노트 과제 결과"라는 규칙만 두고, 결과 계산은 어댑터가 준다.
+- 엑셀 시트 구조는 바꾸지 않았다. 학원 저장소는 같은 데이터(`DATA_KEYS`)를 JSON으로 저장하고, 엑셀 저장은 백업으로 그대로 쓴다.
 
 ### v1.80 대대적 리팩토링 (검수팀 QA·수학강사·개발팀 2라운드)
 - **데이터 무결성**: 날짜 키 데이터 일괄 이동/삭제(`renameDateData`·`removeDateData`), 과제 삭제 시 ref 재매핑, 재구성 시 ref 우선 상태 매칭, 학생 삭제·이름 변경 시 모든 키 저장소 처리, 엑셀 파싱 실패 롤백, 저장 결과 반환, IndexedDB 오류 처리.

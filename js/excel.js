@@ -7,6 +7,8 @@ async function loadExcel(input){
   const rb=$$('recoverBanner');
   const pendingBackup=rb&&rb.style.display!=='none'&&rb._snap?.unsaved;
   if((G.unsaved||pendingBackup)&&!confirm('엑셀에 저장하지 않은 작업이 있습니다.\n다른 파일을 불러오면 그 작업은 사라집니다. 계속할까요?')){input.value='';return;}
+  // 학원 저장소 리포트를 열어 둔 경우 — 엑셀을 열면 그 리포트와 연결을 끊음 (학원 저장소의 리포트는 그대로)
+  if(typeof cloudActive==='function'&&cloudActive()&&!confirm('학원 저장소 리포트와 연결을 끊고 엑셀 파일을 열까요?\n(학원 저장소의 리포트는 그대로 남습니다)')){input.value='';return;}
   setBar('wait','⏳ 파싱 중...');
   // 파싱 도중 실패하면 기존 데이터로 되돌림 (G가 반쯤 비워진 채 남아 빈 파일로 저장되는 사고 방지)
   const backup={};DATA_KEYS.forEach(k=>{backup[k]=G[k];});
@@ -15,6 +17,7 @@ async function loadExcel(input){
     parseWB(XLSX.read(buf,{type:'array',cellDates:false,raw:false}));
     // 이전 파일의 작업 상태 초기화 (다른 파일의 학생·이월 예약이 섞이지 않도록)
     G.excelFileName=file.name.replace(/\.xls$/i,'.xlsx');
+    if(typeof cloudDetach==='function')cloudDetach();
     G.tabData={};G.pendingPropagations=[];G.studentPdfs={};G.pdfCanvases=[];
     G.hwItems=[];G.hwStatus=[];G.hwItemRefs=[];G.extraHw=[];G.hwRateManual=null;
     if(!G.students.includes(G.selStudent))G.selStudent='';
@@ -643,6 +646,7 @@ function removeExcelData(){
 }
 
 function _clearAllData(){
+  if(typeof cloudDetach==='function')cloudDetach(); // 학원 저장소 리포트와의 연결도 끊음 (학원 저장소의 리포트는 그대로)
   G.lessons=[];G.students=[];
   G.rates={};G.wrong={};G.hwRec={};G.memos={};G.attend={};G.mascotChoices={};
   G.selDate='';G.selStudent='';

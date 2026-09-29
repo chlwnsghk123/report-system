@@ -528,6 +528,7 @@ function toggleSec(type){
   applyViewSettings();
   // 리포트 섹션은 학생별 데이터가 있을 때만 표시 (빈 칸 방지)
   updateMiniSection();updateCommentSection();fitReportCard();
+  if(typeof renderNotePanel==='function')renderNotePanel();
   setTimeout(updateScale,50);saveAppData();
 }
 

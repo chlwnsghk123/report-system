@@ -46,6 +46,8 @@ document.addEventListener('keydown',function(e){
       _showModalToast('lessonModalOverlay','저장되었습니다');
       saveAppData();return;
     }
+    // 학원 저장소 리포트를 열어 둔 경우: 학원 저장소에 바로 저장
+    if(typeof cloudActive==='function'&&cloudActive()){cloudSaveNow();return;}
     // 일반 화면: 파일 저장
     const btn=$$('btnSave');
     if(btn&&btn.style.display!=='none'&&!btn.disabled)saveToExcel();
@@ -89,7 +91,9 @@ window.onload=async()=>{
   G.studentPdfs={};
   try{await dbSet('studentPdfs',null);}catch(e){}
   // 지난 작업(자동 백업)이 있으면 '이어하기' 배너 표시 — 자동으로 복원하지는 않음
-  checkRecovery();
+  const recovery=checkRecovery();
+  // 학원 저장소(구글 로그인) — 로그인해 둔 경우 열어 두었던 리포트를 이어서 연다 (cloud.js)
+  if(typeof cloudInit==='function')recovery.then(()=>cloudInit(),()=>cloudInit());
   // 미저장 상태에서 사이트 닫기 경고
   window.addEventListener('beforeunload',e=>{
     if(G.unsaved){e.preventDefault();e.returnValue='';}
