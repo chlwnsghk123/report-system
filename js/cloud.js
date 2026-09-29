@@ -1,12 +1,15 @@
-// ─── 학원 저장소 (구글 로그인) · 문제 노트 과제 채점 ───
+// ─── 학원 저장소 (구글 로그인) · 문제 노트 숙제 채점 · 앱 사이 이동 ───
 // 서버는 문제 노트 사이트(mathpro.app)의 Worker다 — 이 앱에는 서버 코드가 없다.
 //  · 로그인: 구글 계정 → 세션 토큰(14일, localStorage 'rs:auth'). 운영자가 학원마다 등록한 이메일만 통과.
 //  · 학원 저장소: '리포트'(엑셀 파일 한 개 분량 = DATA_KEYS 전체)를 학원 단위로 저장·공유.
 //    열어 둔 리포트는 편집할 때마다 자동 저장(1.5초 뒤). 다른 곳에서 먼저 저장했으면 충돌 안내.
 //    엑셀 저장(💾)은 백업용으로 그대로 쓰고, 로그인하지 않으면 지금처럼 엑셀 + 자동 백업으로만 동작한다.
-//  · 노트 과제: 문제 노트에서 학생별로 배정한 과제를 그 날짜(또는 그 뒤 첫 수업)에 띄우고,
-//    틀린 문제를 눌러 채점 → 결과는 학원 저장소에 저장되고, 리포트 '미니 테스트'에 반영된다
-//    (그 학생·날짜에 직접 입력한 미니 테스트가 있으면 직접 입력이 우선).
+//  · 숙제 채점: 문제 노트에서 낸 숙제(제목을 정한 문제 모음)를 그 날짜(또는 그 뒤 첫 수업)에 띄우고,
+//    틀린 문제만 눌러 채점 → 학생별 문제 기록(안 풂/맞음/틀림/해결·틀린 횟수)으로 학원 저장소에 쌓이고,
+//    리포트 '미니 테스트'에 반영된다(그 학생·날짜에 직접 입력한 미니 테스트가 있으면 직접 입력이 우선).
+//    같은 기록을 문제 노트의 '학생 기록'도 쓴다(오답 모아 다시 풀기).
+//  · 앱 사이 이동: '📘 문제 노트 ↗'는 로그인·학원을 넘겨 mathpro.app 을 연다(#mph= 넘김 코드, 2분).
+//    반대로 문제 노트에서 넘어오면 #mph= 를 받아 같은 계정으로 바로 로그인된다.
 // 다른 파일과의 연결점(없으면 조용히 건너뜀): saveAppData→cloudOnChange, _appSnapshot→cloudSnapshotTag,
 // miniResult→noteMiniResult, confirmMissingInputs→noteUngradedNames, autoFillAll→renderNotePanel,
 // loadExcel·_clearAllData→cloudDetach, Ctrl+S→cloudSaveNow, window.onload→cloudInit
@@ -21,8 +24,8 @@ const CLOUD={
   book:null,        // 열어 둔 리포트 {id,title,rev,updatedAt}
   books:null,       // 학원 리포트 목록 (모달용)
   dirty:false,saving:false,again:false,timer:null,retry:0,conflict:null,
-  notes:{tenant:'',assignments:[],results:{},at:''}, // 노트 과제·채점 결과 (학원 단위, 이 기기에 캐시)
-  notePending:new Set(),noteTimers:{},notesAt:0,
+  notes:{tenant:'',homework:[],recs:{},at:''}, // 숙제 + 학생별 문제 기록 (학원 단위, 이 기기에 캐시)
+  markQ:{},markBusy:{},recLoading:{},notesAt:0, // 학생별 채점 저장 줄 (한 번에 하나씩 → 서로 덮어쓰지 않게)·기록 불러오는 중
 };
 const _CLOUD_DEF={lessons:[],students:[],teacherName:'',showMini:false,showComment:false,colorMode:false,lastSaved:''};
 const _CLOUD_MSG={
@@ -36,7 +39,8 @@ const _CLOUD_MSG={
   'storage-not-configured':'학원 저장소 설정이 없습니다 — 운영자에게 알려 주세요',
   'too-large':'리포트가 너무 커서 저장할 수 없습니다 (최대 4MB)',
   'not-found':'학원 저장소에서 찾지 못했습니다 (삭제됐을 수 있습니다)',
-  'no-valid-items':'배정할 내용을 확인해 주세요',
+  'no-valid-items':'숙제 내용을 확인해 주세요',
+  'bad-handoff':'로그인 넘김이 만료됐습니다 — 다시 로그인해 주세요',
 };
 
 function _lsGet(k){try{return JSON.parse(localStorage.getItem(k)||'null');}catch(e){return null;}}
@@ -84,14 +88,14 @@ async function cloudInit(){
   if(a&&a.token&&_tokenOk(a.token))CLOUD.auth=a;else if(a)_lsSet(CLOUD_LS.auth,null);
   CLOUD.tenant=_lsGet(CLOUD_LS.tenant)||'';
   if(CLOUD.auth&&!(CLOUD.auth.tenants||[]).some(t=>t.path===CLOUD.tenant))CLOUD.tenant=CLOUD.auth.tenants?.[0]?.path||'';
+  await _cloudConsumeHandoff(); // 문제 노트에서 넘어온 로그인(#mph=)
   const n=_lsGet(CLOUD_LS.notes);
-  if(n&&n.tenant&&n.tenant===CLOUD.tenant)CLOUD.notes={tenant:n.tenant,assignments:n.assignments||[],results:n.results||{},at:n.at||''};
+  if(n&&n.tenant&&n.tenant===CLOUD.tenant&&Array.isArray(n.homework))CLOUD.notes={tenant:n.tenant,homework:n.homework,recs:n.recs||{},at:n.at||''};
   try{
     const c=await _cloudFetch('/api/auth/config',{auth:false});
     CLOUD.config={enabled:!!(c.enabled&&c.clientId),clientId:c.clientId||''};
   }catch(e){CLOUD.config={enabled:false,clientId:''};}
-  // 서버가 준비되지 않았거나 연결이 안 되면 버튼을 숨김 (이미 로그인해 둔 경우는 표시)
-  const btn=$$('btnCloud');if(btn)btn.style.display=(CLOUD.config.enabled||CLOUD.auth)?'':'none';
+  // 로그인 없이도 앱은 그대로 — ☁ 버튼은 늘 보이고, 누르면 로그인하거나 연결 상태를 알려 준다
   window.addEventListener('beforeunload',e=>{if(cloudIsDirty()){e.preventDefault();e.returnValue='';}});
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&CLOUD.book&&CLOUD.dirty&&!CLOUD.saving)_cloudSave();});
   // 문제 노트·다른 선생님이 바꾼 과제·채점을 창으로 돌아올 때 새로 받기 (1분에 한 번)
@@ -131,7 +135,6 @@ async function cloudSignIn(credential){
     _lsSet(CLOUD_LS.auth,CLOUD.auth);
     const keep=CLOUD.auth.tenants.find(t=>t.path===CLOUD.tenant);
     _cloudSetTenant(keep?keep.path:(CLOUD.auth.tenants[0]?.path||''));
-    const btn=$$('btnCloud');if(btn)btn.style.display='';
     toast(`${d.user?.email||''} 계정으로 로그인했습니다`);
     if(CLOUD.book){if(CLOUD.dirty)_cloudSchedule(0);}
     else cloudResume();
@@ -145,8 +148,8 @@ function cloudSignOut(){
   if(cloudIsDirty()&&!confirm('학원 저장소에 아직 저장되지 않은 변경이 있습니다.\n로그아웃하면 이 변경은 이 기기에만 남습니다. 계속할까요?'))return;
   if(CLOUD.book){cloudDetach();markUnsaved();_localBar();saveAppDataNow();}
   CLOUD.auth=null;CLOUD.expired=false;CLOUD.books=null;_lsSet(CLOUD_LS.auth,null);
-  // 로그아웃하면 이 기기의 노트 과제 캐시도 비움 (리포트에는 직접 입력한 미니 테스트만 표시)
-  CLOUD.notes={tenant:'',assignments:[],results:{},at:''};_lsSet(CLOUD_LS.notes,null);
+  // 로그아웃하면 이 기기의 숙제·채점 캐시도 비움 (리포트에는 직접 입력한 미니 테스트만 표시)
+  CLOUD.notes={tenant:'',homework:[],recs:{},at:''};_lsSet(CLOUD_LS.notes,null);
   try{window.google?.accounts?.id?.disableAutoSelect?.();}catch(e){}
   _refreshNoteViews();_cloudStatus();_renderCloudModal();
   toast('로그아웃했습니다');
@@ -160,7 +163,7 @@ function _cloudExpired(){
 function _cloudSetTenant(path){
   if(path!==CLOUD.tenant&&CLOUD.book){cloudDetach();markUnsaved();_localBar();saveAppDataNow();}
   if(path!==CLOUD.tenant||CLOUD.notes.tenant!==path){
-    CLOUD.notes={tenant:path,assignments:[],results:{},at:''};_lsSet(CLOUD_LS.notes,null);
+    CLOUD.notes={tenant:path,homework:[],recs:{},at:''};_lsSet(CLOUD_LS.notes,null);
   }
   CLOUD.tenant=path;_lsSet(CLOUD_LS.tenant,path);CLOUD.books=null;
   cloudLoadNotes();
@@ -347,6 +350,7 @@ async function _cloudConflict(){
   _cloudStatus();
 }
 function _cloudStatus(){
+  const nb=$$('btnNote');if(nb)nb.style.display=cloudSignedIn()&&CLOUD.tenant?'':'none'; // 로그인하면 문제 노트로 바로 가기
   const el=$$('cloudStatus');if(!el)return;
   if(!CLOUD.book){el.style.display='none';return;}
   let t,c='';
@@ -404,7 +408,7 @@ function _defaultTitle(){
 function _renderCloudModal(){
   const body=$$('cloudBody');if(!body)return;
   if(!cloudSignedIn()){
-    body.innerHTML=`<div class="cloud-intro">학원에 등록된 <b>구글 계정</b>으로 로그인하면 리포트를 학원 저장소에 저장해 <b>다른 컴퓨터·다른 선생님</b>과 함께 쓰고, 문제 노트에서 학생별로 배정한 과제를 채점할 수 있습니다.</div>
+    body.innerHTML=`<div class="cloud-intro">학원에 등록된 <b>구글 계정</b>으로 로그인하면 리포트를 학원 저장소에 저장해 <b>다른 컴퓨터·다른 선생님</b>과 함께 쓰고, 문제 노트에서 낸 숙제를 학생별로 채점할 수 있습니다.</div>
       ${CLOUD.expired?'<div class="cloud-warn">로그인이 만료됐습니다 — 다시 로그인하면 멈춘 저장을 이어서 합니다.</div>':''}
       <div id="cloudGoogleBtn" class="cloud-gbtn"></div>
       <div id="cloudLoginMsg" class="cloud-hint"></div>
@@ -426,8 +430,10 @@ function _renderCloudModal(){
         ${on?'':`<button class="cloud-mini-btn" data-open="${esc(b.id)}">열기</button>`}
         <button class="cloud-mini-btn danger" data-del="${esc(b.id)}" title="학원 저장소에서 삭제">🗑</button></div>`;}).join('');
   const hasData=G.lessons.length||G.students.length;
-  body.innerHTML=`<div class="cloud-who"><span>${esc(u.email||'')}</span>${tenantSel}<button class="cloud-mini-btn" onclick="cloudSignOut()">로그아웃</button></div>
+  body.innerHTML=`<div class="cloud-who"><span>${esc(u.email||'')}</span>${tenantSel}<button class="cloud-mini-btn" onclick="openNoteApp()" title="문제 노트(mathpro.app)를 같은 계정·학원으로 열기">📘 문제 노트 ↗</button><button class="cloud-mini-btn" onclick="cloudSignOut()">로그아웃</button></div>
     <div class="cloud-sec-title">학원 리포트</div><div class="cloud-books">${list}</div>
+    <button class="btn-s cloud-wide" onclick="$$('cloudExcelInput').click()">📂 엑셀 파일을 학원 저장소에 올리기</button>
+    <input type="file" id="cloudExcelInput" accept=".xlsx,.xls" style="display:none" onchange="cloudUploadExcel(this)">
     <div class="cloud-sec-title">${CLOUD.book?'지금 화면을 복사본으로 올리기':'지금 작업을 학원 저장소에 올리기'}</div>
     <div class="cloud-new"><input type="text" id="cloudNewTitle" maxlength="100" placeholder="리포트 이름 (예: 고2 A반 2학기)" value="${esc(_defaultTitle())}">
       <button class="btn-p cloud-new-btn" onclick="cloudUploadCurrent()"${hasData?'':' disabled'}>☁ 올리기</button></div>
@@ -483,124 +489,215 @@ async function cloudDeleteBook(id){
   CLOUD.books=null;_renderCloudModal();_loadBooks();
 }
 
-// ─── 노트 과제 (문제 노트에서 배정) ───
+// ─── 엑셀 파일을 곧바로 학원 저장소에 올리기 ───
+async function cloudUploadExcel(input){
+  const file=input.files[0];input.value='';if(!file)return;
+  if(!cloudSignedIn()){openCloudModal();return;}
+  const rb=$$('recoverBanner'),pendingBackup=rb&&rb.style.display!=='none'&&rb._snap?.unsaved;
+  if((G.unsaved||pendingBackup||cloudIsDirty())&&!confirm('저장하지 않은 현재 작업이 있습니다.\n엑셀 파일을 올려 열면 지금 화면의 작업은 사라집니다. 계속할까요?'))return;
+  setBar('wait','⏳ 엑셀을 읽는 중…');
+  const backup={};DATA_KEYS.forEach(k=>{backup[k]=G[k];});
+  try{parseWB(XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:false,raw:false}));}
+  catch(e){DATA_KEYS.forEach(k=>{G[k]=backup[k];});setBar('err','❌ 엑셀을 읽지 못했습니다: '+e.message);return;}
+  cloudDetach();
+  G.excelFileName=file.name.replace(/\.xls$/i,'.xlsx');
+  G.tabData={};G.pendingPropagations=[];G.studentPdfs={};G.pdfCanvases=[];
+  G.hwItems=[];G.hwStatus=[];G.hwItemRefs=[];G.extraHw=[];G.hwRateManual=null;
+  if(!G.students.includes(G.selStudent))G.selStudent='';
+  const title=file.name.replace(/\.xlsx?$/i,'')||'학습 리포트';
+  try{
+    const r=await _ws('report',{method:'POST',body:{title,data:_cloudPayload()}});
+    _cloudBind({id:r.id,title,rev:r.rev,updatedAt:r.updatedAt});
+  }catch(e){
+    applyViewSettings();showGroups();markUnsaved();saveAppDataNow();_localBar();
+    toast('엑셀은 열었지만 학원 저장소에 올리지 못했습니다: '+e.message);return;
+  }
+  applyViewSettings();showGroups();markSaved();saveAppDataNow();_cloudBar();
+  CLOUD.books=null;_renderCloudModal();_loadBooks();cloudLoadNotes();
+  toast(`「${title}」을(를) 학원 저장소에 올렸습니다 — 이제 자동으로 저장됩니다`);
+}
+
+// ─── 앱 사이 이동 (학습 리포트 ↔ 문제 노트) ───
+// 로그인돼 있으면 2분짜리 넘김 코드를 받아 주소의 # 뒤에 붙여 연다 (서버 로그에 남지 않음)
+async function openNoteApp(){
+  const win=window.open('about:blank','_blank');
+  let url=cloudApiBase()+'/';
+  if(cloudSignedIn()&&CLOUD.tenant){
+    url=`${cloudApiBase()}/${CLOUD.tenant}`;
+    try{const d=await _cloudFetch('/api/auth/handoff',{method:'POST'});if(d.code)url+=`#mph=${encodeURIComponent(d.code)}`;}catch(e){}
+  }
+  if(win){try{win.opener=null;}catch(e){}win.location.href=url;}else location.href=url; // 새 탭이 이 탭을 조작하지 못하게
+}
+async function _cloudConsumeHandoff(){
+  const h=location.hash||'';
+  const m=/[#&]mph=([^&]+)/.exec(h);
+  if(!m)return;
+  const t=(/[#&]t=([^&]+)/.exec(h)||[])[1];
+  window.history.replaceState(null,'',location.pathname+location.search); // 주소창·방문 기록에서 바로 지움
+  try{
+    const d=await _cloudFetch('/api/auth/redeem',{method:'POST',body:{code:decodeURIComponent(m[1])},auth:false});
+    CLOUD.auth={token:d.token,user:d.user||{},tenants:d.tenants||[]};CLOUD.expired=false;
+    _lsSet(CLOUD_LS.auth,CLOUD.auth);
+    const has=p=>!!p&&CLOUD.auth.tenants.some(x=>x.path===p);
+    const want=t?decodeURIComponent(t):'';
+    const next=has(want)?want:has(CLOUD.tenant)?CLOUD.tenant:(CLOUD.auth.tenants[0]?.path||'');
+    if(next!==CLOUD.tenant){CLOUD.tenant=next;_lsSet(CLOUD_LS.tenant,next);}
+    toast(`${d.user?.email||''} 계정으로 이어서 로그인했습니다`);
+  }catch(e){toast('로그인을 이어받지 못했습니다 — ☁ 학원 저장소에서 로그인해 주세요');}
+}
+
+// ─── 숙제 채점 (문제 노트에서 낸 숙제 · 학생별 문제 기록) ───
+// 기록 h = [[날짜, 'o'|'x', 숙제 id?], …] (날짜순). 기록이 없으면 '안 풂'. 서버 규칙은 문제 노트
+// functions/api/workspace.js 와 같다 — 같은 날짜·숙제는 덮어쓰고 '-' 는 지운다.
+const _recItems=student=>CLOUD.notes.recs?.[student]?.items||{};
+const _recOf=student=>CLOUD.notes.recs[student]||(CLOUD.notes.recs[student]={items:{}}); // 늘 지금 캐시의 객체
+function _lastMarkFor(h,hw){if(!Array.isArray(h))return null;for(let i=h.length-1;i>=0;i--)if((h[i][2]||'')===hw)return h[i];return null;}
+const _wrongCount=h=>Array.isArray(h)?h.filter(e=>e[1]==='x').length:0;
+
 async function cloudLoadNotes(){
   if(!cloudSignedIn()||!CLOUD.tenant)return;
   CLOUD.notesAt=Date.now();
   const tenant=CLOUD.tenant;
   try{
-    const[a,r]=await Promise.all([_ws('assignments'),_ws('results')]);
+    const d=await _ws('homework');
     if(tenant!==CLOUD.tenant)return;
-    // 채점 중 아직 서버에 못 올린 결과는 이 기기 값을 유지 (그리고 다시 보냄)
-    const results=r.items||{};
-    CLOUD.notePending.forEach(id=>{
-      if(CLOUD.notes.results[id])results[id]=CLOUD.notes.results[id];else delete results[id];
-      if(!CLOUD.noteTimers[id])CLOUD.noteTimers[id]=setTimeout(()=>_noteSave(id),200);
-    });
-    CLOUD.notes={tenant,assignments:a.items||[],results,at:new Date().toISOString()};
+    const homework=d.items||[];
+    const recs=CLOUD.notes.tenant===tenant?{...CLOUD.notes.recs}:{};
+    CLOUD.notes={tenant,homework,recs,at:new Date().toISOString()};
+    // 이 리포트 학생 중 숙제를 받은 학생의 기록 (미니 테스트·일괄 출력용) — 6명씩
+    const need=[...new Set(homework.flatMap(h=>h.students||[]))].filter(s=>G.students.includes(s));
+    for(let i=0;i<need.length;i+=6)await Promise.all(need.slice(i,i+6).map(s=>_fetchRecs(s)));
     _lsSet(CLOUD_LS.notes,CLOUD.notes);
-  }catch(e){if(!e.network&&e.status!==401)console.warn('노트 과제 불러오기 실패:',e);}
+  }catch(e){if(!e.network&&e.status!==401)console.warn('숙제 불러오기 실패:',e);}
   _refreshNoteViews();
+}
+async function _fetchRecs(student,force){
+  if(CLOUD.markBusy[student]&&!force)return; // 저장 중인 학생은 화면 값을 유지 (저장 실패 때만 서버 값으로 되돌림)
+  try{
+    const d=await _ws('records',{query:{student}});
+    if(force||!CLOUD.markBusy[student])CLOUD.notes.recs[student]={items:d.items||{}};
+  }catch(e){}
+  finally{delete CLOUD.recLoading[student];}
 }
 function _refreshNoteViews(){
   renderNotePanel();
   if(G.selStudent&&G.selDate){updateMiniSection();renderMiniPanel();fitReportCard();}
 }
-// 과제 날짜 → 리포트 수업 날짜 (그 날짜 또는 그 뒤 첫 수업)
+// 숙제 날짜 → 리포트 수업 날짜 (그 날짜 또는 그 뒤 첫 수업)
 function _noteLessonDate(d){
   const ds=G.lessons.map(l=>l.날짜).filter(Boolean).sort();
   return ds.find(x=>x>=d)||'';
 }
-// 이 학생·수업 날짜에 걸린 노트 과제 (이 기기 캐시 기준)
-function _notesFor(student,date){
+// 이 학생이 이 수업 날짜에 받은 숙제 (이 기기 캐시 기준)
+function _hwFor(student,date){
   if(!student||!date||!CLOUD.notes.tenant||CLOUD.notes.tenant!==CLOUD.tenant)return[];
   const s=String(student).trim();
-  return(CLOUD.notes.assignments||[]).filter(a=>String(a.student||'').trim()===s&&_noteLessonDate(a.date)===date);
+  return(CLOUD.notes.homework||[]).filter(h=>(h.students||[]).includes(s)&&_noteLessonDate(h.date)===date);
 }
-// 채점한 노트 과제 → 미니 테스트 결과 (domain.js miniResult에서 직접 입력이 없을 때 사용)
+// 채점한 숙제 → 미니 테스트 결과 (domain.js miniResult 에서 직접 입력이 없을 때 사용)
 function noteMiniResult(student,date){
-  const list=_notesFor(student,date).filter(a=>CLOUD.notes.results[a.id]);
-  if(!list.length)return null;
-  let total=0;const wrong=[],titles=[];
-  list.forEach(a=>{
-    const w=new Set(CLOUD.notes.results[a.id].wrong||[]);
-    total+=a.problems.length;
-    a.problems.forEach(p=>{if(w.has(p.id))wrong.push(p.label||p.id);});
-    if(a.title&&!titles.includes(a.title))titles.push(a.title);
+  const list=_hwFor(student,date);if(!list.length)return null;
+  const items=_recItems(student);
+  let total=0,correct=0;const wrong=[],titles=[];
+  list.forEach(hw=>{
+    const marks=hw.problems.map(p=>_lastMarkFor(items[p.id]?.h,hw.id)?.[1]||null);
+    if(!marks.some(Boolean))return; // 아직 채점 안 한 숙제
+    total+=hw.problems.length;
+    hw.problems.forEach((p,i)=>{if(marks[i]==='o')correct++;else wrong.push(p.label||p.id);});
+    if(hw.title&&!titles.includes(hw.title))titles.push(hw.title);
   });
-  const correct=Math.max(0,total-wrong.length);
-  return{total,correct,wrong,range:titles.join(' · '),pct:total?Math.round(correct/total*100):null,perfect:total>0&&!wrong.length};
+  if(!total)return null;
+  return{total,correct,wrong,range:titles.join(' · '),pct:Math.round(correct/total*100),perfect:!wrong.length};
 }
-// 일괄 출력 전 점검용 — 노트 과제가 있는데 채점 안 한 학생
+// 일괄 출력 전 점검용 — 숙제를 받았는데 아직 하나도 채점 안 한 학생
 function noteUngradedNames(date,students){
   if(!cloudSignedIn())return[];
-  return students.filter(s=>_notesFor(s,date).some(a=>!CLOUD.notes.results[a.id]));
+  return students.filter(s=>{const it=_recItems(s);return _hwFor(s,date).some(hw=>!hw.problems.some(p=>_lastMarkFor(it[p.id]?.h,hw.id)));});
 }
 function renderNotePanel(){
   const card=$$('noteHwCard');if(!card)return;
-  const list=cloudSignedIn()?_notesFor(G.selStudent,G.selDate):[];
+  const list=cloudSignedIn()?_hwFor(G.selStudent,G.selDate):[];
   if(!list.length){card.style.display='none';card.innerHTML='';return;}
+  if(!CLOUD.notes.recs[G.selStudent]&&!CLOUD.recLoading[G.selStudent]){ // 이 학생 기록을 처음 볼 때 (받는 동안 채점 칸은 잠금)
+    CLOUD.recLoading[G.selStudent]=true;_fetchRecs(G.selStudent).then(_refreshNoteViews);
+  }
   card.style.display='';
   const hints=[];
   if(isAbsent(G.selStudent,G.selDate))hints.push('결석한 날은 리포트에 표시되지 않습니다');
   else if(!G.showMini)hints.push('채점 결과는 아래 \'미니 테스트\'를 켜면 리포트에 점수·다시 볼 문제로 표시됩니다');
-  else if(miniResult(G.selStudent,G.selDate)&&(G.wrong[G.selStudent]?.[G.selDate]||G.miniScore[`${G.selStudent}||${G.selDate}`]!=null))
+  else if(G.wrong[G.selStudent]?.[G.selDate]||G.miniScore[`${G.selStudent}||${G.selDate}`]!=null)
     hints.push('미니 테스트를 직접 입력해서 리포트에는 직접 입력한 결과가 표시됩니다');
-  card.innerHTML=`<div class="cg"><label>📘 노트 과제 <span class="ab">문제 노트</span><span class="label-hint">틀린 문제를 누르세요</span>
+  card.innerHTML=`<div class="cg"><label>📘 숙제 채점 <span class="ab">문제 노트</span><span class="label-hint">틀린 문제만 누르세요</span>
     <button class="note-refresh" data-act="refresh" title="새로 받기">↻</button></label>
-    ${list.map(_noteAsgHtml).join('')}
+    ${list.map(_hwHtml).join('')}
     ${hints.map(h=>`<div class="label-hint note-hint">${esc(h)}</div>`).join('')}</div>`;
   card.onclick=e=>{
     const t=e.target.closest('[data-act],[data-np]');if(!t)return;
-    const aid=t.dataset.na;
-    if(t.dataset.np)noteToggle(aid,t.dataset.np);
-    else if(t.dataset.act==='all')_noteSet(aid,[]);
-    else if(t.dataset.act==='clear')_noteSet(aid,null);
-    else if(t.dataset.act==='refresh')cloudLoadNotes();
+    const hw=list.find(x=>x.id===t.dataset.hw);
+    if(t.dataset.act==='refresh'){cloudLoadNotes();return;}
+    if(!hw||CLOUD.recLoading[G.selStudent])return;
+    const items=_recItems(G.selStudent);
+    const lastOf=p=>_lastMarkFor(items[p.id]?.h,hw.id);
+    if(t.dataset.np){
+      const p=hw.problems.find(x=>x.id===t.dataset.np);if(!p)return;
+      // 처음 누르면 누른 문제는 틀림·나머지는 맞음으로 한 번에, 그 뒤로는 맞음↔틀림 (문제 노트 GradeGrid와 같은 규칙)
+      if(!hw.problems.some(q=>lastOf(q))){_noteMark(hw.id,hw.problems.map(q=>({id:q.id,r:q.id===p.id?'x':'o',date:G.selDate})));return;}
+      const e0=lastOf(p); // 이미 채점돼 있으면 그 기록(날짜)을 고친다 — 숙제는 학생마다 한 번 채점
+      _noteMark(hw.id,[{id:p.id,r:e0&&e0[1]==='x'?'o':'x',date:e0?e0[0]:G.selDate}]);
+    }else if(t.dataset.act==='all'){
+      _noteMark(hw.id,hw.problems.map(p=>({id:p.id,r:'o',date:G.selDate})));
+    }else if(t.dataset.act==='rest'){
+      _noteMark(hw.id,hw.problems.filter(p=>!lastOf(p)).map(p=>({id:p.id,r:'o',date:G.selDate})));
+    }else if(t.dataset.act==='clear'){
+      if(!confirm(`「${hw.title}」 채점 기록을 지울까요?`))return;
+      _noteMark(hw.id,hw.problems.map(p=>[p,lastOf(p)]).filter(x=>x[1]).map(([p,e0])=>({id:p.id,r:'-',date:e0[0]})));
+    }
   };
 }
-function _noteAsgHtml(a){
-  const r=CLOUD.notes.results[a.id],w=new Set(r?.wrong||[]);
-  const st=!r?'<span class="note-st">미채점</span>':w.size?`<span class="note-st bad">오답 ${w.size}</span>`:'<span class="note-st good">모두 맞음</span>';
-  const saving=CLOUD.notePending.has(a.id)?'<span class="label-hint">저장 중…</span>':'';
-  // 단원별로 묶어 번호 칩 표시 (문제 노트의 인쇄 번호와 같음)
+function _hwHtml(hw){
+  const items=_recItems(G.selStudent);
+  const marks=hw.problems.map(p=>_lastMarkFor(items[p.id]?.h,hw.id)?.[1]||null);
+  const x=marks.filter(m=>m==='x').length,done=marks.filter(Boolean).length,left=hw.problems.length-done;
+  const st=!done?'<span class="note-st">미채점</span>':x?`<span class="note-st bad">틀림 ${x}</span>`:left?'<span class="note-st">채점 중</span>':'<span class="note-st good">모두 맞음</span>';
+  const hint=done?'<div class="label-hint">누를 때마다 맞음↔틀림</div>':'<div class="label-hint">틀린 문제를 누르면 나머지는 맞음으로 저장됩니다 · 안 푼 문제도 틀림으로</div>';
+  const saving=CLOUD.recLoading[G.selStudent]?'<span class="label-hint">기록 불러오는 중…</span>':CLOUD.markBusy[G.selStudent]?'<span class="label-hint">저장 중…</span>':'';
   const groups=[];
-  a.problems.forEach(p=>{const u=p.unit||'';let g=groups[groups.length-1];if(!g||g.unit!==u){g={unit:u,items:[]};groups.push(g);}g.items.push(p);});
-  const id=esc(a.id);
-  const chips=groups.map(g=>`<div class="note-unit-row">${g.unit?`<span class="note-unit">${esc(g.unit)}</span>`:''}${g.items.map(p=>
-    `<button class="note-chip${w.has(p.id)?' wrong':''}" data-na="${id}" data-np="${esc(p.id)}" title="${esc(p.label||p.id)}">${esc(p.no||p.label||p.id)}</button>`).join('')}</div>`).join('');
-  return`<div class="note-asg"><div class="note-asg-head"><span class="note-asg-title">${esc(a.title||'노트 과제')}</span><span class="label-hint">${a.problems.length}문항</span>${st}${saving}
-    <span class="note-asg-btns"><button class="note-mini-btn" data-na="${id}" data-act="all">모두 맞음</button>${r?`<button class="note-mini-btn" data-na="${id}" data-act="clear">채점 취소</button>`:''}</span></div>${chips}</div>`;
+  hw.problems.forEach((p,i)=>{const u=p.unit||'';let g=groups[groups.length-1];if(!g||g.unit!==u){g={unit:u,items:[]};groups.push(g);}g.items.push([p,marks[i]]);});
+  const id=esc(hw.id);
+  const chips=groups.map(g=>`<div class="note-unit-row">${g.unit?`<span class="note-unit">${esc(g.unit)}</span>`:''}${g.items.map(([p,m])=>{
+    const w=_wrongCount(items[p.id]?.h);
+    return`<button class="note-chip${m==='x'?' wrong':m==='o'?' right':''}" data-hw="${id}" data-np="${esc(p.id)}" title="${esc(p.label||p.id)}${w?` · 지금까지 ${w}번 틀림`:''}">${esc(p.no||p.label||p.id)}${w?`<span class="note-badge">${w}</span>`:''}</button>`;}).join('')}</div>`).join('');
+  return`<div class="note-asg"><div class="note-asg-head"><span class="note-asg-title">${esc(hw.title||'숙제')}</span><span class="label-hint">${hw.problems.length}문제${hw.due?` · 마감 ${esc(hw.due)}`:''}</span>${st}${saving}
+    <span class="note-asg-btns">${!done?`<button class="note-mini-btn" data-hw="${id}" data-act="all">모두 맞음</button>`:left?`<button class="note-mini-btn" data-hw="${id}" data-act="rest">나머지 ${left}문제 맞음</button>`:''}${done?`<button class="note-mini-btn" data-hw="${id}" data-act="clear">채점 지우기</button>`:''}</span></div>${chips}${hint}</div>`;
 }
-function noteToggle(aid,pid){
-  const a=CLOUD.notes.assignments.find(x=>x.id===aid);if(!a)return;
-  const w=new Set(CLOUD.notes.results[aid]?.wrong||[]);
-  if(w.has(pid))w.delete(pid);else w.add(pid);
-  _noteSet(aid,a.problems.map(p=>p.id).filter(id=>w.has(id)));
-}
-function _noteSet(aid,wrong){
+// 채점 표시 → 화면에 바로 반영하고, 학생마다 한 번에 하나씩 순서대로 서버에 저장
+function _noteMark(hwId,marks){
+  if(!marks.length)return;
   if(!cloudSignedIn()){openCloudModal();return;}
-  if(wrong===null)delete CLOUD.notes.results[aid];
-  else CLOUD.notes.results[aid]={wrong,gradedAt:new Date().toISOString(),gradedBy:CLOUD.auth?.user?.email||''};
-  _lsSet(CLOUD_LS.notes,CLOUD.notes);
-  CLOUD.notePending.add(aid);
+  const student=G.selStudent;
+  const rec=_recOf(student);
+  marks.forEach(({id,r,date})=>{
+    const h=(rec.items[id]?.h||[]).filter(e=>!(e[0]===date&&(e[2]||'')===hwId));
+    if(r!=='-')h.push([date,r,hwId]);
+    h.sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0);
+    if(h.length)rec.items[id]={h};else delete rec.items[id];
+  });
+  CLOUD.markBusy[student]=(CLOUD.markBusy[student]||0)+1;
   _refreshNoteViews();
-  clearTimeout(CLOUD.noteTimers[aid]);
-  CLOUD.noteTimers[aid]=setTimeout(()=>_noteSave(aid),600);
-}
-async function _noteSave(aid){
-  delete CLOUD.noteTimers[aid];
-  const r=CLOUD.notes.results[aid];
-  try{
-    await _ws('results',{method:'PUT',body:{assignmentId:aid,wrong:r?r.wrong:null}});
-    if(!CLOUD.noteTimers[aid])CLOUD.notePending.delete(aid);
-  }catch(e){
-    if(e.status===404){
-      CLOUD.notePending.delete(aid);delete CLOUD.notes.results[aid];
-      CLOUD.notes.assignments=CLOUD.notes.assignments.filter(x=>x.id!==aid);
-      toast('문제 노트에서 배정을 지운 과제입니다');
-    }else toast('채점 저장 실패: '+e.message+' (다시 연결되면 이어서 저장합니다)');
-  }
-  _lsSet(CLOUD_LS.notes,CLOUD.notes);
-  _refreshNoteViews();
+  const byDate={};marks.forEach(m=>{(byDate[m.date]=byDate[m.date]||[]).push({id:m.id,r:m.r});});
+  CLOUD.markQ[student]=(CLOUD.markQ[student]||Promise.resolve()).then(async()=>{
+    try{
+      for(const[date,ms]of Object.entries(byDate)){
+        const d=await _ws('records',{method:'POST',body:{student,date,hw:hwId,marks:ms}});
+        const cur=_recOf(student); // 그 사이 캐시가 바뀌었어도 지금 객체에 반영
+        Object.entries(d.items||{}).forEach(([id,r])=>{if(r.h?.length)cur.items[id]=r;else delete cur.items[id];});
+      }
+    }catch(e){
+      toast('채점 저장 실패: '+e.message);
+      await _fetchRecs(student,true);
+    }finally{
+      CLOUD.markBusy[student]=Math.max(0,CLOUD.markBusy[student]-1);
+      _lsSet(CLOUD_LS.notes,CLOUD.notes);_refreshNoteViews();
+    }
+  });
 }

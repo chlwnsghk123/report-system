@@ -11,7 +11,7 @@
 | 항목 | 현황 |
 |---|---|
 | 규모 | JS ~4천 줄 (v1.80 기준) / 전체 ~6천 줄 (중소 규모) |
-| 실행 환경 | 빌드도구·npm 금지, CDN 전용, 순수 프론트엔드 (`start.bat` → localhost) |
+| 실행 환경 | 빌드도구·npm 금지, CDN 전용, 순수 프론트엔드 — 배포 https://report-system-nine.vercel.app (Vercel, main 자동), 로컬 개발 `start.bat` → localhost:8000 |
 | 상태 | 전역 단일 스토어 `G` (state.js) |
 | 영속화 | **Excel 파일**(주 저장소, excel.js) + **IndexedDB**(`appData` 자동 백업·복구, db.js/session.js) |
 | 코드 구성 | **기능별 파일 분리**(feature-sliced): state/utils/db/excel/ui/session/autofill/report/pdf/init |
@@ -103,13 +103,14 @@
 | **P4 (일부 완료)** | pdf.js 공용 헬퍼 추출(`_captureReportCard`·`_captureOffscreen`·`_addReportPages`·`_eachStudentCapture`·`_downloadBlob`), 중복 출력물 제거 → 1,573줄 → 약 1,170줄 | v1.80 — 파일 분할은 다음 단계 |
 | **P5 (완료)** | IndexedDB `appData` 자동 백업 + 시작 시 '지난 작업 이어하기' 배너(`checkRecovery`·`restoreFromBackup`) | v1.80 |
 | **P6 (완료)** | 학원 저장소(`cloud.js`) — 구글 로그인, 리포트 전체를 학원 단위로 저장·공유(rev 충돌 안내), 문제 노트 과제 채점. 서버는 문제 노트 Worker(이 앱엔 서버 코드 없음) | v1.83 |
+| **P7 (완료)** | 숙제 + 학생별 문제 기록(두 앱 같은 채점 규칙), 엑셀 바로 올리기, 문제 노트와 로그인 넘김 이동, ☁ 버튼 상시 표시 | v1.84 |
 
 ### v1.83 학원 저장소 연결 방식
 - `cloud.js`는 인프라 어댑터다. 기존 파일은 **`typeof 함수==='function'` 확인 후 호출하는 연결점**만 가진다
   (saveAppData→`cloudOnChange`, _appSnapshot→`cloudSnapshotTag`, miniResult→`noteMiniResult`,
   confirmMissingInputs→`noteUngradedNames`, autoFillAll·toggleSec→`renderNotePanel`, loadExcel·_clearAllData→`cloudDetach`,
   Ctrl+S→`cloudSaveNow`, onload→`cloudInit`). cloud.js를 빼도 앱은 예전 그대로 동작한다.
-- 도메인 규칙(`miniResult`)은 저장소를 모른다 — "직접 입력이 없으면 노트 과제 결과"라는 규칙만 두고, 결과 계산은 어댑터가 준다.
+- 도메인 규칙(`miniResult`)은 저장소를 모른다 — "직접 입력이 없으면 숙제 채점 결과"라는 규칙만 두고, 결과 계산은 어댑터가 준다.
 - 엑셀 시트 구조는 바꾸지 않았다. 학원 저장소는 같은 데이터(`DATA_KEYS`)를 JSON으로 저장하고, 엑셀 저장은 백업으로 그대로 쓴다.
 
 ### v1.80 대대적 리팩토링 (검수팀 QA·수학강사·개발팀 2라운드)

@@ -46,7 +46,7 @@ DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 �
 | `hwStatusCounts(statuses)` | 상태 배열 → `{done, partial, miss}` 개수 |
 | `MINI_PERFECT_MARKS` / `parseWrongList(str)` | 오답칸 만점 표시('0'·'없음'·'만점') / 오답 문자열 → 번호 배열 (쉼표 구분, 번호만 나열한 조각은 띄어쓰기·마침표로도 나눔, '4번'→'4') |
 | `miniOutOfRange(student,date)` | 문항 수 범위(1~문항 수)를 벗어난 오답 번호 배열 — 입력칸 경고·보내기 전 점검용 (글자 항목은 제외, '1-2'는 앞 번호로 판단) |
-| `miniResult(student,date)` | 미니테스트 결과 `{total,correct,wrong,range,pct,perfect}` — 결석이거나 **그 학생 입력이 없으면 null** (문항 수만으로 만점 처리하지 않음). 직접 입력이 없을 때는 채점한 노트 과제 결과(`noteMiniResult`, cloud.js)를 대신 씀 |
+| `miniResult(student,date)` | 미니테스트 결과 `{total,correct,wrong,range,pct,perfect}` — 결석이거나 **그 학생 입력이 없으면 null** (문항 수만으로 만점 처리하지 않음). 직접 입력이 없을 때는 채점한 숙제 결과(`noteMiniResult`, cloud.js)를 대신 씀 |
 
 ## js/db.js
 | 함수 | 역할 |
@@ -223,13 +223,16 @@ DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 �
 | `window.onload` | 앱 진입점 (IndexedDB → 배율 → 마스코트 → 보기 설정 → 지난 작업 확인 → 학원 저장소 `cloudInit`) |
 | (keydown) | ESC: 동적 모달·수업설정 닫기 / Ctrl+S: 엑셀 저장 (학원 저장소 리포트를 열어 둔 경우 `cloudSaveNow`) |
 
-## js/cloud.js (학원 저장소 · 노트 과제, v1.83)
+## js/cloud.js (학원 저장소 · 숙제 채점 · 앱 사이 이동, v1.83~v1.84)
 서버는 문제 노트 사이트(mathpro.app)의 Worker — 이 앱에는 서버 코드가 없다. 상태는 `G`가 아니라 별도 객체 `CLOUD`.
 | 함수 | 역할 |
 |---|---|
-| `cloudInit()` | 시작 시(지난 작업 확인 뒤) 로그인·학원·노트 캐시 복원 → 서버 설정 확인(`/api/auth/config`, 안 되면 ☁ 버튼 숨김) → 열어 두었던 리포트 이어 열기 |
+| `cloudInit()` | 시작 시(지난 작업 확인 뒤) 로그인·학원 복원 → 문제 노트에서 넘어온 로그인 받기(`_cloudConsumeHandoff`) → 숙제 캐시 복원 → 서버 설정 확인(`/api/auth/config`; ☁ 버튼은 늘 보임) → 숙제 받기 · 열어 두었던 리포트 이어 열기 |
 | `cloudApiBase()` | 서버 주소 (기본 `https://mathpro.app`, localStorage `rs:apiBase`로 바꿀 수 있음 — 시험용) |
-| `cloudSignIn(credential)` / `cloudSignOut()` | 구글 ID 토큰 → 세션 토큰 저장(`rs:auth`) / 로그아웃 (연결 끊고 노트 캐시 비움) |
+| `cloudSignIn(credential)` / `cloudSignOut()` | 구글 ID 토큰 → 세션 토큰 저장(`rs:auth`) / 로그아웃 (연결 끊고 숙제·기록 캐시 비움) |
+| `cloudUploadExcel(input)` | ☁ 창의 '엑셀 파일을 학원 저장소에 올리기' — 엑셀을 읽어(실패 시 롤백) 곧바로 새 학원 리포트로 올리고 연결 (제목 = 파일 이름; 올리기 실패 시 이 기기에서만 열림) |
+| `openNoteApp()` | 📘 문제 노트 — 새 탭을 먼저 열고, 로그인했으면 넘김 코드(`/api/auth/handoff`, 2분)를 받아 `{apiBase}/{학원}#mph=…`로 |
+| `_cloudConsumeHandoff()` | 주소의 `#mph=<code>&t=<학원>`을 즉시 지우고 `/api/auth/redeem` → 새 세션·학원 선택 (문제 노트 '학습 리포트 ↗'에서 넘어올 때) |
 | `cloudChangeTenant(path)` | 학원 바꾸기 (여러 학원에 등록된 선생님) |
 | `openCloudModal()` / `_renderCloudModal()` | ☁ 학원 저장소 창 — 로그인·리포트 목록·열기·올리기·빈 리포트·삭제·연결 끊기 |
 | `cloudOpenBook(id)` / `cloudUploadCurrent()` / `cloudCreateBlank()` / `cloudDeleteBook(id)` / `cloudDisconnect()` | 리포트 열기 / 지금 화면을 새 리포트로 올리기 / 빈 리포트 만들기 / 삭제(휴지통) / 연결 끊기 |
@@ -238,9 +241,13 @@ DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 �
 | `_cloudConflict()` | 저장 충돌 — 학원 저장소 버전 불러오기 · 내 버전으로 덮어쓰기 · 내 버전 엑셀로 받아두기 |
 | `cloudDetach()` / `cloudActive()` / `cloudIsDirty()` / `cloudSnapshotTag()` | 연결 끊기 / 열어 둔 리포트 있음 / 못 올린 변경 있음 / 자동 백업에 붙일 표시 |
 | `_cloudPayload()` / `_cloudApply(src)` | `DATA_KEYS` 전체 ↔ 저장 형식 (hwDisabled의 Set ↔ 배열) |
-| `_cloudStatus()` / `cloudStatusClick()` | 패널 상단 저장 상태(#cloudStatus: 저장됨·저장 중·대기·실패·충돌·로그인 필요) |
-| `cloudLoadNotes()` | 노트 과제·채점 결과 받기 (창으로 돌아올 때 1분에 한 번), 이 기기에 캐시(`rs:notes`) |
-| `renderNotePanel()` / `noteToggle(aid,pid)` / `_noteSet(aid,wrong)` / `_noteSave(aid)` | 노트 과제 카드(#noteHwCard) — 문제 칩을 눌러 오답 표시, 모두 맞음, 채점 취소 → 0.6초 뒤 서버 저장 |
-| `noteMiniResult(student,date)` | 채점한 노트 과제 → 미니 테스트 결과 (직접 입력이 없을 때 `miniResult`가 사용) |
-| `noteUngradedNames(date,students)` | 노트 과제가 있는데 채점 안 한 학생 (보내기 전 점검) |
+| `_cloudStatus()` / `cloudStatusClick()` | 패널 상단 저장 상태(#cloudStatus: 저장됨·저장 중·대기·실패·충돌·로그인 필요) + 📘 문제 노트 버튼 표시(로그인했을 때만) |
+| `cloudLoadNotes()` | 숙제 받기 + 이 리포트 학생 중 숙제 받은 학생의 문제 기록 받기 (창으로 돌아올 때 1분에 한 번), 이 기기에 캐시(`rs:notes`) |
+| `_fetchRecs(student,force)` | 학생 한 명의 문제 기록 받기 (저장 중인 학생은 건너뜀, `force` = 저장 실패 뒤 서버 값으로 되돌림) |
+| `_hwFor(student,date)` / `_noteLessonDate(d)` | 이 학생·수업 날짜의 숙제 / 숙제 날짜 → 그 날짜 또는 그 뒤 첫 수업 날짜 |
+| `_lastMarkFor(h,hw)` / `_wrongCount(h)` / `_recItems(s)` / `_recOf(s)` | 그 숙제의 마지막 채점 기록(날짜 무관) / 틀린 횟수 / 학생 기록(읽기) / 학생 기록(캐시 객체) |
+| `renderNotePanel()` / `_hwHtml(hw)` | 숙제 채점 카드(#noteHwCard) — 단원별 칩(맞음 초록·틀림 빨강·틀린 횟수 배지), 처음 누르면 그 문제 틀림 + 나머지 맞음, 그 뒤 맞음↔틀림, 모두 맞음·채점 지우기 |
+| `_noteMark(hwId,marks)` | 채점 표시 저장 — 화면 먼저 반영, 학생별 줄로 순서대로 `POST records`(날짜별), 실패 시 다시 받기 |
+| `noteMiniResult(student,date)` | 채점한 숙제 → 미니 테스트 결과 (맞음 수/전체, 다시 볼 문제 = 맞음이 아닌 문제; 직접 입력이 없을 때 `miniResult`가 사용) |
+| `noteUngradedNames(date,students)` | 숙제를 받았는데 하나도 채점 안 한 학생 (보내기 전 점검) |
 | `_noteLessonDate(date)` | 과제 날짜 → 그 날짜 또는 그 뒤 첫 수업 날짜 |

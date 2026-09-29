@@ -570,7 +570,7 @@ body.modal-open .preview{overflow:hidden!important;}
 .cloud-new input{flex:1;min-width:0;padding:10px 12px;border:1px solid #e2e5ea;border-radius:10px;font-size:13px;font-family:inherit;outline:none;}
 .cloud-new-btn{padding:10px 14px!important;font-size:13px!important;white-space:nowrap;}
 .cloud-wide{width:100%;padding:10px!important;font-size:13px!important;}
-/* ─── v1.83: 노트 과제 채점 (문제 노트 연동) ─── */
+/* ─── v1.83~: 문제 노트 숙제 채점 (v1.84 숙제·학생 기록) ─── */
 .note-refresh{margin-left:auto;border:none;background:#f3f4f6;color:#4b5563;border-radius:7px;padding:2px 8px;font-size:12px;cursor:pointer;font-family:inherit;}
 .note-asg{margin-top:8px;padding:10px 12px;border:1px solid #eef0f3;border-radius:10px;background:#fafbfc;display:flex;flex-direction:column;gap:6px;}
 .note-asg-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
@@ -581,9 +581,12 @@ body.modal-open .preview{overflow:hidden!important;}
 .note-asg-btns{margin-left:auto;display:flex;gap:4px;}
 .note-mini-btn{border:1px solid #d1d5db;background:#fff;color:#374151;border-radius:7px;padding:2px 8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
 .note-mini-btn:hover{background:#f3f4f6;}
-.note-unit-row{display:flex;flex-wrap:wrap;align-items:center;gap:4px;}
+.note-unit-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 4px;padding-top:4px;}
 .note-unit{font-size:11px;font-weight:700;color:#6b7280;margin-right:2px;}
-.note-chip{min-width:30px;height:28px;padding:0 7px;border:1px solid #d1d5db;background:#fff;color:#374151;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.note-chip{position:relative;min-width:30px;height:28px;padding:0 7px;border:1px solid #d1d5db;background:#fff;color:#374151;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
 .note-chip:hover{border-color:#fca5a5;}
 .note-chip.wrong{background:#ef4444;border-color:#ef4444;color:#fff;}
+.note-chip.right{background:#f0fdf4;border-color:#86efac;color:#15803d;}
+/* 지금까지 틀린 횟수 (문제 노트 '학생 기록'과 같은 표시) */
+.note-badge{position:absolute;top:-6px;right:-6px;min-width:14px;height:14px;padding:0 3px;border-radius:999px;background:#fee2e2;color:#dc2626;font-size:9px;font-weight:800;line-height:14px;text-align:center;pointer-events:none;}
 .note-hint{margin-top:6px;}

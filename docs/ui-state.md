@@ -20,7 +20,7 @@ body (flex, 100vh)
 │        │  │  ├─ #hwEditor    과제 에디터 (.hw-item[data-i] + 상태 버튼)
 │        │  │  └─ .rate-input-row > #inputRate(자동 계산·직접 입력 0~100) · #hwCounts(완료/부분/미완료 개수) · ↻ 재계산
 │        │  ├─ .panel-card > #gCurHw   다음 수업까지 과제 (ON/OFF) + 추가 과제 입력
-│        │  └─ .panel-card#noteHwCard  노트 과제 채점 (학원 저장소 로그인 + 이 학생·날짜 과제가 있을 때만, js/cloud.js)
+│        │  └─ .panel-card#noteHwCard  숙제 채점 (학원 저장소 로그인 + 이 학생·날짜 숙제가 있을 때만, js/cloud.js) — .note-asg > .note-unit-row > .note-chip(.wrong·.right) > .note-badge(틀린 횟수)
 │        │     └─ .note-asg × N  (.note-asg-head 제목·상태 .note-st·모두 맞음/채점 취소 + .note-unit-row > .note-unit · .note-chip(.wrong))
 │        └─ .panel-section "선택 항목"
 │           ├─ #toggleMini      미니 테스트 토글
@@ -30,7 +30,8 @@ body (flex, 100vh)
 ├─ .panel-resize (#panelResize)  드래그 리사이즈 핸들
 └─ .preview (우, flex:1)
    ├─ .toolbar          상단 도구 모음
-   │  ├─ #btnCloud      ☁ 학원 저장소 (서버가 준비됐을 때만 보임, openCloudModal) — 창은 .stu-modal-overlay[data-type="cloud"] > .stu-modal.cloud-modal
+   │  ├─ #btnNote       📘 문제 노트 (로그인했을 때만 보임, openNoteApp — 같은 계정으로 mathpro.app 열기)
+   │  ├─ #btnCloud      ☁ 학원 저장소 (늘 보임, openCloudModal) — 창은 .stu-modal-overlay[data-type="cloud"] > .stu-modal.cloud-modal (#cloudExcelInput = 엑셀 바로 올리기)
    │  ├─ #btnImg        🖼 이미지 (카톡용 JPG 저장, dlReportImage)
    │  ├─ #btnPdf        PDF 내보내기 버튼
    │  ├─ #btnSave       저장 버튼
@@ -115,7 +116,7 @@ DATA_KEYS = ['lessons','students','rates','wrong','hwRec','memos','attend','masc
   'journalNote','journalPlan','journalInfo','miniTest','miniScore','teacherName','showMini','showComment','colorMode','lastSaved']
 ```
 
-## 학원 저장소 상태 CLOUD (js/cloud.js, v1.83)
+## 학원 저장소 상태 CLOUD (js/cloud.js, v1.83~)
 `G`와 따로 둔다 (엑셀·리포트 데이터에 섞이지 않음).
 ```js
 CLOUD = {
@@ -126,8 +127,8 @@ CLOUD = {
   book,          // 열어 둔 리포트 {id,title,rev,updatedAt} — 'rs:book' (+tenant)
   books,         // 리포트 목록 (창 표시용)
   dirty, saving, again, timer, retry, conflict,   // 자동 저장 상태
-  notes,         // {tenant, assignments:[…], results:{…}, at} — 'rs:notes' (이 기기 캐시)
-  notePending, noteTimers, notesAt,               // 채점 저장 대기
+  notes,         // {tenant, homework:[…], recs:{[학생]:{items:{[문제 id]:{h}}}}, at} — 'rs:notes' (이 기기 캐시)
+  markQ, markBusy, recLoading, notesAt,           // 학생별 채점 저장 줄 · 저장 중 수 · 기록 받는 중 · 마지막 받은 시각
 }
 // localStorage 'rs:apiBase' — 서버 주소 바꾸기 (시험용, 기본 https://mathpro.app)
 ```

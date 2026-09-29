@@ -124,8 +124,9 @@ miniResult(학생,날짜)  (js/domain.js)
 updateMiniSection() → #rMiniScore(3/5 · 60%) · #rMiniRange(범위) · #rWrongTags(다시 볼 문제)
 ```
 
-직접 입력이 없는 학생·날짜는 채점한 **노트 과제**(§14) 결과를 대신 쓴다 — `noteMiniResult`:
-문항 수 = 과제 문제 수 합, 다시 볼 문제 = 틀린 문제 라벨("20강 5번"), 범위 = 과제 제목.
+직접 입력이 없는 학생·날짜는 채점한 **숙제**(§14) 결과를 대신 쓴다 — `noteMiniResult`:
+문항 수 = 채점한 숙제의 문제 수 합, 맞힌 수 = '맞음' 표시 수, 다시 볼 문제 = 맞음이 아닌 문제 라벨("20강 5번"),
+범위 = 숙제 제목.
 
 ## 6. 이행률 데이터 흐름
 
@@ -307,10 +308,11 @@ PDF 생성: _renderJournalPdf(date)
   이행률 등급 = domain RATE_TIER (75% 이상 양호 / 30~74% 보통 / 30% 미만 미흡)
 ```
 
-## 13. 학원 저장소 — 구글 로그인 (v1.83, js/cloud.js)
+## 13. 학원 저장소 — 구글 로그인 (v1.83~, js/cloud.js)
 
 서버는 문제 노트 사이트(mathpro.app)의 Worker(`/api/auth/*`·`/api/workspace/*`). 이 앱은 CORS로 부른다
-(허용 출처: `http://localhost:8000`). 로그인하지 않으면 아래는 전부 건너뛰고 예전처럼 엑셀 + 자동 백업.
+(허용 출처: `https://report-system-nine.vercel.app`, 개발용 `http://localhost:8000`). ☁ 버튼은 늘 보이지만,
+로그인하지 않으면 아래는 전부 건너뛰고 예전처럼 엑셀 + 자동 백업.
 
 ```
 ☁ 학원 저장소 → 구글 버튼 → cloudSignIn(credential)
@@ -319,6 +321,8 @@ PDF 생성: _renderJournalPdf(date)
 
 리포트 = 엑셀 파일 한 개 분량 (DATA_KEYS 전체 + pendingPropagations + fileName, hwDisabled Set → 배열)
   올리기  cloudUploadCurrent() → POST report → 연결('rs:book' = {tenant,id,title,rev})
+  엑셀    cloudUploadExcel(input) → parseWB(실패 시 롤백) → POST report(제목 = 파일 이름) → 연결 (v1.84)
+          (올리기 실패 → 엑셀은 이 기기에서 열린 채 '연결 안 됨'으로)
   열기    cloudOpenBook(id)    → GET report → _cloudApply → _cloudShow (sbar '☁ 제목')
   편집    saveAppData() → cloudOnChange() → 1.5초 뒤 _cloudSave()
             → PUT report {baseRev, data} → 새 rev → markSaved + 자동 백업 즉시 갱신
@@ -334,19 +338,33 @@ PDF 생성: _renderJournalPdf(date)
        다름           → 어느 쪽을 쓸지 묻기 (충돌)
   → 없으면 서버 데이터로 열기 ('지난 작업' 배너는 닫힘)
   → 서버에 연결 못 하면 배너(이 기기 백업)로 이어하기 가능
+
+앱 사이 이동 (v1.84)
+  📘 문제 노트(#btnNote, 로그인했을 때만) → openNoteApp()
+    → 새 탭 먼저 열기 → POST /api/auth/handoff → {code(2분)} → {apiBase}/{학원}#mph=<code>
+  문제 노트 '학습 리포트 ↗' → 이 앱 주소#mph=<code>&t=<학원>
+    → cloudInit → _cloudConsumeHandoff(): 주소에서 #… 즉시 지움 → POST /api/auth/redeem
+    → 새 세션 'rs:auth' (계정이 달라도 이 계정으로), 학원 = t (그 계정의 학원일 때) → 평소처럼 이어 열기
 ```
 
-## 14. 노트 과제 채점 — 문제 노트 연동 (v1.83, js/cloud.js)
+## 14. 숙제 채점 · 학생별 문제 기록 — 문제 노트 연동 (v1.84, js/cloud.js)
 
 ```
-문제 노트: 노트 카드 '배정' → 과제 {student, date, title, problems:[{id,label,unit,no}]} (학원 저장소)
-cloudLoadNotes() → GET assignments + results → CLOUD.notes (이 기기 캐시 'rs:notes')
+문제 노트: 노트 카드 '숙제 내기' → 숙제 {id, title(선생님이 정함), date, due, students:[…], problems:[{id,label,unit,no}]}
+cloudLoadNotes() (시작·로그인·창으로 돌아올 때 1분에 한 번)
+  → GET homework → 이 리포트 학생 중 숙제를 받은 학생마다 GET records?student= (6명씩)
+  → CLOUD.notes {tenant, homework, recs:{[학생]:{items:{[문제 id]:{h:[[날짜,'o'|'x',숙제 id?],…]}}}}} (캐시 'rs:notes')
 autoFillAll() → renderNotePanel()
-  → 이 학생 + 이 수업 날짜의 과제 (과제 날짜 = 그 날짜 또는 그 뒤 첫 수업, _noteLessonDate)
-  → #noteHwCard: 단원별 문제 칩 (문제 노트 인쇄물과 같은 번호)
-칩 클릭 noteToggle → _noteSet → 0.6초 뒤 PUT results {assignmentId, wrong:[문제 id]}
-  '모두 맞음' = wrong [] · '채점 취소' = null
+  → 이 학생 + 이 수업 날짜의 숙제 (숙제 날짜 = 그 날짜 또는 그 뒤 첫 수업, _noteLessonDate)
+  → 그 학생 기록이 캐시에 없으면 받는 동안 '기록 불러오는 중…'(칩 잠금)
+  → #noteHwCard: 단원별 문제 칩 (문제 노트 인쇄물과 같은 번호) · 칩의 작은 숫자 = 지금까지 틀린 횟수
+채점 (문제 노트 GradeGrid와 같은 규칙 — note-pro docs/CLASSROOM.md §4)
+  미채점 숙제에서 칩을 처음 누름 → 그 문제 'x' + 나머지 'o' (이 수업 날짜로)
+  그 뒤 칩 → 맞음↔틀림 (처음 채점한 날짜의 기록을 덮어씀 — 숙제는 학생마다 한 번 채점)
+  '모두 맞음' · '나머지 N문제 맞음'(일부만 채점된 경우) · '채점 지우기'('-')
+  → _noteMark(): 화면 먼저 반영 → 학생별 줄(markQ)로 순서대로 POST records {student, date, hw, marks}
+     (날짜별로 나눠 보냄) → 응답의 바뀐 문제로 맞춤 · 실패 시 그 학생 기록 다시 받기
   → 리포트: 직접 입력한 미니 테스트가 없으면 miniResult → noteMiniResult (점수 · 다시 볼 문제)
-  → 문제 노트: 메뉴 '학생 과제 · 채점'에서 오답만 모아 새 노트로 인쇄
-confirmMissingInputs → noteUngradedNames: 노트 과제 채점 안 한 학생 알림
+  → 문제 노트: 메뉴 '학생 기록'에서 같은 기록(안 풂/맞음/틀림/해결·틀린 횟수) → 오답만 모아 새 노트, 다시 채점
+confirmMissingInputs → noteUngradedNames: 숙제를 받았는데 하나도 채점 안 한 학생 알림
 ```

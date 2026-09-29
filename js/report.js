@@ -494,7 +494,7 @@ function confirmMissingInputs(date){
   }
   if(typeof noteUngradedNames==='function'){
     const ng=noteUngradedNames(date,present);
-    if(ng.length)lines.push(`• 노트 과제 채점 안 함 ${ng.length}명: ${names(ng)}`);
+    if(ng.length)lines.push(`• 문제 노트 숙제 채점 안 함 ${ng.length}명: ${names(ng)}`);
   }
   if(G.showComment){
     const noNote=present.filter(s=>!G.journalNote[`${s}||${date}`]);
