@@ -10,7 +10,8 @@
 A 패널 (좌측, 드래그 리사이즈 가능)
 [panel-head]
 ├─ 📝 학습 리포트 (제목) + 마지막 저장 시간 → .panel-brand, #rLastSaved, #unsavedInline
-├─ 상태바 / 엑셀 불러오기            → #sbar, #excelInput, #btnExcelRemove
+├─ 상태바 / 엑셀 불러오기            → #sbar, #excelInput, #btnExcelRemove (학원 저장소 리포트면 '☁ 제목' — 클릭 시 ☁ 창)
+├─ 학원 저장소 저장 상태             → #cloudStatus (저장됨·저장 중·충돌·로그인 필요)
 ├─ 지난 작업 이어하기 배너           → #recoverBanner (checkRecovery / restoreFromBackup)
 └─ 직접 시작하기                    → #btnZeroStart
 
@@ -19,7 +20,8 @@ A 패널 (좌측, 드래그 리사이즈 가능)
 ├─ [과제 & 이행률 섹션]
 │  ├─ 지난 수업 과제 검사 + 이행률     → .panel-card > #gPrevHw, #hwEditor, #inputRate, #hwCounts, ✓ 모두 완료
 │  │    └─ base 과제 + 이월 과제 ((이월) 뱃지)
-│  └─ 다음 수업까지 과제 + 추가 과제  → .panel-card > #gCurHw, #curHwList(ON/OFF), #extraHwEditor
+│  ├─ 다음 수업까지 과제 + 추가 과제  → .panel-card > #gCurHw, #curHwList(ON/OFF), #extraHwEditor
+│  └─ 노트 과제 채점 (문제 노트)      → .panel-card#noteHwCard (로그인 + 과제가 있을 때만, js/cloud.js)
 ├─ [선택 항목 섹션]
 │  ├─ 미니 테스트 토글               → #toggleMini → #gMini (#miniTotal, #miniRange, #inputWrong, #miniCorrect)
 │  └─ 선생님 한마디 토글             → #toggleComment → #gComment (#inputComment, #inputTeacher)
@@ -32,7 +34,7 @@ A 패널 (좌측, 드래그 리사이즈 가능)
 접근: ⚙ 설정 메뉴 → '📋 수업 진도 설정' (또는 패널 우클릭) · 닫기: ✕/ESC → exitLessonModal()
 
 B 미리보기 (우측)
-├─ 상단 툴바                        → .toolbar (#btnImg, #btnPdf, #btnSave, #tbMenu, #tbSettings, ? 도움말)
+├─ 상단 툴바                        → .toolbar (#btnCloud ☁ 학원 저장소, #btnImg, #btnPdf, #btnSave, #tbMenu, #tbSettings, ? 도움말)
 │  ├─ ☰ 메뉴: 학생 관리(추가/제거) · 리포트 모아보기(수업 일지표 / 이행률 요약표 학생별·전체) · 카톡용 이미지 일괄(ZIP) · 일괄 PDF
 │  └─ ⚙ 설정: 수업 진도 설정, 컬러/흑백 모드, 업데이트 확인
 ├─ 상단 날짜 네비게이션              → #dateNavBar (‹ 날짜 › + 클릭 드롭다운 + 날짜 추가)
@@ -91,6 +93,8 @@ B 미리보기 (우측)
 | 선생님 한마디 | `js/report.js` | `onCommentInput()`, `onTeacherInput()`, `updateCommentSection()` |
 | A4 한 장 맞춤 | `js/report.js` + `css/report.css` | `fitReportCard()` (.dense/.dense2) |
 | 지난 작업 이어하기 | `js/session.js` | `checkRecovery()`, `restoreFromBackup()` |
+| 학원 저장소 (구글 로그인·리포트 올리기/열기·자동 저장·충돌) | `js/cloud.js` + `index.html` | `openCloudModal()`, `cloudSignIn()`, `cloudUploadCurrent()`, `cloudOpenBook()`, `_cloudSave()`, `_cloudConflict()`, `cloudResume()` |
+| 노트 과제 채점 (문제 노트 연동) | `js/cloud.js` + `js/domain.js` | `renderNotePanel()`, `noteToggle()`, `noteMiniResult()` → `miniResult()` |
 | 학생 이름 변경 | `js/ui.js` | `renameStudent()` |
 | 수업설정 모달 | `js/ui.js` | `openLessonModal()`, `closeLessonModal()` |
 | 수업 카드 렌더링 | `js/ui.js` | `renderLessonCards()` (날짜 상태 분류 포함) |

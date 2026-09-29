@@ -492,6 +492,10 @@ function confirmMissingInputs(date){
     const badMini=present.filter(s=>miniOutOfRange(s,date).length);
     if(badMini.length)lines.push(`• 미니테스트 오답 번호 확인 ${badMini.length}명: ${names(badMini)} (문항 수보다 큰 번호)`);
   }
+  if(typeof noteUngradedNames==='function'){
+    const ng=noteUngradedNames(date,present);
+    if(ng.length)lines.push(`• 노트 과제 채점 안 함 ${ng.length}명: ${names(ng)}`);
+  }
   if(G.showComment){
     const noNote=present.filter(s=>!G.journalNote[`${s}||${date}`]);
     if(noNote.length)lines.push(`• 선생님 한마디 없음 ${noNote.length}명: ${names(noNote)}`);

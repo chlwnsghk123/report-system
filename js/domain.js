@@ -116,7 +116,8 @@ function miniResult(student,date){
   const total=Number(t.total)>0?Math.round(Number(t.total)):null;
   const ov=G.miniScore?.[`${student}||${date}`];
   const hasOv=ov!=null&&ov!==''&&!isNaN(ov);
-  if(!raw&&!hasOv)return null;
+  // 직접 입력이 없으면 문제 노트에서 배정·채점한 노트 과제 결과를 사용 (학원 저장소 로그인 시, cloud.js)
+  if(!raw&&!hasOv)return typeof noteMiniResult==='function'?noteMiniResult(student,date):null;
   let correct=hasOv?Math.max(0,Number(ov)):(total!=null?Math.max(0,total-wrong.length):null);
   if(correct!=null&&total!=null)correct=Math.min(correct,total);
   const pct=(correct!=null&&total)?Math.round(correct/total*100):null;

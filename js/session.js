@@ -5,7 +5,10 @@ let _saveTimer=null;
 let _hadData=false; // 이번 세션에 데이터가 있었는지 (빈 상태로 백업을 지우는 것은 '직접 다 지운 경우'만)
 function _appSnapshot(){
   const o={};DATA_KEYS.forEach(k=>{o[k]=G[k];});
-  o.fileName=G.excelFileName;o.savedAt=nowKSTStr();o.unsaved=G.unsaved;
+  o.fileName=G.excelFileName;o.savedAt=nowKSTStr();
+  // 학원 저장소 리포트를 열어 둔 경우: 어느 리포트인지 + 아직 못 올린 변경이 있는지 (cloud.js)
+  o.cloud=typeof cloudSnapshotTag==='function'?cloudSnapshotTag():null;
+  o.unsaved=G.unsaved||(typeof cloudIsDirty==='function'&&cloudIsDirty());
   o.pendingPropagations=G.pendingPropagations;
   o.selDate=G.selDate;o.selStudent=G.selStudent;
   return o;
@@ -22,7 +25,10 @@ async function _writeSnapshot(){
   }catch(e){console.error('자동 백업 실패:',e);setBar('err','❌ 자동 백업 실패 (엑셀 저장은 가능)');}
 }
 // 데이터 변경 → 미저장 표시 + 백업 예약(디바운스)
-function saveAppData(){if(G.lessons.length||G.students.length)markUnsaved();saveSession();}
+function saveAppData(){
+  if(G.lessons.length||G.students.length)markUnsaved();saveSession();
+  if(typeof cloudOnChange==='function')cloudOnChange(); // 학원 저장소 리포트면 자동 저장 예약
+}
 // 화면 선택(날짜·학생 등)만 바뀐 경우 → 미저장 표시 없이 백업만 예약
 function saveSession(){
   if(_saveTimer)clearTimeout(_saveTimer);

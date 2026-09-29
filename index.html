@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
+<!-- 구글 로그인 버튼이 http://localhost 에서도 동작하도록 (학원 저장소, js/cloud.js) -->
+<meta name="referrer" content="no-referrer-when-downgrade">
 <title>학습 리포트</title>
 
 <!-- 파비콘 & 앱 아이콘 -->
@@ -41,6 +43,7 @@
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
         <span id="rLastSaved" class="panel-saved"></span>
         <span id="unsavedInline" class="unsaved-inline" style="display:none;">⚠ 미저장</span>
+        <span id="cloudStatus" class="cloud-status" style="display:none;" onclick="cloudStatusClick()" title="학원 저장소 저장 상태"></span>
       </div>
     </div>
     <div class="sbar-row">
@@ -91,6 +94,8 @@
             </div>
           </div>
         </div>
+        <!-- 문제 노트에서 배정한 노트 과제 채점 (학원 저장소 로그인 시에만 표시, js/cloud.js) -->
+        <div class="panel-card" id="noteHwCard" style="display:none;"></div>
       </div>
 
       <!-- 선택 항목 섹션 -->
@@ -152,6 +157,7 @@
   <div class="toolbar">
     <div style="display:flex;flex-direction:column;gap:4px;"></div>
     <div class="tb-group">
+      <button class="tb-btn" id="btnCloud" onclick="openCloudModal()" style="display:none;" title="구글 계정으로 로그인해 리포트를 학원 단위로 저장·공유하고, 문제 노트 과제를 채점합니다">☁ 학원 저장소</button>
       <button class="tb-btn" id="btnImg" onclick="dlReportImage()" style="display:none;" title="카톡 전송용 이미지(JPG)로 저장">🖼 이미지</button>
       <button class="tb-btn" id="btnPdf" onclick="dlPdf()" style="display:none;">📄 PDF로 내보내기</button>
       <button class="tb-btn tb-save tb-main" id="btnSave" onclick="saveToExcel()" style="display:none" disabled>💾 저장</button>
@@ -188,7 +194,7 @@
           <div style="padding:8px 14px 6px;font-size:11px;font-weight:700;color:#8a8f9e;">리포트 테마</div>
           <button id="btnColorMode" onclick="toggleColorMode();closeToolbarMenus()">🎨 컬러 모드로 보기</button>
           <div class="tb-menu-sep"></div>
-          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.82)</button>
+          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.83)</button>
         </div>
       </div>
       <button class="tb-btn tb-help-btn" onclick="openHelpModal()" title="도움말">?</button>
@@ -368,6 +374,7 @@
 <script src="js/autofill.js"></script>
 <script src="js/report.js"></script>
 <script src="js/pdf.js"></script>
+<script src="js/cloud.js"></script>
 <script src="js/init.js"></script>
 
 </body>

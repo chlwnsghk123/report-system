@@ -73,6 +73,7 @@ window.onload()
   → loadMascotImages() / initPanelResize() / applyViewSettings()
   → dbSet('studentPdfs',null)   구버전 첨부 잔재 정리 (첨부는 세션 한정)
   → checkRecovery()             'appData' 스냅샷이 있으면 #recoverBanner 표시 (자동 복원은 하지 않음)
+  → cloudInit()                 학원 저장소 — 로그인해 둔 경우 열어 두었던 리포트를 이어 연다 (§13)
 
 restoreFromBackup()  (배너 '이어하기')
   → DATA_KEYS 필드 + fileName·pendingPropagations·selDate·selStudent 복원
@@ -122,6 +123,9 @@ miniResult(학생,날짜)  (js/domain.js)
 
 updateMiniSection() → #rMiniScore(3/5 · 60%) · #rMiniRange(범위) · #rWrongTags(다시 볼 문제)
 ```
+
+직접 입력이 없는 학생·날짜는 채점한 **노트 과제**(§14) 결과를 대신 쓴다 — `noteMiniResult`:
+문항 수 = 과제 문제 수 합, 다시 볼 문제 = 틀린 문제 라벨("20강 5번"), 범위 = 과제 제목.
 
 ## 6. 이행률 데이터 흐름
 
@@ -301,4 +305,48 @@ PDF 생성: _renderJournalPdf(date)
   → 각 페이지 _captureOffscreen → pdf-lib A4 세로
   → 파일명: 수업일지표_{날짜}.pdf
   이행률 등급 = domain RATE_TIER (75% 이상 양호 / 30~74% 보통 / 30% 미만 미흡)
+```
+
+## 13. 학원 저장소 — 구글 로그인 (v1.83, js/cloud.js)
+
+서버는 문제 노트 사이트(mathpro.app)의 Worker(`/api/auth/*`·`/api/workspace/*`). 이 앱은 CORS로 부른다
+(허용 출처: `http://localhost:8000`). 로그인하지 않으면 아래는 전부 건너뛰고 예전처럼 엑셀 + 자동 백업.
+
+```
+☁ 학원 저장소 → 구글 버튼 → cloudSignIn(credential)
+  → POST /api/auth/google → {token(14일), user, tenants} → localStorage 'rs:auth' (학원 선택 'rs:tenant')
+  → 운영자가 그 학원에 등록한 이메일만 통과 (아니면 '등록되지 않은 계정' 안내)
+
+리포트 = 엑셀 파일 한 개 분량 (DATA_KEYS 전체 + pendingPropagations + fileName, hwDisabled Set → 배열)
+  올리기  cloudUploadCurrent() → POST report → 연결('rs:book' = {tenant,id,title,rev})
+  열기    cloudOpenBook(id)    → GET report → _cloudApply → _cloudShow (sbar '☁ 제목')
+  편집    saveAppData() → cloudOnChange() → 1.5초 뒤 _cloudSave()
+            → PUT report {baseRev, data} → 새 rev → markSaved + 자동 백업 즉시 갱신
+            → 409(다른 곳에서 먼저 저장) → _cloudConflict(): 서버 버전 불러오기 / 내 버전으로 덮어쓰기 / 엑셀로 받아두기
+            → 네트워크 오류 → 2·4·8…최대 60초 뒤 재시도, 401 → '로그인 필요'(다시 로그인하면 이어서 저장)
+  Ctrl+S  cloudSaveNow() (엑셀 다운로드 대신 즉시 저장, 💾 버튼은 엑셀 백업 그대로)
+  끊기    엑셀 열기·데이터 제거·연결 끊기·로그아웃·학원 변경 → cloudDetach() (학원 저장소의 리포트는 그대로)
+
+시작 시 cloudResume()
+  → 'rs:book'이 있으면 GET report
+  → 자동 백업(appData)에 같은 리포트의 '못 올린 변경'(cloud 표시 + unsaved)이 있으면
+       저장본 번호가 같음 → 이 기기 데이터로 열고 이어서 저장
+       다름           → 어느 쪽을 쓸지 묻기 (충돌)
+  → 없으면 서버 데이터로 열기 ('지난 작업' 배너는 닫힘)
+  → 서버에 연결 못 하면 배너(이 기기 백업)로 이어하기 가능
+```
+
+## 14. 노트 과제 채점 — 문제 노트 연동 (v1.83, js/cloud.js)
+
+```
+문제 노트: 노트 카드 '배정' → 과제 {student, date, title, problems:[{id,label,unit,no}]} (학원 저장소)
+cloudLoadNotes() → GET assignments + results → CLOUD.notes (이 기기 캐시 'rs:notes')
+autoFillAll() → renderNotePanel()
+  → 이 학생 + 이 수업 날짜의 과제 (과제 날짜 = 그 날짜 또는 그 뒤 첫 수업, _noteLessonDate)
+  → #noteHwCard: 단원별 문제 칩 (문제 노트 인쇄물과 같은 번호)
+칩 클릭 noteToggle → _noteSet → 0.6초 뒤 PUT results {assignmentId, wrong:[문제 id]}
+  '모두 맞음' = wrong [] · '채점 취소' = null
+  → 리포트: 직접 입력한 미니 테스트가 없으면 miniResult → noteMiniResult (점수 · 다시 볼 문제)
+  → 문제 노트: 메뉴 '학생 과제 · 채점'에서 오답만 모아 새 노트로 인쇄
+confirmMissingInputs → noteUngradedNames: 노트 과제 채점 안 한 학생 알림
 ```
