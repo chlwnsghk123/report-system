@@ -631,7 +631,9 @@ async function _fetchRecsMany(students){
       if(!r.ok)continue;
       d=await r.json();
     }catch(e){continue;}
-    Object.entries(d.students||{}).forEach(([s,rec])=>{
+    // 예전 서버(여러 명 한 번에 받기 전)는 students 없이 한 명 형식으로 답한다 → 한 명씩 받기
+    if(!d.students){await Promise.all(list.slice(i,i+40).map(s=>_fetchRecs(s)));continue;}
+    Object.entries(d.students).forEach(([s,rec])=>{
       if(!CLOUD.markBusy[s])CLOUD.notes.recs[s]={items:rec.items||{},missing:rec.missing||{}}; // 저장 중인 학생은 화면 값 유지
     });
   }

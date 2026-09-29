@@ -244,7 +244,7 @@ DOM·저장소에 무관한 순수 비즈니스 규칙. G를 읽기만 하며 �
 | `_cloudPayload()` / `_cloudApply(src)` | `DATA_KEYS` 전체 ↔ 저장 형식 (hwDisabled의 Set ↔ 배열) |
 | `_cloudStatus()` / `cloudStatusClick()` | 패널 상단 저장 상태(#cloudStatus: 저장됨·저장 중·대기·실패·충돌·로그인 필요) + 📘 문제 노트 버튼 표시(로그인했을 때만) |
 | `cloudLoadNotes()` | 숙제 받기 + **이 리포트 학생 전원**의 문제 기록 받기(`_fetchRecsMany` — 40명씩 한 번에) (창으로 돌아올 때 1분에 한 번), 이 기기에 캐시(`rs:notes`) |
-| `_fetchRecsMany(students)` / `_fetchRecs(student,force)` | 여러 학생 기록 한 번에(`GET records?many=1`) / 한 명 (저장 중인 학생은 건너뜀, `force` = 저장 실패 뒤 서버 값으로 되돌림). 기록 = `{items, missing}` |
+| `_fetchRecsMany(students)` / `_fetchRecs(student,force)` | 여러 학생 기록 한 번에(`GET records?many=1`, 40명씩 — 예전 서버라 `students`가 없으면 한 명씩으로) / 한 명 (저장 중인 학생은 건너뜀, `force` = 저장 실패 뒤 서버 값으로 되돌림). 기록 = `{items, missing}` |
 | `_nStatus(h)` / `_nUpto(h,d)` / `_nBefore(h,d)` / `_nPending(st)` | **공통 규칙**(문제 노트 `src/lib/classroomRules.js`와 한 벌) — 상태: 맞음 · 틀림 · 확인 중(틀린 뒤 다른 날 1번 맞힘) · 해결(다른 날 2번, `NOTE_SOLVE_STREAK`) / 그날까지 / 전날까지 / 오답(틀림+확인 중) |
 | `_hwGiven(hw,ds)` / `_hwCheck(hw,ds)` / `_onOrAfter` / `_after` / `_before` | 나눠 주는 수업(숙제 날짜 당일 또는 그 뒤 첫 수업) / 검사하는 수업(그다음 수업, `due`가 있으면 그날 또는 그 뒤 첫 수업) / 수업 날짜 찾기 |
 | `_hwRes(student,hw)` | 학생 × 숙제 채점 결과 `{marks, marked, wrong, correct, total, missing(안 해 옴 날짜), gradedAt}` |
