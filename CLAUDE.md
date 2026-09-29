@@ -6,7 +6,7 @@
 2. **빠른 작업 모드(/fast)**: 사용자가 프롬프트에 `/fast` 키워드를 포함한 경우, 체크리스트 출력 및 후행 문서 동기화, Git 워크플로우를 모두 생략하고 즉각적인 코드 수정에만 집중한다.
 
 ## 프로젝트 개요
-- 순수 프론트엔드 앱 — **반드시 `start.bat` 실행 후 http://localhost:8000 에서 열 것**
+- 순수 프론트엔드 앱 — 배포: **https://report-system-nine.vercel.app** (Vercel, `main` 자동 배포). 로컬 개발은 `start.bat` 실행 후 http://localhost:8000 (file:// 로 열지 말 것)
 - CDN 전용 (빌드도구·npm 금지), 데이터저장: IndexedDB
 - **A(좌)**: `.panel` — 입력 패널 | **B(우)**: `.preview` — `#reportCard` PDF 미리보기
 
@@ -27,7 +27,7 @@ js/
   autofill.js       이월(propagateCarryover, flushPropagations, buildAllCarryover, computeCarryover), 과제 ON/OFF(_curHwOnOffItems, autoSyncHwDisabled, toggleHwDisabled), updateNoticeWithCarry, renderLessonInfo, autoFillCommon, autoFillAll
   report.js         마스코트(updateRateFace, openMascotPicker), rebuildGraph, renderHwEditor, 추가과제, 이행률(applyRate, autoCalcRate, onRateManual, refreshRateSection), cycleHwStatus, markAllHwDone, markAllStudentsHwDone, confirmMissingInputs, updateHwDisplay, 미니테스트(renderMiniPanel, onMiniInput, onWrongInput, updateMiniSection), 선생님 한마디(onCommentInput, onTeacherInput, updateCommentSection), fitReportCard, setAttend, markAllPresent, updateAttendUI
   pdf.js            첨부(handlePdfInput, renderSpread), 공용(_downloadBlob, _captureReportCard, _captureOffscreen, _addReportPages, _eachStudentCapture), dlPdf, _doBatchPdf, dlReportImage, dlKakaoZip, dlGradeSummary, dlJournalReport(_buildJournalReportPages), dlStudentReport, showUpdateModal
-  cloud.js          학원 저장소(구글 로그인): cloudInit, cloudSignIn/SignOut, openCloudModal, 리포트 올리기·열기·자동 저장(_cloudSave·충돌 _cloudConflict·cloudResume), 노트 과제 채점(renderNotePanel·noteToggle·noteMiniResult) — 서버는 문제 노트(mathpro.app) Worker
+  cloud.js          학원 저장소(구글 로그인): cloudInit, cloudSignIn/SignOut, openCloudModal, 리포트 올리기·열기·자동 저장(_cloudSave·충돌 _cloudConflict·cloudResume), 엑셀 바로 올리기(cloudUploadExcel), 문제 노트로 이동·로그인 넘김(openNoteApp·_cloudConsumeHandoff), 숙제 채점·학생별 문제 기록(renderNotePanel·_noteMark·noteMiniResult) — 서버는 문제 노트(mathpro.app) Worker
   init.js           window.onload (앱 진입점), loadMascotImages, initPanelResize, 전역 단축키(ESC·Ctrl+S)
 docs/               참조 문서 (필요 시만 읽기)
 ```
@@ -78,8 +78,8 @@ docs/               참조 문서 (필요 시만 읽기)
 | "IndexedDB", "새로고침 후 복원" | `js/session.js` (checkRecovery·restoreFromBackup) |
 | "날짜 선택", "날짜 네비게이션", "날짜 사이드바" | `js/ui.js` + `index.html` |
 | "패널 크기", "패널 리사이즈" | `js/init.js` + `css/layout.css` |
-| "학원 저장소", "구글 로그인", "클라우드 저장", "다른 선생님과 공유", "저장 충돌" | `js/cloud.js` + `index.html` (+ `js/session.js` 연결점) |
-| "노트 과제", "문제 노트 연동", "배정한 문제 채점" | `js/cloud.js` + `js/domain.js` (miniResult) |
+| "학원 저장소", "구글 로그인", "클라우드 저장", "다른 선생님과 공유", "저장 충돌", "엑셀 올리기(클라우드)" | `js/cloud.js` + `index.html` (+ `js/session.js` 연결점) |
+| "숙제 채점", "학생 기록", "틀린 횟수", "문제 노트 연동", "문제 노트로 이동", "로그인 넘김" | `js/cloud.js` + `js/domain.js` (miniResult) + `index.html` (#btnNote·#noteHwCard) — 서버·채점 규칙은 note-pro `docs/CLASSROOM.md` |
 
 ### 데이터·상태 변경
 | 사용자가 말하는 것 | 읽을 파일 |
@@ -111,7 +111,7 @@ docs/               참조 문서 (필요 시만 읽기)
 ## 업데이트 내역 관리 (절대 생략 금지)
 - 파일: `updates.md` (프로젝트 루트)
 - **모든 코드 변경 시** 반드시 새 버전 항목을 `updates.md` 최상단에 추가
-- 버전 형식: `v1.XX` (0.01씩 증가, 현재 최신: v1.83)
+- 버전 형식: `v1.XX` (0.01씩 증가, 현재 최신: v1.84)
 - 항목 형식: `## v1.XX (YYYY-MM-DD)` + `- 변경 내용` 목록
 - 최근 10개 버전만 유지 (오래된 것은 삭제)
 - `index.html`의 업데이트 확인 버튼 텍스트도 새 버전으로 갱신

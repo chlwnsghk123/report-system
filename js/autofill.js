@@ -295,6 +295,6 @@ function autoFillAll(){
   refreshRateSection();rebuildGraph();
   renderMiniPanel();updateMiniSection();
   renderCommentPanel();updateCommentSection();
-  if(typeof renderNotePanel==='function')renderNotePanel(); // 문제 노트 과제 채점 카드 (cloud.js)
+  if(typeof renderNotePanel==='function')renderNotePanel(); // 문제 노트 숙제 채점 카드 (cloud.js)
   fitReportCard();
 }
