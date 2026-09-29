@@ -83,6 +83,8 @@
             </div>
           </div>
         </div>
+        <!-- 문제 노트 숙제 채점 · 오답 다시 풀기 (학원 저장소 로그인 시에만 표시, js/cloud.js) — 지난 수업 과제 검사 바로 아래 -->
+        <div class="panel-card" id="noteHwCard" style="display:none;"></div>
         <div class="panel-card">
           <div class="cg" id="gCurHw">
             <label>다음 수업까지 과제 <span class="ab">자동</span> <span class="label-hint">(학생별 추가 가능)</span></label>
@@ -94,8 +96,6 @@
             </div>
           </div>
         </div>
-        <!-- 문제 노트에서 낸 숙제 채점 (학원 저장소 로그인 시에만 표시, js/cloud.js) -->
-        <div class="panel-card" id="noteHwCard" style="display:none;"></div>
       </div>
 
       <!-- 선택 항목 섹션 -->
@@ -158,7 +158,7 @@
     <div style="display:flex;flex-direction:column;gap:4px;"></div>
     <div class="tb-group">
       <button class="tb-btn" id="btnNote" onclick="openNoteApp()" style="display:none;" title="문제 노트(mathpro.app)를 같은 계정·학원으로 새 탭에서 열기">📘 문제 노트</button>
-      <button class="tb-btn" id="btnCloud" onclick="openCloudModal()" title="구글 계정으로 로그인하면 리포트를 학원 저장소에 저장·공유하고, 문제 노트에서 낸 숙제를 채점합니다 (로그인 없이도 엑셀로 그대로 쓸 수 있어요)">☁ 학원 저장소</button>
+      <button class="tb-btn" id="btnCloud" onclick="openCloudModal()" title="구글 계정으로 로그인하면 리포트를 학원 저장소에 저장·공유하고, 문제 노트에서 낸 숙제를 채점하고 틀린 문제를 학생별 오답 과제로 이어 줍니다 (로그인 없이도 엑셀로 그대로 쓸 수 있어요)">☁ 학원 저장소</button>
       <button class="tb-btn" id="btnImg" onclick="dlReportImage()" style="display:none;" title="카톡 전송용 이미지(JPG)로 저장">🖼 이미지</button>
       <button class="tb-btn" id="btnPdf" onclick="dlPdf()" style="display:none;">📄 PDF로 내보내기</button>
       <button class="tb-btn tb-save tb-main" id="btnSave" onclick="saveToExcel()" style="display:none" disabled>💾 저장</button>
@@ -195,7 +195,7 @@
           <div style="padding:8px 14px 6px;font-size:11px;font-weight:700;color:#8a8f9e;">리포트 테마</div>
           <button id="btnColorMode" onclick="toggleColorMode();closeToolbarMenus()">🎨 컬러 모드로 보기</button>
           <div class="tb-menu-sep"></div>
-          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.84)</button>
+          <button class="tb-menu-ver-btn" onclick="showUpdateModal();closeToolbarMenus()">🔄 업데이트 확인 (v1.85)</button>
         </div>
       </div>
       <button class="tb-btn tb-help-btn" onclick="openHelpModal()" title="도움말">?</button>
@@ -220,6 +220,7 @@
         </div>
         <button class="att-all-btn" onclick="markAllPresent()" title="출결을 아직 체크하지 않은 학생을 모두 출석으로 표시">전원 출석</button>
         <button class="att-all-btn" onclick="markAllStudentsHwDone()" title="결석하지 않은 학생 전원의 검사 안 한 과제를 완료로 표시 (이월·선택 과제 제외)">전원 과제 완료</button>
+        <button class="att-all-btn att-note-btn" id="btnClassGrade" onclick="openClassGrade()" style="display:none;" title="이 수업에 검사할 문제 노트 숙제와 오답 다시 풀기를 반 전체 한 화면에서 채점">📘 숙제 채점 (반 전체)</button>
         <span id="attendUnset" class="attend-unset"></span>
       </div>
       <div class="spread-row" id="spreadRow">

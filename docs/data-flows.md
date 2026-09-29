@@ -124,9 +124,8 @@ miniResult(학생,날짜)  (js/domain.js)
 updateMiniSection() → #rMiniScore(3/5 · 60%) · #rMiniRange(범위) · #rWrongTags(다시 볼 문제)
 ```
 
-직접 입력이 없는 학생·날짜는 채점한 **숙제**(§14) 결과를 대신 쓴다 — `noteMiniResult`:
-문항 수 = 채점한 숙제의 문제 수 합, 맞힌 수 = '맞음' 표시 수, 다시 볼 문제 = 맞음이 아닌 문제 라벨("20강 5번"),
-범위 = 숙제 제목.
+미니 테스트는 **직접 입력한 것만** 보여 준다(v1.85). 문제 노트 숙제의 채점 결과는 '지난 수업 과제'에
+"12/15 맞음 · 다시 볼 문제"로 나온다(§14 `noteCheckRows`).
 
 ## 6. 이행률 데이터 흐름
 
@@ -342,29 +341,44 @@ PDF 생성: _renderJournalPdf(date)
 앱 사이 이동 (v1.84)
   📘 문제 노트(#btnNote, 로그인했을 때만) → openNoteApp()
     → 새 탭 먼저 열기 → POST /api/auth/handoff → {code(2분)} → {apiBase}/{학원}#mph=<code>
-  문제 노트 '학습 리포트 ↗' → 이 앱 주소#mph=<code>&t=<학원>
+  숙제 채점 카드 '문제 노트 ↗' → openNoteApp('student:이름') → …#mph=<code>&go=student:이름 (그 학생 오답·기록 화면)
+  반 전체 창 '문제 노트에서 학생별 오답 노트 인쇄' → openNoteApp('classroom') (숙제·채점)
+  문제 노트 '학습 리포트 ↗' → 이 앱 주소#mph=<code>&t=<학원>[&go=student:이름]
     → cloudInit → _cloudConsumeHandoff(): 주소에서 #… 즉시 지움 → POST /api/auth/redeem
     → 새 세션 'rs:auth' (계정이 달라도 이 계정으로), 학원 = t (그 계정의 학원일 때) → 평소처럼 이어 열기
+    → go=student:이름 이면 리포트가 올라온 뒤 _cloudApplyGo() → 그 학생 탭
 ```
 
-## 14. 숙제 채점 · 학생별 문제 기록 — 문제 노트 연동 (v1.84, js/cloud.js)
+## 14. 숙제 채점 · 오답 다시 풀기 — 문제 노트 연동 (v1.84~v1.85, js/cloud.js)
+
+규칙은 문제 노트와 한 벌(note-pro `src/lib/classroomRules.js`, docs/CLASSROOM.md §4). 설계 근거: note-pro docs/CLASSROOM_UX.md.
 
 ```
-문제 노트: 노트 카드 '숙제 내기' → 숙제 {id, title(선생님이 정함), date, due, students:[…], problems:[{id,label,unit,no}]}
+문제 노트: 노트 '숙제로 내기' → 숙제 {id, title, date(나눠 주는 날), due(검사하는 날, 비우면 자동), students, problems:[{id,label,unit,no}]}
 cloudLoadNotes() (시작·로그인·창으로 돌아올 때 1분에 한 번)
-  → GET homework → 이 리포트 학생 중 숙제를 받은 학생마다 GET records?student= (6명씩)
-  → CLOUD.notes {tenant, homework, recs:{[학생]:{items:{[문제 id]:{h:[[날짜,'o'|'x',숙제 id?],…]}}}}} (캐시 'rs:notes')
-autoFillAll() → renderNotePanel()
-  → 이 학생 + 이 수업 날짜의 숙제 (숙제 날짜 = 그 날짜 또는 그 뒤 첫 수업, _noteLessonDate)
-  → 그 학생 기록이 캐시에 없으면 받는 동안 '기록 불러오는 중…'(칩 잠금)
-  → #noteHwCard: 단원별 문제 칩 (문제 노트 인쇄물과 같은 번호) · 칩의 작은 숫자 = 지금까지 틀린 횟수
-채점 (문제 노트 GradeGrid와 같은 규칙 — note-pro docs/CLASSROOM.md §4)
-  미채점 숙제에서 칩을 처음 누름 → 그 문제 'x' + 나머지 'o' (이 수업 날짜로)
-  그 뒤 칩 → 맞음↔틀림 (처음 채점한 날짜의 기록을 덮어씀 — 숙제는 학생마다 한 번 채점)
-  '모두 맞음' · '나머지 N문제 맞음'(일부만 채점된 경우) · '채점 지우기'('-')
-  → _noteMark(): 화면 먼저 반영 → 학생별 줄(markQ)로 순서대로 POST records {student, date, hw, marks}
-     (날짜별로 나눠 보냄) → 응답의 바뀐 문제로 맞춤 · 실패 시 그 학생 기록 다시 받기
-  → 리포트: 직접 입력한 미니 테스트가 없으면 miniResult → noteMiniResult (점수 · 다시 볼 문제)
-  → 문제 노트: 메뉴 '학생 기록'에서 같은 기록(안 풂/맞음/틀림/해결·틀린 횟수) → 오답만 모아 새 노트, 다시 채점
-confirmMissingInputs → noteUngradedNames: 숙제를 받았는데 하나도 채점 안 한 학생 알림
+  → GET homework → 이 리포트 학생 전원 GET records?many=1&student=… (40명씩)
+  → CLOUD.notes {tenant, homework, recs:{[학생]:{items:{[문제 id]:{h:[[날짜,'o'|'x',숙제 id?],…]}}, missing:{[숙제 id]:날짜}}}} (캐시 'rs:notes')
+
+수업 날짜 = G.lessons 날짜
+  나눠 주는 수업 G = 숙제 날짜 당일 또는 그 뒤 첫 수업 · 검사하는 수업 C = 그다음 수업 (due 가 있으면 그날 또는 그 뒤 첫 수업)
+
+[수업 G] autoFillAll → updateNoticeWithCarry → _curHwOnOffItems → noteNextItems(학생, G)
+  → 다음 수업까지 과제에 "📘 숙제 (N문제)" (kind 'note', ref mp:<숙제 id> — 눌러서 OFF 가능, OFF 면 C 검사도 없음)
+  → 이 수업까지 남은 오답이 있으면 "📘 오답 다시 풀기 N문제 — 20강 2·5번" (ref mp:wrong)
+  → 안 해 와서 이월된 숙제는 "(이월) 📘 숙제"
+
+[수업 C] autoFillAll → renderNotePanel() → #noteHwCard (지난 수업 과제 검사 바로 아래)
+  → _hwCheckAt(학생, C): 검사할 숙제 + 이월 · _wrongCheckAt(학생, C): 지난 수업에 나간 오답
+  → 채점 (_noteClick → _noteMark):
+     미채점 숙제에서 칩을 처음 누름 → 그 문제 'x' + 나머지 'o' (이 수업 날짜로) · 모두 맞음 · 모두 틀림(맞은 것만 다시 누름)
+     그 뒤 칩 → 맞음↔틀림 (처음 채점한 날짜의 기록을 덮어씀 — 숙제는 학생마다 한 번 채점)
+     안 해 옴 → POST records {hw, marks:[], missing:true} (채점하면 저절로 풀림) → 다음 수업까지 과제·다음 검사에 (이월)
+     오답 다시 풀기 칩 → 숙제가 아닌 기록 [C, o|x] (날짜마다 한 회차; 채점해도 칩은 남음)
+     → 화면 먼저 반영 → 학생별 줄(markQ)로 순서대로 POST records (날짜별) → 응답의 바뀐 문제·missing 으로 맞춤
+  → 리포트 지난 수업 과제: updateHwDisplay → noteCheckRows → "📘 숙제 12/15 맞음 · 다시 볼 문제 3·7번" / "안 해 옴" / "오답 다시 풀기 2/3 맞음"
+  → 리포트 다음 수업까지 과제: 새로 틀린 문제가 곧바로 "📘 오답 다시 풀기"에 붙음 (다른 날 두 번 맞혀야 빠짐)
+  → 📘 숙제 채점 (반 전체) (#btnClassGrade, 검사할 것이 있을 때만) → openClassGrade(): 숙제마다 학생 줄 × 문제 칸 + 오답 다시 풀기
+  → 문제 노트 ↗ → 그 학생의 남은 오답·오답 노트 인쇄 (문제 노트 '숙제·채점')
+confirmMissingInputs → noteUngradedNames: 검사할 숙제를 채점도 안 해 옴 표시도 안 한 학생 알림
+수업 일지표 → 학생별 '문제 노트' 줄(noteCheckRows) + 숙제별 '숙제 오답 집계'(noteWrongTally)
 ```

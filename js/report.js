@@ -299,10 +299,13 @@ function updateHwDisplay(){
   const offHidden=i=>isHwOff(G.selStudent,prevDate,G.hwItemRefs[i]?.ref||'');
   const stName={2:'완료',1:'부분완료',0:'미완료'};
   const visible=G.hwItems.filter((_,i)=>!isNone(G.hwStatus[i])&&!offHidden(i));
-  if(!G.hwItems.length||!visible.length){if(sec)sec.style.display='none';list.innerHTML='';return;}
+  const noteN=typeof noteCheckRows==='function'?noteCheckRows(G.selStudent,G.selDate).length:0;
+  if((!G.hwItems.length||!visible.length)&&!noteN){if(sec)sec.style.display='none';list.innerHTML='';return;}
   if(sec)sec.style.display='';
   const icons={2:'✓',1:'△',0:'✗'};
   const baseHtml=[],carryHtml=[];
+  // 문제 노트 숙제 채점 결과 (학원 저장소 로그인 시, cloud.js) — "12/15 맞음 · 다시 볼 문제"
+  const noteRows=typeof noteCheckRows==='function'?noteCheckRows(G.selStudent,G.selDate):[];
   G.hwItems.forEach((item,i)=>{
     if(!item.trim()||isNone(G.hwStatus[i])||offHidden(i))return;
     const st=G.hwStatus[i]??0;
@@ -316,6 +319,11 @@ function updateHwDisplay(){
     if(isCarry)carryHtml.push(li);
     else baseHtml.push(li); // extra도 일반 과제와 동일 취급
   });
+  noteRows.forEach(r=>baseHtml.push(`<div class="hw-li s${r.st} note-li">
+      <span class="hw-icon">${icons[r.st]||'?'}</span>
+      <span class="hw-text">${esc(r.text)}${r.sub?`<span class="hw-sub">${esc(r.sub)}</span>`:''}</span>
+      <span class="hw-chip">${esc(r.chip)}</span>
+    </div>`));
   const total=baseHtml.length+carryHtml.length;
   if(total>3&&carryHtml.length>0){
     list.className='hw-list compact';

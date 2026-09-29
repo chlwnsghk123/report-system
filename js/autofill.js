@@ -108,6 +108,10 @@ function _curHwOnOffItems(){
     const text=(it.text||'').trim();
     if(text)out.push({text,ref:buildExtraRef(cur.id,text),kind:'extra',st:-1});
   });
+  // 2-1. 문제 노트 숙제 + 오답 다시 풀기 (학원 저장소 로그인 시, cloud.js — 학생마다 다름, 자동)
+  if(typeof noteNextItems==='function'){
+    noteNextItems(G.selStudent,G.selDate).forEach(it=>out.push({text:it.text,ref:it.ref,kind:'note',st:-1}));
+  }
   // 3. 직전 수업 미완료 + 이월 과제 (모두 (전) 표시)
   G.hwItems.forEach((text,i)=>{
     const carry=isCarryItem(G.hwItemRefs[i]?.fromDate);
@@ -147,6 +151,8 @@ function updateNoticeWithCarry(){
       baseHtml+=`<div class="next-hw-li">${esc(it.text)}</div>`;baseCount++;
     }else if(it.kind==='extra'){
       extraHtml+=`<div class="next-hw-li"><span class="carry-tag">(개별)</span>${esc(it.text)}</div>`;baseCount++;
+    }else if(it.kind==='note'){
+      extraHtml+=`<div class="next-hw-li note-li">${esc(it.text)}</div>`;baseCount++;
     }else if(it.st===0||it.st===1){
       // 이월/직전미완료: 미완료·부분완료만 이번 주차 과제로 노출
       carryHtml+=`<div class="next-hw-li"><span class="carry-tag">(이월)</span>${esc(it.text)}</div>`;carryCount++;
@@ -176,9 +182,10 @@ function renderCurHwList(){
   const dis=_hwDisabledSet();
   c.innerHTML=_curHwOnOffItems().map((it,i)=>{
     const off=dis.has(it.ref);
-    const cls=it.kind==='extra'?'cur-hw-item extra':it.kind==='carry'?'cur-hw-item carry':'cur-hw-item';
+    const cls=it.kind==='extra'?'cur-hw-item extra':it.kind==='carry'?'cur-hw-item carry':it.kind==='note'?'cur-hw-item note':'cur-hw-item';
     const badge=it.kind==='extra'?'<span class="cur-hw-badge">(추가)</span>'
-               :it.kind==='carry'?'<span class="cur-hw-badge">(이월)</span>':'';
+               :it.kind==='carry'?'<span class="cur-hw-badge">(이월)</span>'
+               :it.kind==='note'?'<span class="cur-hw-badge" title="문제 노트 숙제·오답 — 자동으로 붙어요. 누르면 이번 리포트에서 끄고 켭니다">(문제 노트)</span>':'';
     return`<div class="${cls}${off?' disabled':''}" onclick="toggleHwDisabled(${i})">
       ${badge}<span class="cur-hw-text">${esc(it.text)}</span>
       <span class="cur-hw-toggle">${off?'OFF':'ON'}</span>

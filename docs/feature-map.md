@@ -21,7 +21,7 @@ A 패널 (좌측, 드래그 리사이즈 가능)
 │  ├─ 지난 수업 과제 검사 + 이행률     → .panel-card > #gPrevHw, #hwEditor, #inputRate, #hwCounts, ✓ 모두 완료
 │  │    └─ base 과제 + 이월 과제 ((이월) 뱃지)
 │  ├─ 다음 수업까지 과제 + 추가 과제  → .panel-card > #gCurHw, #curHwList(ON/OFF), #extraHwEditor
-│  └─ 숙제 채점 (문제 노트)          → .panel-card#noteHwCard (로그인 + 숙제가 있을 때만, js/cloud.js)
+│  └─ 문제 노트 숙제 채점·오답 다시 풀기 → .panel-card#noteHwCard (지난 수업 과제 검사 바로 아래, 로그인 + 검사할 것이 있을 때만, js/cloud.js)
 ├─ [선택 항목 섹션]
 │  ├─ 미니 테스트 토글               → #toggleMini → #gMini (#miniTotal, #miniRange, #inputWrong, #miniCorrect)
 │  └─ 선생님 한마디 토글             → #toggleComment → #gComment (#inputComment, #inputTeacher)
@@ -95,7 +95,10 @@ B 미리보기 (우측)
 | 지난 작업 이어하기 | `js/session.js` | `checkRecovery()`, `restoreFromBackup()` |
 | 학원 저장소 (구글 로그인·리포트 올리기/열기·엑셀 바로 올리기·자동 저장·충돌) | `js/cloud.js` + `index.html` | `openCloudModal()`, `cloudSignIn()`, `cloudUploadCurrent()`, `cloudUploadExcel()`, `cloudOpenBook()`, `_cloudSave()`, `_cloudConflict()`, `cloudResume()` |
 | 문제 노트로 이동 (로그인 넘김) | `js/cloud.js` + `index.html` (#btnNote) | `openNoteApp()`, `_cloudConsumeHandoff()` |
-| 숙제 채점 · 학생별 문제 기록 (문제 노트 연동) | `js/cloud.js` + `js/domain.js` | `renderNotePanel()`, `_noteMark()`, `noteMiniResult()` → `miniResult()`, `noteUngradedNames()` |
+| 숙제 채점 · 학생별 문제 기록 (문제 노트 연동) | `js/cloud.js` + `index.html` (#noteHwCard) | `renderNotePanel()`, `_noteClick()`, `_noteMark()`, `_hwCheckAt()`, `noteUngradedNames()` |
+| 반 전체 채점 창 | `js/cloud.js` + `index.html` (#btnClassGrade) + `css/layout.css` (.cg-*) | `openClassGrade()`, `_renderClassGrade()` |
+| 틀린 문제 → 다음 수업까지 과제 (오답 다시 풀기, 자동) | `js/cloud.js` + `js/autofill.js` | `noteNextItems()` → `_curHwOnOffItems()`(kind 'note') → `updateNoticeWithCarry()`, `_wrongGivenAt()`, `_wrongCheckAt()` |
+| 리포트 '지난 수업 과제'의 숙제 결과 · 수업 일지표 숙제 결과·오답 집계 | `js/cloud.js` + `js/report.js` + `js/pdf.js` | `noteCheckRows()` → `updateHwDisplay()`, `noteWrongTally()` → `_buildJournalReportPages()` |
 | 학생 이름 변경 | `js/ui.js` | `renameStudent()` |
 | 수업설정 모달 | `js/ui.js` | `openLessonModal()`, `closeLessonModal()` |
 | 수업 카드 렌더링 | `js/ui.js` | `renderLessonCards()` (날짜 상태 분류 포함) |

@@ -4,15 +4,16 @@
 //  · 학원 저장소: '리포트'(엑셀 파일 한 개 분량 = DATA_KEYS 전체)를 학원 단위로 저장·공유.
 //    열어 둔 리포트는 편집할 때마다 자동 저장(1.5초 뒤). 다른 곳에서 먼저 저장했으면 충돌 안내.
 //    엑셀 저장(💾)은 백업용으로 그대로 쓰고, 로그인하지 않으면 지금처럼 엑셀 + 자동 백업으로만 동작한다.
-//  · 숙제 채점: 문제 노트에서 낸 숙제(제목을 정한 문제 모음)를 그 날짜(또는 그 뒤 첫 수업)에 띄우고,
-//    틀린 문제만 눌러 채점 → 학생별 문제 기록(안 풂/맞음/틀림/해결·틀린 횟수)으로 학원 저장소에 쌓이고,
-//    리포트 '미니 테스트'에 반영된다(그 학생·날짜에 직접 입력한 미니 테스트가 있으면 직접 입력이 우선).
-//    같은 기록을 문제 노트의 '학생 기록'도 쓴다(오답 모아 다시 풀기).
-//  · 앱 사이 이동: '📘 문제 노트 ↗'는 로그인·학원을 넘겨 mathpro.app 을 연다(#mph= 넘김 코드, 2분).
-//    반대로 문제 노트에서 넘어오면 #mph= 를 받아 같은 계정으로 바로 로그인된다.
+//  · 숙제 채점: 문제 노트에서 낸 숙제를 '나눠 준 수업'의 '다음 수업까지 과제'에 넣고, 그다음 수업(검사하는 날)의
+//    '지난 수업 과제 검사' 옆 카드와 '📘 숙제 채점(반 전체)' 창에서 틀린 문제만 눌러 채점 → 학생별 문제 기록.
+//    리포트 '지난 수업 과제'에 "12/15 맞음 · 다시 볼 문제"로 나온다. 안 해 오면 '안 해 옴'(다음 수업까지 이월).
+//  · 오답 다시 풀기: 틀린 문제는 학생마다 해결될 때까지 '다음 수업까지 과제'에 자동으로 붙고(ON/OFF 가능),
+//    다음 수업에 다시 채점한다(다른 날 두 번 맞히면 해결). 같은 기록을 문제 노트의 '숙제·채점'도 쓴다.
+//  · 앱 사이 이동: '📘 문제 노트 ↗'는 로그인·학원(+갈 곳 #go=)을 넘겨 mathpro.app 을 연다(#mph= 넘김 코드, 2분).
+//    반대로 문제 노트에서 넘어오면 #mph= 로 같은 계정 로그인, #go=student:이름 이면 그 학생을 골라 연다.
 // 다른 파일과의 연결점(없으면 조용히 건너뜀): saveAppData→cloudOnChange, _appSnapshot→cloudSnapshotTag,
-// miniResult→noteMiniResult, confirmMissingInputs→noteUngradedNames, autoFillAll→renderNotePanel,
-// loadExcel·_clearAllData→cloudDetach, Ctrl+S→cloudSaveNow, window.onload→cloudInit
+// _curHwOnOffItems→noteNextItems, updateHwDisplay→noteCheckRows, confirmMissingInputs→noteUngradedNames,
+// autoFillAll→renderNotePanel, loadExcel·_clearAllData→cloudDetach, Ctrl+S→cloudSaveNow, window.onload→cloudInit
 
 const CLOUD_API_DEFAULT='https://mathpro.app';
 const CLOUD_LS={auth:'rs:auth',tenant:'rs:tenant',book:'rs:book',api:'rs:apiBase',notes:'rs:notes'};
@@ -24,8 +25,9 @@ const CLOUD={
   book:null,        // 열어 둔 리포트 {id,title,rev,updatedAt}
   books:null,       // 학원 리포트 목록 (모달용)
   dirty:false,saving:false,again:false,timer:null,retry:0,conflict:null,
-  notes:{tenant:'',homework:[],recs:{},at:''}, // 숙제 + 학생별 문제 기록 (학원 단위, 이 기기에 캐시)
+  notes:{tenant:'',homework:[],recs:{},at:''}, // 숙제 + 학생별 문제 기록 {items, missing} (학원 단위, 이 기기에 캐시)
   markQ:{},markBusy:{},recLoading:{},notesAt:0, // 학생별 채점 저장 줄 (한 번에 하나씩 → 서로 덮어쓰지 않게)·기록 불러오는 중
+  goStudent:'', // 문제 노트에서 '학습 리포트에서 보기'로 넘어온 학생 (리포트를 연 뒤 그 학생으로)
 };
 const _CLOUD_DEF={lessons:[],students:[],teacherName:'',showMini:false,showComment:false,colorMode:false,lastSaved:''};
 const _CLOUD_MSG={
@@ -101,6 +103,7 @@ async function cloudInit(){
   // 문제 노트·다른 선생님이 바꾼 과제·채점을 창으로 돌아올 때 새로 받기 (1분에 한 번)
   window.addEventListener('focus',()=>{if(cloudSignedIn()&&Date.now()-CLOUD.notesAt>60000)cloudLoadNotes();});
   _cloudStatus();
+  _cloudApplyGo(); // 이 기기 백업으로 이미 화면에 리포트가 있으면 바로
   if(!cloudSignedIn())return;
   cloudLoadNotes();
   cloudResume();
@@ -216,6 +219,7 @@ function _cloudShow(sel){
   showGroups(!!G.selDate);
   markSaved();
   _cloudBar();
+  _cloudApplyGo();
 }
 function _cloudBar(){
   if(!CLOUD.book)return;
@@ -408,7 +412,7 @@ function _defaultTitle(){
 function _renderCloudModal(){
   const body=$$('cloudBody');if(!body)return;
   if(!cloudSignedIn()){
-    body.innerHTML=`<div class="cloud-intro">학원에 등록된 <b>구글 계정</b>으로 로그인하면 리포트를 학원 저장소에 저장해 <b>다른 컴퓨터·다른 선생님</b>과 함께 쓰고, 문제 노트에서 낸 숙제를 학생별로 채점할 수 있습니다.</div>
+    body.innerHTML=`<div class="cloud-intro">학원에 등록된 <b>구글 계정</b>으로 로그인하면 리포트를 학원 저장소에 저장해 <b>다른 컴퓨터·다른 선생님</b>과 함께 쓰고, 문제 노트에서 낸 숙제를 채점해 <b>틀린 문제를 학생별 다음 과제(오답 다시 풀기)</b>로 이어 줍니다.</div>
       ${CLOUD.expired?'<div class="cloud-warn">로그인이 만료됐습니다 — 다시 로그인하면 멈춘 저장을 이어서 합니다.</div>':''}
       <div id="cloudGoogleBtn" class="cloud-gbtn"></div>
       <div id="cloudLoginMsg" class="cloud-hint"></div>
@@ -519,21 +523,29 @@ async function cloudUploadExcel(input){
 
 // ─── 앱 사이 이동 (학습 리포트 ↔ 문제 노트) ───
 // 로그인돼 있으면 2분짜리 넘김 코드를 받아 주소의 # 뒤에 붙여 연다 (서버 로그에 남지 않음)
-async function openNoteApp(){
+async function openNoteApp(go){
   const win=window.open('about:blank','_blank');
   let url=cloudApiBase()+'/';
+  const parts=[];
   if(cloudSignedIn()&&CLOUD.tenant){
     url=`${cloudApiBase()}/${CLOUD.tenant}`;
-    try{const d=await _cloudFetch('/api/auth/handoff',{method:'POST'});if(d.code)url+=`#mph=${encodeURIComponent(d.code)}`;}catch(e){}
+    try{const d=await _cloudFetch('/api/auth/handoff',{method:'POST'});if(d.code)parts.push(`mph=${encodeURIComponent(d.code)}`);}catch(e){}
   }
+  // 갈 곳: 'classroom'(숙제·채점) · 'student:이름'(그 학생 오답·기록) — 문제 노트가 # 을 읽고 바로 지운다
+  if(typeof go==='string'&&go)parts.push(`go=${encodeURIComponent(go)}`);
+  if(parts.length)url+='#'+parts.join('&');
   if(win){try{win.opener=null;}catch(e){}win.location.href=url;}else location.href=url; // 새 탭이 이 탭을 조작하지 못하게
 }
 async function _cloudConsumeHandoff(){
   const h=location.hash||'';
   const m=/[#&]mph=([^&]+)/.exec(h);
-  if(!m)return;
+  const g=/[#&]go=([^&]+)/.exec(h);
+  if(!m&&!g)return;
   const t=(/[#&]t=([^&]+)/.exec(h)||[])[1];
   window.history.replaceState(null,'',location.pathname+location.search); // 주소창·방문 기록에서 바로 지움
+  // 문제 노트의 '학습 리포트에서 보기' — 그 학생을 골라 연다 (리포트를 불러온 뒤 _cloudApplyGo)
+  try{const go=g?decodeURIComponent(g[1]):'';if(go.startsWith('student:'))CLOUD.goStudent=go.slice(8).slice(0,50);}catch(e){}
+  if(!m)return;
   try{
     const d=await _cloudFetch('/api/auth/redeem',{method:'POST',body:{code:decodeURIComponent(m[1])},auth:false});
     CLOUD.auth={token:d.token,user:d.user||{},tenants:d.tenants||[]};CLOUD.expired=false;
@@ -545,14 +557,50 @@ async function _cloudConsumeHandoff(){
     toast(`${d.user?.email||''} 계정으로 이어서 로그인했습니다`);
   }catch(e){toast('로그인을 이어받지 못했습니다 — ☁ 학원 저장소에서 로그인해 주세요');}
 }
+// 넘어온 학생 선택 적용 — 리포트가 화면에 올라온 뒤 (학생이 이 리포트에 있을 때만)
+function _cloudApplyGo(){
+  const s=CLOUD.goStudent;if(!s)return;
+  if(!G.students.length||!G.selDate)return;
+  CLOUD.goStudent='';
+  if(G.students.includes(s)&&G.selStudent!==s)switchTab(s);
+}
 
-// ─── 숙제 채점 (문제 노트에서 낸 숙제 · 학생별 문제 기록) ───
-// 기록 h = [[날짜, 'o'|'x', 숙제 id?], …] (날짜순). 기록이 없으면 '안 풂'. 서버 규칙은 문제 노트
-// functions/api/workspace.js 와 같다 — 같은 날짜·숙제는 덮어쓰고 '-' 는 지운다.
-const _recItems=student=>CLOUD.notes.recs?.[student]?.items||{};
-const _recOf=student=>CLOUD.notes.recs[student]||(CLOUD.notes.recs[student]={items:{}}); // 늘 지금 캐시의 객체
-function _lastMarkFor(h,hw){if(!Array.isArray(h))return null;for(let i=h.length-1;i>=0;i--)if((h[i][2]||'')===hw)return h[i];return null;}
+// ─── 숙제 채점 · 오답 다시 풀기 — 공통 규칙 (문제 노트 note-pro src/lib/classroomRules.js 와 한 벌, 고치면 둘 다) ───
+// 기록 h = [[날짜, 'o'|'x', 숙제 id?], …] (날짜순). 기록이 없으면 '안 풂'. 서버: 같은 날짜·숙제는 덮어쓰고 '-' 는 지운다.
+//  · 상태: x 가 없으면 맞음 · 마지막 x = 틀림 · 틀린 뒤 다른 날 1번 맞힘 = 확인 중 · 다른 날 2번 맞힘 = 해결.
+//    오답 = 틀림 + 확인 중 (한 번 맞히고 바로 빼면 오래 기억 못 한다 — 두 번 연속으로 확인).
+//  · 숙제: 나눠 주는 수업 = 숙제 날짜 당일 또는 그 뒤 첫 수업, 검사하는 수업 = 그다음 수업
+//    (검사일을 정했으면 그날 또는 그 뒤 첫 수업). 안 해 오면(안 해 옴) 해 올 때까지 다음 수업으로 이월.
+//  · 오답 다시 풀기: 수업 L 의 '다음 수업까지 과제' = L 까지 오답 전부(학생마다 다름),
+//    수업 L 에서 검사 = 바로 전 수업까지 오답이었고 L 전날까지도 오답인 문제.
+const NOTE_SOLVE_STREAK=2,NOTE_HELP_AFTER=3;
+function _nStatus(h){
+  if(!Array.isArray(h)||!h.length)return'none';
+  let lx=-1;for(let i=h.length-1;i>=0;i--)if(h[i][1]==='x'){lx=i;break;}
+  if(lx<0)return'correct';
+  if(lx===h.length-1)return'wrong';
+  const days=new Set();for(let i=lx+1;i<h.length;i++)if(h[i][1]==='o'&&h[i][0]!==h[lx][0])days.add(h[i][0]);
+  return days.size>=NOTE_SOLVE_STREAK?'fixed':'checking';
+}
+const _nPending=st=>st==='wrong'||st==='checking';
+const _nUpto=(h,d)=>_nStatus(Array.isArray(h)?h.filter(e=>e[0]<=d):[]);
+const _nBefore=(h,d)=>_nStatus(Array.isArray(h)?h.filter(e=>e[0]<d):[]);
 const _wrongCount=h=>Array.isArray(h)?h.filter(e=>e[1]==='x').length:0;
+const _needsHelp=h=>_wrongCount(h)>=NOTE_HELP_AFTER;
+function _entryOn(h,date,hw){return(Array.isArray(h)&&h.find(x=>x[0]===date&&(x[2]||'')===(hw||'')))||null;}
+function _lastMarkFor(h,hw){if(!Array.isArray(h))return null;for(let i=h.length-1;i>=0;i--)if((h[i][2]||'')===hw)return h[i];return null;}
+const _onOrAfter=(ds,d)=>ds.find(x=>x>=d)||'';
+const _after=(ds,d)=>ds.find(x=>x>d)||'';
+function _before(ds,d){let o='';for(const x of ds){if(x<d)o=x;else break;}return o;}
+const _hwGiven=(hw,ds)=>_onOrAfter(ds,hw.date)||hw.date;
+const _hwCheck=(hw,ds)=>hw.due?(_onOrAfter(ds,hw.due)||hw.due):_after(ds,_hwGiven(hw,ds));
+
+// ─── 숙제 · 학생별 기록 (학원 단위, 이 기기에 캐시) ───
+const _recItems=student=>CLOUD.notes.recs?.[student]?.items||{};
+const _recMissing=student=>CLOUD.notes.recs?.[student]?.missing||{};
+const _recOf=student=>CLOUD.notes.recs[student]||(CLOUD.notes.recs[student]={items:{},missing:{}}); // 늘 지금 캐시의 객체
+const _notesOn=()=>cloudSignedIn()&&!!CLOUD.notes.tenant&&CLOUD.notes.tenant===CLOUD.tenant;
+const _lessonDates=()=>G.lessons.map(l=>l.날짜).filter(Boolean).sort();
 
 async function cloudLoadNotes(){
   if(!cloudSignedIn()||!CLOUD.tenant)return;
@@ -564,133 +612,298 @@ async function cloudLoadNotes(){
     const homework=d.items||[];
     const recs=CLOUD.notes.tenant===tenant?{...CLOUD.notes.recs}:{};
     CLOUD.notes={tenant,homework,recs,at:new Date().toISOString()};
-    // 이 리포트 학생 중 숙제를 받은 학생의 기록 (미니 테스트·일괄 출력용) — 6명씩
-    const need=[...new Set(homework.flatMap(h=>h.students||[]))].filter(s=>G.students.includes(s));
-    for(let i=0;i<need.length;i+=6)await Promise.all(need.slice(i,i+6).map(s=>_fetchRecs(s)));
+    // 이 리포트 학생 전원의 문제 기록 — 숙제 채점·오답 다시 풀기·리포트 표시 (40명씩 한 번에)
+    await _fetchRecsMany(G.students.slice());
     _lsSet(CLOUD_LS.notes,CLOUD.notes);
   }catch(e){if(!e.network&&e.status!==401)console.warn('숙제 불러오기 실패:',e);}
   _refreshNoteViews();
 }
+async function _fetchRecsMany(students){
+  const list=[...new Set(students.filter(Boolean))];
+  for(let i=0;i<list.length;i+=40){
+    const url=new URL(cloudApiBase()+'/api/workspace/records');
+    url.searchParams.set('tenant',CLOUD.tenant);url.searchParams.set('many','1');
+    list.slice(i,i+40).forEach(s=>url.searchParams.append('student',s));
+    let d;
+    try{
+      const r=await fetch(url,{headers:{Authorization:'Bearer '+(CLOUD.auth?.token||'')},cache:'no-store'});
+      if(r.status===401){_cloudExpired();return;}
+      if(!r.ok)continue;
+      d=await r.json();
+    }catch(e){continue;}
+    Object.entries(d.students||{}).forEach(([s,rec])=>{
+      if(!CLOUD.markBusy[s])CLOUD.notes.recs[s]={items:rec.items||{},missing:rec.missing||{}}; // 저장 중인 학생은 화면 값 유지
+    });
+  }
+}
 async function _fetchRecs(student,force){
-  if(CLOUD.markBusy[student]&&!force)return; // 저장 중인 학생은 화면 값을 유지 (저장 실패 때만 서버 값으로 되돌림)
+  if(CLOUD.markBusy[student]&&!force)return;
   try{
     const d=await _ws('records',{query:{student}});
-    if(force||!CLOUD.markBusy[student])CLOUD.notes.recs[student]={items:d.items||{}};
+    if(force||!CLOUD.markBusy[student])CLOUD.notes.recs[student]={items:d.items||{},missing:d.missing||{}};
   }catch(e){}
   finally{delete CLOUD.recLoading[student];}
 }
 function _refreshNoteViews(){
   renderNotePanel();
-  if(G.selStudent&&G.selDate){updateMiniSection();renderMiniPanel();fitReportCard();}
-}
-// 숙제 날짜 → 리포트 수업 날짜 (그 날짜 또는 그 뒤 첫 수업)
-function _noteLessonDate(d){
-  const ds=G.lessons.map(l=>l.날짜).filter(Boolean).sort();
-  return ds.find(x=>x>=d)||'';
-}
-// 이 학생이 이 수업 날짜에 받은 숙제 (이 기기 캐시 기준)
-function _hwFor(student,date){
-  if(!student||!date||!CLOUD.notes.tenant||CLOUD.notes.tenant!==CLOUD.tenant)return[];
-  const s=String(student).trim();
-  return(CLOUD.notes.homework||[]).filter(h=>(h.students||[]).includes(s)&&_noteLessonDate(h.date)===date);
-}
-// 채점한 숙제 → 미니 테스트 결과 (domain.js miniResult 에서 직접 입력이 없을 때 사용)
-function noteMiniResult(student,date){
-  const list=_hwFor(student,date);if(!list.length)return null;
-  const items=_recItems(student);
-  let total=0,correct=0;const wrong=[],titles=[];
-  list.forEach(hw=>{
-    const marks=hw.problems.map(p=>_lastMarkFor(items[p.id]?.h,hw.id)?.[1]||null);
-    if(!marks.some(Boolean))return; // 아직 채점 안 한 숙제
-    total+=hw.problems.length;
-    hw.problems.forEach((p,i)=>{if(marks[i]==='o')correct++;else wrong.push(p.label||p.id);});
-    if(hw.title&&!titles.includes(hw.title))titles.push(hw.title);
-  });
-  if(!total)return null;
-  return{total,correct,wrong,range:titles.join(' · '),pct:Math.round(correct/total*100),perfect:!wrong.length};
-}
-// 일괄 출력 전 점검용 — 숙제를 받았는데 아직 하나도 채점 안 한 학생
-function noteUngradedNames(date,students){
-  if(!cloudSignedIn())return[];
-  return students.filter(s=>{const it=_recItems(s);return _hwFor(s,date).some(hw=>!hw.problems.some(p=>_lastMarkFor(it[p.id]?.h,hw.id)));});
-}
-function renderNotePanel(){
-  const card=$$('noteHwCard');if(!card)return;
-  const list=cloudSignedIn()?_hwFor(G.selStudent,G.selDate):[];
-  if(!list.length){card.style.display='none';card.innerHTML='';return;}
-  if(!CLOUD.notes.recs[G.selStudent]&&!CLOUD.recLoading[G.selStudent]){ // 이 학생 기록을 처음 볼 때 (받는 동안 채점 칸은 잠금)
-    CLOUD.recLoading[G.selStudent]=true;_fetchRecs(G.selStudent).then(_refreshNoteViews);
+  if(G.selStudent&&G.selDate){
+    if(typeof updateNoticeWithCarry==='function')updateNoticeWithCarry();
+    if(typeof updateHwDisplay==='function')updateHwDisplay();
+    fitReportCard();
   }
+  _renderClassGrade();
+}
+
+// 학생 한 명 × 숙제 한 개 → 채점 결과
+function _hwRes(student,hw){
+  const items=_recItems(student);
+  const marks={};let marked=0,wrong=0,at='';
+  hw.problems.forEach(p=>{const e=_lastMarkFor(items[p.id]?.h,hw.id);if(e){marks[p.id]=e[1];marked++;if(e[1]==='x')wrong++;if(!at||e[0]<at)at=e[0];}});
+  const missing=(!marked&&_recMissing(student)[hw.id])||'';
+  return{marks,marked,wrong,correct:marked-wrong,total:hw.problems.length,missing,gradedAt:at};
+}
+const _myHw=student=>_notesOn()?(CLOUD.notes.homework||[]).filter(h=>(h.students||[]).includes(String(student||'').trim())):[];
+// 이 수업(date)에 검사할 숙제 — [{hw, carry}] (carry = 안 해 와서 지난 수업에서 넘어온 숙제)
+function _hwCheckAt(student,date){
+  if(!student||!date)return[];
+  const ds=_lessonDates();
+  return _myHw(student).map(hw=>{
+    const g=_hwGiven(hw,ds),c=_hwCheck(hw,ds);
+    if(isHwOff(student,g,'mp:'+hw.id))return null; // 나눠 준 수업에서 이 과제를 꺼 뒀으면 검사도 없음
+    if(c===date)return{hw,carry:false};
+    if(c&&c<date){const r=_hwRes(student,hw);if(r.missing?!r.marked:r.gradedAt===date)return{hw,carry:true};}
+    return null;
+  }).filter(Boolean);
+}
+// 이 수업에 나가는 숙제 — [{hw, carry}] (carry = 안 해 와서 다시 나가는 숙제)
+function _hwGivenAt(student,date){
+  if(!student||!date)return[];
+  const ds=_lessonDates();
+  return _myHw(student).map(hw=>{
+    const g=_hwGiven(hw,ds),c=_hwCheck(hw,ds);
+    if(g===date)return{hw,carry:false};
+    if(c&&c<=date){const r=_hwRes(student,hw);if(r.missing&&!r.marked)return{hw,carry:true};}
+    return null;
+  }).filter(Boolean);
+}
+// 문제 순서 — 숙제에 나온 순서(오래된 숙제부터), 모르면 id
+function _problemOrder(){
+  const o=new Map();let i=0;
+  [...(CLOUD.notes.homework||[])].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0).forEach(h=>h.problems.forEach(p=>{if(!o.has(p.id))o.set(p.id,i++);}));
+  return(a,b)=>(o.has(a)?o.get(a):1e9)-(o.has(b)?o.get(b):1e9)||(a<b?-1:a>b?1:0);
+}
+// 이 수업까지 남은 오답 — '다음 수업까지 과제'의 오답 다시 풀기
+function _wrongGivenAt(student,date){
+  if(!_notesOn()||!student||!date)return[];
+  const items=_recItems(student);
+  return Object.keys(items).filter(id=>_nPending(_nUpto(items[id].h,date))).sort(_problemOrder());
+}
+// 이 수업에서 검사할 오답 (지난 수업에 나간 것)
+function _wrongCheckAt(student,date){
+  if(!_notesOn()||!student||!date)return[];
+  const prev=_before(_lessonDates(),date);
+  if(!prev||isHwOff(student,prev,'mp:wrong'))return[];
+  const items=_recItems(student);
+  return Object.keys(items).filter(id=>_nPending(_nBefore(items[id].h,date))&&_nPending(_nUpto(items[id].h,prev))).sort(_problemOrder());
+}
+// 문제가 마지막으로 나온 숙제 (학생이 받은 종이에서 찾기 쉽게)
+function _sourceOf(student,id){
+  const h=_recItems(student)[id]?.h||[];
+  const byId=new Map((CLOUD.notes.homework||[]).map(x=>[x.id,x]));
+  for(let i=h.length-1;i>=0;i--){const hw=h[i][2]&&byId.get(h[i][2]);if(hw){const p=hw.problems.find(x=>x.id===id);if(p)return{hw,p};}}
+  for(const hw of CLOUD.notes.homework||[]){const p=hw.problems.find(x=>x.id===id);if(p)return{hw,p};}
+  return null;
+}
+// 칩 이름 "20강 5" · 전체 이름 "20강 순열 학습지 · 20강 5번"
+function _chipName(student,id){const s=_sourceOf(student,id);if(!s)return id;return s.p.unit?`${s.p.unit} ${s.p.no}`:`${s.hw.title.slice(0,8)} ${s.p.no||s.p.label}`;}
+function _paperName(student,id){const s=_sourceOf(student,id);if(!s)return id;return s.p.unit?`${s.hw.title} · ${s.p.unit} ${s.p.no}번`:`${s.hw.title} ${s.p.no}번`;}
+// 학부모 리포트용 짧은 목록 — "20강 2·5번, 21강 3번"
+function _wrongSummary(student,ids){
+  const groups=[];
+  ids.forEach(id=>{
+    const s=_sourceOf(student,id);
+    const key=s?(s.p.unit||s.hw.title):'';const no=s?String(s.p.no||s.p.label||'').replace(/번$/,''):id;
+    let g=groups.find(x=>x.key===key);if(!g){g={key,nos:[]};groups.push(g);}g.nos.push(no);
+  });
+  const parts=groups.slice(0,3).map(g=>`${g.key?g.key+' ':''}${g.nos.join('·')}번`);
+  const shown=groups.slice(0,3).reduce((n,g)=>n+g.nos.length,0);
+  return parts.join(', ')+(ids.length>shown?` 외 ${ids.length-shown}문제`:'');
+}
+
+// ─── 리포트 연결점 (autofill.js·report.js·domain.js·pdf.js 가 typeof 로 확인 후 부른다) ───
+// '다음 수업까지 과제'에 붙는 문제 노트 항목 — [{text, ref}] (ref 로 ON/OFF)
+function noteNextItems(student,date){
+  if(!_notesOn())return[];
+  const out=_hwGivenAt(student,date).map(({hw,carry})=>({text:`${carry?'(이월) ':''}📘 ${hw.title} (${hw.problems.length}문제)`,ref:'mp:'+hw.id}));
+  const w=_wrongGivenAt(student,date);
+  if(w.length)out.push({text:`📘 오답 다시 풀기 ${w.length}문제 — ${_wrongSummary(student,w)}`,ref:'mp:wrong'});
+  return out;
+}
+// '지난 수업 과제'에 붙는 채점 결과 — [{text, chip, st, sub}] (st: 2 완료 · 0 안 해 옴)
+function noteCheckRows(student,date){
+  if(!_notesOn()||isAbsent(student,date))return[];
+  const rows=[];
+  _hwCheckAt(student,date).forEach(({hw,carry})=>{
+    const r=_hwRes(student,hw);const t=`${carry?'(이월) ':''}📘 ${hw.title}`;
+    if(r.missing&&!r.marked)rows.push({text:t,chip:'안 해 옴',st:0,sub:''});
+    else if(r.marked){
+      const wrong=hw.problems.filter(p=>r.marks[p.id]==='x').map(p=>p.no||p.label);
+      rows.push({text:t,chip:`${r.correct}/${r.total} 맞음`,st:2,sub:wrong.length?`다시 볼 문제 ${wrong.map(n=>String(n).replace(/번$/,'')).join('·')}번`:'다 맞음'});
+    }
+  });
+  const ids=_wrongCheckAt(student,date);
+  if(ids.length){
+    const items=_recItems(student);const marked=ids.filter(id=>_entryOn(items[id]?.h,date,''));
+    if(marked.length){
+      const ok=marked.filter(id=>_entryOn(items[id].h,date,'')[1]==='o').length;
+      rows.push({text:'📘 오답 다시 풀기',chip:`${ok}/${ids.length} 맞음`,st:2,sub:ok<ids.length?'또 틀린 문제는 다음 과제로 다시 나가요':''});
+    }
+  }
+  return rows;
+}
+// 수업 일지표용 — 이 날짜에 검사한 문제 노트 숙제별로 많이 틀린 문제 [{title, top:[[번호, 명]]}] (결석 제외)
+function noteWrongTally(date){
+  if(!_notesOn())return[];
+  const by=new Map();
+  G.students.forEach(s=>{
+    if(isAbsent(s,date))return;
+    _hwCheckAt(s,date).forEach(({hw})=>{
+      const r=_hwRes(s,hw);if(!r.marked)return;
+      if(!by.has(hw.id))by.set(hw.id,{title:hw.title,cnt:new Map(),order:hw.problems.map(p=>p.id),names:new Map(hw.problems.map(p=>[p.id,p.unit?`${p.unit} ${p.no}`:(p.no||p.label)]))});
+      const g=by.get(hw.id);
+      hw.problems.forEach(p=>{if(r.marks[p.id]==='x')g.cnt.set(p.id,(g.cnt.get(p.id)||0)+1);});
+    });
+  });
+  return[...by.values()].filter(g=>g.cnt.size).map(g=>({title:g.title,top:[...g.cnt].sort((a,b)=>b[1]-a[1]||g.order.indexOf(a[0])-g.order.indexOf(b[0])).slice(0,8).map(([id,c])=>[g.names.get(id)||id,c])}));
+}
+// 일괄 출력 전 점검용 — 검사할 숙제를 아직 채점하지도, 안 해 옴으로 표시하지도 않은 학생
+function noteUngradedNames(date,students){
+  if(!_notesOn())return[];
+  return students.filter(s=>_hwCheckAt(s,date).some(({hw})=>{const r=_hwRes(s,hw);return!r.marked&&!r.missing;}));
+}
+
+// ─── 패널: 문제 노트 숙제 채점 카드 (학생 한 명) ───
+function renderNotePanel(){
+  const card=$$('noteHwCard');
+  const btn=$$('btnClassGrade');
+  if(btn){const any=_notesOn()&&G.selDate&&G.students.some(s=>_hwCheckAt(s,G.selDate).length||_wrongCheckAt(s,G.selDate).length);btn.style.display=any?'':'none';}
+  if(!card)return;
+  const st=G.selStudent,date=G.selDate;
+  const list=_notesOn()?_hwCheckAt(st,date):[];
+  const wrongIds=_notesOn()?_wrongCheckAt(st,date):[];
+  const given=_notesOn()?_hwGivenAt(st,date).filter(x=>!x.carry):[];
+  if(!list.length&&!wrongIds.length&&!given.length){card.style.display='none';card.innerHTML='';return;}
   card.style.display='';
   const hints=[];
-  if(isAbsent(G.selStudent,G.selDate))hints.push('결석한 날은 리포트에 표시되지 않습니다');
-  else if(!G.showMini)hints.push('채점 결과는 아래 \'미니 테스트\'를 켜면 리포트에 점수·다시 볼 문제로 표시됩니다');
-  else if(G.wrong[G.selStudent]?.[G.selDate]||G.miniScore[`${G.selStudent}||${G.selDate}`]!=null)
-    hints.push('미니 테스트를 직접 입력해서 리포트에는 직접 입력한 결과가 표시됩니다');
-  card.innerHTML=`<div class="cg"><label>📘 숙제 채점 <span class="ab">문제 노트</span><span class="label-hint">틀린 문제만 누르세요</span>
-    <button class="note-refresh" data-act="refresh" title="새로 받기">↻</button></label>
-    ${list.map(_hwHtml).join('')}
-    ${hints.map(h=>`<div class="label-hint note-hint">${esc(h)}</div>`).join('')}</div>`;
-  card.onclick=e=>{
-    const t=e.target.closest('[data-act],[data-np]');if(!t)return;
-    const hw=list.find(x=>x.id===t.dataset.hw);
-    if(t.dataset.act==='refresh'){cloudLoadNotes();return;}
-    if(!hw||CLOUD.recLoading[G.selStudent])return;
-    const items=_recItems(G.selStudent);
-    const lastOf=p=>_lastMarkFor(items[p.id]?.h,hw.id);
-    if(t.dataset.np){
-      const p=hw.problems.find(x=>x.id===t.dataset.np);if(!p)return;
-      // 처음 누르면 누른 문제는 틀림·나머지는 맞음으로 한 번에, 그 뒤로는 맞음↔틀림 (문제 노트 GradeGrid와 같은 규칙)
-      if(!hw.problems.some(q=>lastOf(q))){_noteMark(hw.id,hw.problems.map(q=>({id:q.id,r:q.id===p.id?'x':'o',date:G.selDate})));return;}
-      const e0=lastOf(p); // 이미 채점돼 있으면 그 기록(날짜)을 고친다 — 숙제는 학생마다 한 번 채점
-      _noteMark(hw.id,[{id:p.id,r:e0&&e0[1]==='x'?'o':'x',date:e0?e0[0]:G.selDate}]);
-    }else if(t.dataset.act==='all'){
-      _noteMark(hw.id,hw.problems.map(p=>({id:p.id,r:'o',date:G.selDate})));
-    }else if(t.dataset.act==='rest'){
-      _noteMark(hw.id,hw.problems.filter(p=>!lastOf(p)).map(p=>({id:p.id,r:'o',date:G.selDate})));
-    }else if(t.dataset.act==='clear'){
-      if(!confirm(`「${hw.title}」 채점 기록을 지울까요?`))return;
-      _noteMark(hw.id,hw.problems.map(p=>[p,lastOf(p)]).filter(x=>x[1]).map(([p,e0])=>({id:p.id,r:'-',date:e0[0]})));
-    }
-  };
+  if(isAbsent(st,date))hints.push('결석한 날은 리포트에 표시되지 않습니다 — 해 오면 다음 수업에 채점하세요');
+  const body=list.map(_hwHtml).join('')+(wrongIds.length?_wrongHtml(st,date,wrongIds):'');
+  const next=given.length?`<div class="label-hint note-hint">오늘 나간 숙제: ${given.map(x=>'📘 '+esc(x.hw.title)).join(', ')} → 다음 수업에 여기서 채점해요</div>`:'';
+  // 머리글은 label 이 아니라 div — label 안의 버튼은 제목 글자를 눌러도 눌린다
+  card.innerHTML=`<div class="cg"><div class="note-head">📘 문제 노트 숙제 채점 <span class="ab">자동</span>
+    <button class="note-refresh" data-act="refresh" title="문제 노트·다른 선생님이 채점한 것까지 새로 받기" aria-label="새로 받기">↻</button>
+    <button class="note-link" data-act="note" title="이 학생의 오답·기록을 문제 노트에서 보고 오답 노트를 인쇄해요">문제 노트 ↗</button></div>
+    ${body}${next}${hints.map(h=>`<div class="label-hint note-hint">${esc(h)}</div>`).join('')}</div>`;
+  card.onclick=e=>_noteClick(e,st,date);
 }
-function _hwHtml(hw){
-  const items=_recItems(G.selStudent);
-  const marks=hw.problems.map(p=>_lastMarkFor(items[p.id]?.h,hw.id)?.[1]||null);
-  const x=marks.filter(m=>m==='x').length,done=marks.filter(Boolean).length,left=hw.problems.length-done;
-  const st=!done?'<span class="note-st">미채점</span>':x?`<span class="note-st bad">틀림 ${x}</span>`:left?'<span class="note-st">채점 중</span>':'<span class="note-st good">모두 맞음</span>';
-  const hint=done?'<div class="label-hint">누를 때마다 맞음↔틀림</div>':'<div class="label-hint">틀린 문제를 누르면 나머지는 맞음으로 저장됩니다 · 안 푼 문제도 틀림으로</div>';
-  const saving=CLOUD.recLoading[G.selStudent]?'<span class="label-hint">기록 불러오는 중…</span>':CLOUD.markBusy[G.selStudent]?'<span class="label-hint">저장 중…</span>':'';
-  const groups=[];
-  hw.problems.forEach((p,i)=>{const u=p.unit||'';let g=groups[groups.length-1];if(!g||g.unit!==u){g={unit:u,items:[]};groups.push(g);}g.items.push([p,marks[i]]);});
+function _hwHtml({hw,carry}){
+  const st=G.selStudent,items=_recItems(st),r=_hwRes(st,hw);
+  const done=r.marked,left=r.total-done;
+  const badge=r.missing&&!done?'<span class="note-st bad">안 해 옴</span>':!done?'<span class="note-st">미채점</span>':r.wrong?`<span class="note-st bad">틀림 ${r.wrong}</span>`:left?'<span class="note-st">채점 중</span>':'<span class="note-st good">모두 맞음</span>';
+  const saving=CLOUD.markBusy[st]?'<span class="label-hint">저장 중…</span>':'';
   const id=esc(hw.id);
-  const chips=groups.map(g=>`<div class="note-unit-row">${g.unit?`<span class="note-unit">${esc(g.unit)}</span>`:''}${g.items.map(([p,m])=>{
-    const w=_wrongCount(items[p.id]?.h);
-    return`<button class="note-chip${m==='x'?' wrong':m==='o'?' right':''}" data-hw="${id}" data-np="${esc(p.id)}" title="${esc(p.label||p.id)}${w?` · 지금까지 ${w}번 틀림`:''}">${esc(p.no||p.label||p.id)}${w?`<span class="note-badge">${w}</span>`:''}</button>`;}).join('')}</div>`).join('');
-  return`<div class="note-asg"><div class="note-asg-head"><span class="note-asg-title">${esc(hw.title||'숙제')}</span><span class="label-hint">${hw.problems.length}문제${hw.due?` · 마감 ${esc(hw.due)}`:''}</span>${st}${saving}
-    <span class="note-asg-btns">${!done?`<button class="note-mini-btn" data-hw="${id}" data-act="all">모두 맞음</button>`:left?`<button class="note-mini-btn" data-hw="${id}" data-act="rest">나머지 ${left}문제 맞음</button>`:''}${done?`<button class="note-mini-btn" data-hw="${id}" data-act="clear">채점 지우기</button>`:''}</span></div>${chips}${hint}</div>`;
+  const btns=!done&&!r.missing
+    ?`<button class="note-mini-btn" data-hw="${id}" data-act="all">모두 맞음</button><button class="note-mini-btn" data-hw="${id}" data-act="allx">모두 틀림</button><button class="note-mini-btn" data-hw="${id}" data-act="miss">안 해 옴</button>`
+    :`${done&&left?`<button class="note-mini-btn" data-hw="${id}" data-act="rest">나머지 ${left}문제 맞음</button>`:''}<button class="note-mini-btn" data-hw="${id}" data-act="clear">채점 지우기</button>`;
+  const groups=[];
+  hw.problems.forEach(p=>{const u=p.unit||'';let g=groups[groups.length-1];if(!g||g.unit!==u){g={unit:u,items:[]};groups.push(g);}g.items.push(p);});
+  const chips=groups.map(g=>`<div class="note-unit-row">${g.unit?`<span class="note-unit">${esc(g.unit)}</span>`:''}${g.items.map(p=>{
+    const m=r.marks[p.id],h=items[p.id]?.h,w=_wrongCount(h);
+    return`<button class="note-chip${m==='x'?' wrong':m==='o'?' right':''}${r.missing&&!done?' dim':''}" data-hw="${id}" data-np="${esc(p.id)}" title="${esc(p.label||p.id)}${w?` · 지금까지 ${w}번 틀림`:''}${_needsHelp(h)?' · 설명 필요':''}">${esc(p.no||p.label||p.id)}${w>1?`<span class="note-badge">${w}</span>`:''}${_needsHelp(h)?'<span class="note-help"></span>':''}</button>`;}).join('')}</div>`).join('');
+  const hint=r.missing&&!done?`<div class="label-hint">안 해 옴 (${esc(r.missing)}) — 다음 수업까지 이월돼요. 해 오면 번호를 눌러 채점하세요</div>`
+    :done?'<div class="label-hint">누를 때마다 맞음↔틀림 · 틀린 문제는 오답 다시 풀기로 다음 과제에 붙어요</div>'
+    :'<div class="label-hint">틀린 문제만 누르세요 — 나머지는 맞음으로 저장돼요</div>';
+  return`<div class="note-asg"><div class="note-asg-head"><span class="note-asg-title">${carry?'<span class="carry-tag">(이월)</span> ':''}${esc(hw.title||'숙제')}</span><span class="label-hint">${esc(shortD(hw.date))} 낸 숙제 · ${hw.problems.length}문제</span>${badge}${saving}
+    <span class="note-asg-btns">${btns}</span></div>${chips}${hint}</div>`;
+}
+function _wrongHtml(st,date,ids){
+  const items=_recItems(st);
+  const marked=ids.filter(id=>_entryOn(items[id]?.h,date,''));
+  const bad=marked.filter(id=>_entryOn(items[id].h,date,'')[1]==='x').length;
+  const badge=!marked.length?'<span class="note-st">미채점</span>':bad?`<span class="note-st bad">또 틀림 ${bad}</span>`:'<span class="note-st good">모두 맞음</span>';
+  const btns=!marked.length?'<button class="note-mini-btn" data-wr="1" data-act="wall">모두 맞음</button>':'<button class="note-mini-btn" data-wr="1" data-act="wclear">채점 지우기</button>';
+  const chips=ids.map(id=>{
+    const e=_entryOn(items[id]?.h,date,''),h=items[id]?.h,checking=_nBefore(h,date)==='checking';
+    return`<button class="note-chip${e?.[1]==='x'?' wrong':e?.[1]==='o'?' right':''}" data-wr="1" data-np="${esc(id)}" title="${esc(_paperName(st,id))} · 지금까지 ${_wrongCount(h)}번 틀림${checking?' · 한 번 맞힘(확인 중)':''}">${esc(_chipName(st,id))}${checking?'<span class="note-ok1">✓1</span>':''}${_needsHelp(h)?'<span class="note-help"></span>':''}</button>`;
+  }).join('');
+  return`<div class="note-asg note-wrong"><div class="note-asg-head"><span class="note-asg-title">✎ 오답 다시 풀기</span><span class="label-hint">지난 수업에 낸 ${ids.length}문제</span>${badge}<span class="note-asg-btns">${btns}</span></div>
+    <div class="note-unit-row">${chips}</div><div class="label-hint">또 틀린 문제만 누르세요 · ✓1 = 한 번 맞힌 문제(다른 날 한 번 더 맞히면 해결) · 주황 점 = 3번 이상 틀림</div></div>`;
+}
+// 칩·버튼 누름 → 채점 (학생 한 명) — 반 전체 채점 창도 같은 함수를 쓴다
+function _noteClick(e,st,date){
+  const t=e.target.closest('[data-act],[data-np]');if(!t)return;
+  if(t.dataset.act==='refresh'){cloudLoadNotes();return;}
+  if(t.dataset.act==='note'){openNoteApp('student:'+st);return;}
+  if(t.dataset.act==='classgrade'){openClassGrade();return;}
+  st=t.dataset.st||st;
+  if(CLOUD.recLoading[st])return;
+  const items=_recItems(st);
+  if(t.dataset.wr){ // 오답 다시 풀기 (숙제 없음 — 이 수업 날짜의 한 회차)
+    const ids=_wrongCheckAt(st,date);
+    const markOf=id=>_entryOn(items[id]?.h,date,'')?.[1]||null;
+    if(t.dataset.np){
+      const id=t.dataset.np;
+      if(!ids.some(markOf)){_noteMark(st,'',ids.map(x=>({id:x,r:x===id?'x':'o',date})));return;}
+      _noteMark(st,'',[{id,r:markOf(id)==='x'?'o':'x',date}]);
+    }else if(t.dataset.act==='wall')_noteMark(st,'',ids.map(x=>({id:x,r:'o',date})));
+    else if(t.dataset.act==='wclear'){if(!confirm(`${st} — 오늘 오답 채점을 지울까요?`))return;_noteMark(st,'',ids.filter(markOf).map(x=>({id:x,r:'-',date})));}
+    return;
+  }
+  const hw=(CLOUD.notes.homework||[]).find(x=>x.id===t.dataset.hw);if(!hw)return;
+  const lastOf=p=>_lastMarkFor(items[p.id]?.h,hw.id);
+  if(t.dataset.np){
+    const p=hw.problems.find(x=>x.id===t.dataset.np);if(!p)return;
+    // 처음 누르면 누른 문제는 틀림·나머지는 맞음으로 한 번에, 그 뒤로는 맞음↔틀림 (숙제는 학생마다 한 번 채점 — 고치면 그 기록의 날짜로)
+    if(!hw.problems.some(q=>lastOf(q))){_noteMark(st,hw.id,hw.problems.map(q=>({id:q.id,r:q.id===p.id?'x':'o',date})));return;}
+    const e0=lastOf(p);
+    _noteMark(st,hw.id,[{id:p.id,r:e0&&e0[1]==='x'?'o':'x',date:e0?e0[0]:date}]);
+  }else if(t.dataset.act==='all')_noteMark(st,hw.id,hw.problems.map(p=>({id:p.id,r:'o',date})));
+  else if(t.dataset.act==='allx')_noteMark(st,hw.id,hw.problems.map(p=>({id:p.id,r:'x',date})));
+  else if(t.dataset.act==='rest')_noteMark(st,hw.id,hw.problems.filter(p=>!lastOf(p)).map(p=>({id:p.id,r:'o',date})));
+  else if(t.dataset.act==='miss')_noteMark(st,hw.id,[],{missing:true,date});
+  else if(t.dataset.act==='clear'){
+    if(!confirm(`${st} — 「${hw.title}」 채점을 지울까요?`))return;
+    _noteMark(st,hw.id,hw.problems.map(p=>[p,lastOf(p)]).filter(x=>x[1]).map(([p,e0])=>({id:p.id,r:'-',date:e0[0]})),{missing:false,date});
+  }
 }
 // 채점 표시 → 화면에 바로 반영하고, 학생마다 한 번에 하나씩 순서대로 서버에 저장
-function _noteMark(hwId,marks){
-  if(!marks.length)return;
+// flag = {missing:true|false, date} — 숙제 '안 해 옴' 표시 (채점하면 저절로 풀림)
+function _noteMark(student,hwId,marks,flag){
+  if(!marks.length&&!flag)return;
   if(!cloudSignedIn()){openCloudModal();return;}
-  const student=G.selStudent;
-  const rec=_recOf(student);
+  const rec=_recOf(student);rec.missing=rec.missing||{};
+  let graded=false;
   marks.forEach(({id,r,date})=>{
     const h=(rec.items[id]?.h||[]).filter(e=>!(e[0]===date&&(e[2]||'')===hwId));
-    if(r!=='-')h.push([date,r,hwId]);
+    if(r!=='-'){h.push(hwId?[date,r,hwId]:[date,r]);graded=true;}
     h.sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0);
     if(h.length)rec.items[id]={h};else delete rec.items[id];
   });
+  if(hwId){if(flag?.missing===true&&!graded)rec.missing[hwId]=flag.date;else if(flag?.missing===false||graded)delete rec.missing[hwId];}
   CLOUD.markBusy[student]=(CLOUD.markBusy[student]||0)+1;
   _refreshNoteViews();
   const byDate={};marks.forEach(m=>{(byDate[m.date]=byDate[m.date]||[]).push({id:m.id,r:m.r});});
+  if(!marks.length&&flag)byDate[flag.date]=[];
   CLOUD.markQ[student]=(CLOUD.markQ[student]||Promise.resolve()).then(async()=>{
     try{
+      let first=true;
       for(const[date,ms]of Object.entries(byDate)){
-        const d=await _ws('records',{method:'POST',body:{student,date,hw:hwId,marks:ms}});
+        const body={student,date,hw:hwId,marks:ms};
+        if(first&&flag&&hwId)body.missing=flag.missing;
+        first=false;
+        const d=await _ws('records',{method:'POST',body});
         const cur=_recOf(student); // 그 사이 캐시가 바뀌었어도 지금 객체에 반영
         Object.entries(d.items||{}).forEach(([id,r])=>{if(r.h?.length)cur.items[id]=r;else delete cur.items[id];});
+        cur.missing=d.missing||{};
       }
     }catch(e){
       toast('채점 저장 실패: '+e.message);
@@ -700,4 +913,61 @@ function _noteMark(hwId,marks){
       _lsSet(CLOUD_LS.notes,CLOUD.notes);_refreshNoteViews();
     }
   });
+}
+
+// ─── 반 전체 채점 창 — 이 수업 날짜에 검사할 숙제를 학생(줄) × 문제(칸) 한 화면에서 ───
+// (학생마다 탭을 옮기지 않고 답안지를 한 장씩 넘기며 채점 — 매쓰플랫·수학대왕과 같은 반 × 숙제 화면)
+function openClassGrade(){
+  if(!_notesOn()||!G.selDate)return;
+  let ov=document.querySelector('.stu-modal-overlay[data-type="classgrade"]');
+  if(!ov){
+    ov=document.createElement('div');ov.className='stu-modal-overlay';ov.dataset.type='classgrade';
+    ov.innerHTML=`<div class="stu-modal cg-modal"><div class="stu-modal-header"><span class="stu-modal-title" id="cgTitle">📘 숙제 채점 (반 전체)</span>
+      <button class="ms-close" onclick="_closeClassGrade()">✕</button></div><div class="stu-modal-body" id="cgBody"></div></div>`;
+    ov.addEventListener('click',e=>{if(e.target===ov)_closeClassGrade();});
+    document.body.appendChild(ov);
+  }
+  _renderClassGrade();
+}
+function _closeClassGrade(){
+  document.querySelector('.stu-modal-overlay[data-type="classgrade"]')?.remove();
+  if(G.selStudent&&G.selDate&&typeof autoFillAll==='function'){renderNotePanel();}
+}
+function _renderClassGrade(){
+  const body=$$('cgBody');if(!body)return;
+  const date=G.selDate;
+  const sts=G.students.filter(s=>!isAbsent(s,date));
+  $$('cgTitle').textContent=`📘 숙제 채점 (반 전체) · ${fmtKo(date)}`;
+  // 이 날짜에 검사할 숙제별로 모으기
+  const byHw=new Map();
+  sts.forEach(s=>_hwCheckAt(s,date).forEach(({hw,carry})=>{if(!byHw.has(hw.id))byHw.set(hw.id,{hw,rows:[]});byHw.get(hw.id).rows.push({s,carry});}));
+  const wrongRows=sts.map(s=>({s,ids:_wrongCheckAt(s,date)})).filter(x=>x.ids.length);
+  if(!byHw.size&&!wrongRows.length){body.innerHTML='<div class="cloud-hint">이 날짜에 채점할 문제 노트 숙제가 없습니다.</div>';return;}
+  const tables=[...byHw.values()].map(({hw,rows})=>{
+    const id=esc(hw.id);
+    const head=hw.problems.map(p=>`<th title="${esc(p.label)}">${esc(p.no||p.label)}</th>`).join('');
+    const trs=rows.map(({s,carry})=>{
+      const r=_hwRes(s,hw),items=_recItems(s),es=esc(s);
+      const stTxt=r.missing&&!r.marked?'<span class="cg-bad">안 해 옴</span>':!r.marked?'<span class="cg-dim">미채점</span>':`${r.correct}/${r.total}`;
+      const acts=!r.marked&&!r.missing?`<button data-st="${es}" data-hw="${id}" data-act="all">모두 맞음</button><button data-st="${es}" data-hw="${id}" data-act="allx">모두 틀림</button><button data-st="${es}" data-hw="${id}" data-act="miss">안 해 옴</button>`
+        :`${r.marked&&r.marked<r.total?`<button data-st="${es}" data-hw="${id}" data-act="rest">나머지 맞음</button>`:''}<button data-st="${es}" data-hw="${id}" data-act="clear">지우기</button>`;
+      const cells=hw.problems.map(p=>{const m=r.marks[p.id],h=items[p.id]?.h;return`<td><button class="note-chip${m==='x'?' wrong':m==='o'?' right':''}${r.missing&&!r.marked?' dim':''}" data-st="${es}" data-hw="${id}" data-np="${esc(p.id)}" title="${es} · ${esc(p.label)}${_needsHelp(h)?' · 설명 필요':''}">${m==='x'?'✗':m==='o'?'○':esc(p.no||'·')}${_needsHelp(h)?'<span class="note-help"></span>':''}</button></td>`;}).join('');
+      return`<tr><th class="cg-name"><div>${carry?'<span class="carry-tag">(이월)</span> ':''}${es} <span class="cg-st">${stTxt}${CLOUD.markBusy[s]?' · 저장 중…':''}</span></div><div class="cg-acts">${acts}</div></th>${cells}</tr>`;
+    }).join('');
+    const graded=rows.filter(({s})=>_hwRes(s,hw).marked).length;
+    const wrongBy=hw.problems.map(p=>rows.filter(({s})=>_hwRes(s,hw).marks[p.id]==='x').length);
+    const foot=graded?`<tr class="cg-foot"><th class="cg-name">틀린 학생 수</th>${wrongBy.map(n=>`<td class="${n&&n/graded>=0.4?'cg-hot':''}">${n||'·'}</td>`).join('')}</tr>`:'';
+    return`<div class="cg-sec"><div class="cg-sec-title">📘 ${esc(hw.title)} <span class="label-hint">${esc(shortD(hw.date))} 낸 숙제 · ${hw.problems.length}문제 · 채점 ${graded}/${rows.length}명</span></div>
+      <div class="cg-scroll"><table class="cg-table"><thead><tr><th class="cg-name">학생</th>${head}</tr></thead><tbody>${trs}${foot}</tbody></table></div></div>`;
+  }).join('');
+  const wr=wrongRows.length?`<div class="cg-sec"><div class="cg-sec-title">✎ 오답 다시 풀기 <span class="label-hint">지난 수업에 학생마다 낸 틀린 문제 — 또 틀린 것만 누르세요</span></div>
+    ${wrongRows.map(({s,ids})=>{const items=_recItems(s),es=esc(s);const marked=ids.filter(id=>_entryOn(items[id]?.h,date,''));
+      const bad=marked.filter(id=>_entryOn(items[id].h,date,'')[1]==='x').length;
+      return`<div class="cg-wrow"><div class="cg-wname">${es} <span class="cg-st">${marked.length?`맞음 ${marked.length-bad} · 또 틀림 ${bad}`:'<span class="cg-dim">미채점</span>'}${CLOUD.markBusy[s]?' · 저장 중…':''}</span>
+        <span class="cg-acts">${marked.length?`<button data-st="${es}" data-wr="1" data-act="wclear">지우기</button>`:`<button data-st="${es}" data-wr="1" data-act="wall">모두 맞음</button>`}</span></div>
+        <div class="note-unit-row">${ids.map(id=>{const e=_entryOn(items[id]?.h,date,''),h=items[id]?.h,ck=_nBefore(h,date)==='checking';
+          return`<button class="note-chip${e?.[1]==='x'?' wrong':e?.[1]==='o'?' right':''}" data-st="${es}" data-wr="1" data-np="${esc(id)}" title="${esc(_paperName(s,id))}">${esc(_chipName(s,id))}${ck?'<span class="note-ok1">✓1</span>':''}${_needsHelp(h)?'<span class="note-help"></span>':''}</button>`;}).join('')}</div></div>`;}).join('')}</div>`:'';
+  body.innerHTML=`<div class="cg-intro">답안지를 한 장씩 보면서 <b>그 학생 줄에서 틀린 문제만</b> 누르세요 — 누르지 않은 문제는 맞음으로 저장됩니다. 틀린 문제는 학생마다 <b>오답 다시 풀기</b>로 '다음 수업까지 과제'에 자동으로 붙어요.</div>${tables}${wr}
+    <div class="cg-foot-row"><button class="cloud-mini-btn" data-act="refresh">↻ 새로 받기</button><button class="cloud-mini-btn" onclick="openNoteApp('classroom')">문제 노트에서 학생별 오답 노트 인쇄 ↗</button></div>`;
+  body.onclick=e=>_noteClick(e,'',date);
 }
